@@ -10,5 +10,11 @@
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "katex": "^0.16.45"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8"
   }
 }

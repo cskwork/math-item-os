@@ -7,9 +7,17 @@
     ".": "./client.ts"
   },
   "scripts": {
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx seed.ts",
-    "db:studio": "prisma studio",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:seed": "dotenv -e ../../.env -- tsx seed.ts",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
     "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6",
+    "prisma": "^6"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0"
   }
 }

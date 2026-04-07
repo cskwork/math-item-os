@@ -46,5 +46,8 @@ packages/db/prisma/*.db-journal
 npm-debug.log*
 pnpm-debug.log*
 
+# Execution logs
+specs/**/.execution-logs/
+
 # OS
 Thumbs.db

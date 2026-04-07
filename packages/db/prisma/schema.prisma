@@ -1,0 +1,603 @@
+// Math Knowledge Graph + Item OS - Prisma Schema
+// PostgreSQL 17 + pgvector + ltree + pg_trgm
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgvector(map: "vector"), pg_trgm, ltree]
+}
+
+// ─────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────
+
+enum SchoolLevel {
+  elementary
+  middle
+  high
+}
+
+enum SemesterType {
+  first
+  second
+}
+
+enum ItemType {
+  multiple_choice
+  short_answer
+  essay
+  fill_in_blank
+  true_false
+}
+
+enum FormulaType {
+  inline
+  display
+  mixed
+  none
+}
+
+enum AnswerFormat {
+  exact_value
+  expression
+  multiple_choice
+  range
+  set
+}
+
+enum QualityStatus {
+  draft
+  reviewed
+  approved
+  retired
+}
+
+enum UsagePurpose {
+  diagnosis
+  remediation
+  pre_exam
+  advanced
+  practice
+  review
+}
+
+enum EdgeStrength {
+  strong
+  weak
+}
+
+enum SolutionMethod {
+  standard
+  alternative
+  visual
+  shortcut
+}
+
+enum RecType {
+  remediation
+  advancement
+  practice
+  review
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+  approve
+  retire
+  generate
+  assign
+}
+
+enum ReviewTaskType {
+  tag_review
+  generation_review
+  duplicate_review
+  explanation_error
+}
+
+enum ReviewStatus {
+  pending
+  in_progress
+  completed
+  rejected
+}
+
+enum AssignmentPurpose {
+  diagnosis
+  remediation
+  pre_exam
+  advanced
+}
+
+enum UserRole {
+  admin
+  reviewer
+  teacher
+}
+
+// ─────────────────────────────────────────────────
+// Auth.js v5 Models (Prisma Adapter)
+// ─────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(teacher)
+
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────────
+// Core Domain Models
+// ─────────────────────────────────────────────────
+
+model Organization {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items                Item[]
+  skills               Skill[]
+  prerequisiteEdges    PrerequisiteEdge[]
+  standards            Standard[]
+  misconceptions       Misconception[]
+  templates            Template[]
+  assignments          Assignment[]
+  recommendationEvents RecommendationEvent[]
+  auditLogs            AuditLog[]
+
+  @@map("organizations")
+}
+
+/// 수학 문항. LaTeX + MathML + SymPy AST 3중 표현 저장.
+model Item {
+  id        String @id @default(cuid())
+  orgId     String
+  passageId String?
+
+  // 3중 표현 (Constitution I)
+  bodyLatex  String  @db.Text
+  bodyMathml String? @db.Text
+  bodySympy  String? @db.Text
+  bodyHtml   String? @db.Text
+
+  // 선택지/정답
+  choices Json? // [{label, latex, mathml, is_correct}]
+  answer  Json  // {value, format, tolerance, alternatives}
+
+  // 분류 메타데이터
+  schoolLevel SchoolLevel
+  grade       Int         @db.SmallInt
+  semester    SemesterType?
+  topicPath   String?     // ltree (raw SQL로 인덱스 생성)
+  itemType    ItemType    @default(short_answer)
+  formulaType FormulaType @default(inline)
+  answerFormat AnswerFormat @default(exact_value)
+  solutionSteps Int?      @db.SmallInt
+  usagePurposes UsagePurpose[] @default([])
+
+  // 난이도/상태
+  difficultyAuthor Int?          @db.SmallInt // 1-5
+  status           QualityStatus @default(draft)
+  isGenerated      Boolean       @default(false)
+  templateId       String?
+
+  // 벡터 임베딩 (pgvector - raw SQL migration에서 추가)
+  // embedding Unsupported("vector(768)")?
+
+  currentVersion Int    @default(1) @db.SmallInt
+  createdBy      String?
+  metadata       Json?  @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization      Organization       @relation(fields: [orgId], references: [id])
+  template          Template?          @relation(fields: [templateId], references: [id])
+  versions          ItemVersion[]
+  skills            ItemSkill[]
+  standards         ItemStandard[]
+  misconceptions    ItemMisconception[]
+  difficultyProfile DifficultyProfile?
+  solutions         Solution[]
+  variants          Variant[]
+  similaritiesA     ItemSimilarity[]   @relation("SimilarityA")
+  similaritiesB     ItemSimilarity[]   @relation("SimilarityB")
+  assignmentItems   AssignmentItem[]
+
+  @@index([orgId, status, schoolLevel, grade])
+  @@index([orgId, itemType])
+  @@index([orgId, createdAt])
+  @@map("items")
+}
+
+/// 불변 버전 이력. 수정 시 새 행 삽입.
+model ItemVersion {
+  id            String @id @default(cuid())
+  itemId        String
+  version       Int    @db.SmallInt
+  bodyLatex     String @db.Text
+  answer        Json
+  changeSummary String?
+
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, version])
+  @@map("item_versions")
+}
+
+/// 지식 그래프 노드. 선수학습 관계 DAG 형성.
+model Skill {
+  id               String @id @default(cuid())
+  orgId            String
+  code             String
+  title            String
+  description      String?
+  topicPath        String // ltree
+  bloomLevel       Int?   @db.SmallInt // 1-6
+  estimatedTimeMin Int?   @db.SmallInt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization       Organization       @relation(fields: [orgId], references: [id])
+  items              ItemSkill[]
+  standards          SkillStandard[]
+  prerequisitesFrom  PrerequisiteEdge[] @relation("EdgeFrom")
+  prerequisitesTo    PrerequisiteEdge[] @relation("EdgeTo")
+
+  @@unique([orgId, code])
+  @@index([orgId, topicPath])
+  @@map("skills")
+}
+
+/// 스킬 간 방향 그래프 간선. DAG 무결성 필수.
+model PrerequisiteEdge {
+  id          String       @id @default(cuid())
+  orgId       String
+  fromSkillId String
+  toSkillId   String
+  strength    EdgeStrength @default(strong)
+  weight      Decimal      @default(1.0) @db.Decimal(3, 2)
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  fromSkill    Skill        @relation("EdgeFrom", fields: [fromSkillId], references: [id], onDelete: Cascade)
+  toSkill      Skill        @relation("EdgeTo", fields: [toSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, fromSkillId, toSkillId])
+  @@map("prerequisite_edges")
+}
+
+/// 2022 개정 교육과정 성취기준. CASE 프레임워크 호환.
+model Standard {
+  id          String      @id @default(cuid())
+  orgId       String
+  code        String
+  title       String
+  schoolLevel SchoolLevel
+  grade       Int         @db.SmallInt
+  topicPath   String      // ltree
+  caseUri     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [orgId], references: [id])
+  items        ItemStandard[]
+  skills       SkillStandard[]
+
+  @@unique([orgId, code])
+  @@index([orgId, topicPath])
+  @@map("standards")
+}
+
+/// 수학 오개념. 연구 기반 사전 정의 + 검수자 확장.
+model Misconception {
+  id            String   @id @default(cuid())
+  orgId         String
+  code          String
+  title         String
+  typicalError  String?
+  remediation   String?
+  severity      Int      @default(3) @db.SmallInt // 1-5
+  relatedSkills String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [orgId], references: [id])
+  items        ItemMisconception[]
+
+  @@unique([orgId, code])
+  @@map("misconceptions")
+}
+
+/// 문항당 1:1 난이도 프로필. MVP에서는 author_difficulty만 사용.
+model DifficultyProfile {
+  id                  String   @id @default(cuid())
+  itemId              String   @unique
+  authorDifficulty    Int      @db.SmallInt // 1-5
+  behavioralDifficulty Decimal? @db.Decimal(4, 3) // 0-1
+  irtDifficulty       Decimal? @db.Decimal(5, 3)
+  irtDiscrimination   Decimal? @db.Decimal(5, 3)
+  irtGuessing         Decimal? @db.Decimal(4, 3)
+  teacherPerceived    Decimal? @db.Decimal(3, 1) // 1.0-5.0
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("difficulty_profiles")
+}
+
+/// 문항별 복수 풀이 방법.
+model Solution {
+  id          String         @id @default(cuid())
+  itemId      String
+  method      SolutionMethod @default(standard)
+  steps       Json           // [{step_num, latex, explanation, hint}]
+  finalAnswer String
+  explanation String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("solutions")
+}
+
+/// 파라미터화된 문제 구조. 변형 문항 생성 기반.
+model Template {
+  id             String @id @default(cuid())
+  orgId          String
+  title          String
+  bodyTemplate   String @db.Text // 변수 포함 LaTeX
+  parameters     Json   // [{name, type, range, constraints}]
+  answerTemplate String @db.Text
+  constraints    Json   @default("{}")
+  variantCount   Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  items        Item[]
+  variants     Variant[]
+
+  @@map("templates")
+}
+
+/// 템플릿에서 생성된 문항 인스턴스.
+model Variant {
+  id            String @id @default(cuid())
+  templateId    String
+  itemId        String
+  paramValues   Json   // 실제 매개변수 값
+  seed          BigInt?
+  generationLog Json   @default("{}")
+
+  createdAt DateTime @default(now())
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("variants")
+}
+
+/// 교사가 목적별로 구성하는 문항 세트.
+model Assignment {
+  id          String            @id @default(cuid())
+  orgId       String
+  title       String
+  purpose     AssignmentPurpose
+  isPublished Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization   @relation(fields: [orgId], references: [id])
+  items        AssignmentItem[]
+
+  @@map("assignments")
+}
+
+/// 추천 근거 + 교사 피드백 기록 (Constitution II).
+model RecommendationEvent {
+  id        String   @id @default(cuid())
+  orgId     String
+  recType   RecType
+  itemIds   String[]
+  reasoning Json     // 추천 근거 (Constitution II 필수)
+  accepted  Boolean?
+  feedback  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, recType])
+  @@map("recommendation_events")
+}
+
+/// 불변 감사 로그. UPDATE/DELETE 차단 (RULE).
+model AuditLog {
+  id          String      @id @default(cuid())
+  orgId       String
+  tableName   String
+  recordId    String
+  action      AuditAction
+  oldData     Json?
+  newData     Json?
+  performedBy String
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, tableName, action])
+  @@index([orgId, recordId])
+  @@index([orgId, createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────
+// Junction Tables (M:N)
+// ─────────────────────────────────────────────────
+
+model ItemSkill {
+  id        String  @id @default(cuid())
+  itemId    String
+  skillId   String
+  isPrimary Boolean @default(false)
+  weight    Decimal @default(1.0) @db.Decimal(3, 2)
+
+  item  Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, skillId])
+  @@map("item_skills")
+}
+
+model ItemStandard {
+  id         String  @id @default(cuid())
+  itemId     String
+  standardId String
+  alignment  String? // 정합도 설명
+
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  standard Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, standardId])
+  @@map("item_standards")
+}
+
+model ItemMisconception {
+  id              String @id @default(cuid())
+  itemId          String
+  misconceptionId String
+  frequency       Decimal? @db.Decimal(4, 3) // 0-1
+  sampleN         Int?     @db.SmallInt
+
+  item          Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  misconception Misconception @relation(fields: [misconceptionId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, misconceptionId])
+  @@map("item_misconceptions")
+}
+
+model ItemSimilarity {
+  id      String  @id @default(cuid())
+  itemAId String
+  itemBId String
+  method  String  // similarity calculation method
+  score   Decimal @db.Decimal(4, 3) // 0-1
+
+  createdAt DateTime @default(now())
+
+  itemA Item @relation("SimilarityA", fields: [itemAId], references: [id], onDelete: Cascade)
+  itemB Item @relation("SimilarityB", fields: [itemBId], references: [id], onDelete: Cascade)
+
+  @@unique([itemAId, itemBId, method])
+  @@map("item_similarities")
+}
+
+model SkillStandard {
+  id         String @id @default(cuid())
+  skillId    String
+  standardId String
+
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  standard Standard @relation(fields: [standardId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, standardId])
+  @@map("skill_standards")
+}
+
+model AssignmentItem {
+  id           String @id @default(cuid())
+  assignmentId String
+  itemId       String
+  position     Int    @db.SmallInt
+  points       Decimal? @db.Decimal(5, 1)
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, itemId])
+  @@index([assignmentId, position])
+  @@map("assignment_items")
+}

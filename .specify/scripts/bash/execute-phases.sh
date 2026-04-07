@@ -21,6 +21,23 @@
 
 set -euo pipefail
 
+# -- Guard: prevent nested Claude Code sessions --
+if [ -n "${CLAUDECODE:-}" ]; then
+  echo "Error: Cannot run inside a Claude Code session (CLAUDECODE env var detected)."
+  echo "Run this script in a separate terminal, or: unset CLAUDECODE && $0 $*"
+  exit 1
+fi
+
+# -- Cleanup on exit/interrupt --
+CHILD_PIDS=()
+cleanup() {
+  for pid in "${CHILD_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
 # -- Colors --
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
@@ -220,7 +237,9 @@ execute_phase() {
   prompt=$(generate_prompt "$phase_num" "$phase_name" "$tasks")
 
   # Build claude command
-  local cmd=(claude -p "$prompt" --max-turns "$MAX_TURNS")
+  # --dangerously-skip-permissions: required for headless batch execution
+  # without it, claude -p hangs on permission prompts with no terminal to respond
+  local cmd=(claude -p "$prompt" --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
   [ -n "$MODEL" ] && cmd+=(--model "$MODEL")
   # Non-verbose: batch output to log; Verbose: stream to terminal + log
   if ! $VERBOSE; then
@@ -229,11 +248,61 @@ execute_phase() {
 
   # Execute
   local exit_code=0
+
   if $VERBOSE; then
-    # Run claude directly to terminal (no pipe/script = real TTY = streaming)
-    # Log is captured after completion
-    "${cmd[@]}" </dev/tty
-    exit_code=$?
+    # Run claude -p in background (output goes to log file on completion)
+    "${cmd[@]}" --output-format text > "$log_file" 2>&1 &
+    local claude_pid=$!
+    CHILD_PIDS+=("$claude_pid")
+
+    # Detect the session JSONL file by polling for a new file opened by claude
+    local session_dir new_session="" tail_pid=""
+    session_dir="$(find "$HOME/.claude/projects" -maxdepth 1 -type d -name "*$(basename "$REPO_DIR")*" 2>/dev/null | head -1)"
+
+    if [ -n "$session_dir" ]; then
+      echo -e "  ${CYAN}Waiting for session to start...${NC}"
+      local attempts=0
+      while [ -z "$new_session" ] && [ $attempts -lt 30 ] && kill -0 $claude_pid 2>/dev/null; do
+        sleep 1
+        ((attempts++)) || true
+        # Find the most recently CREATED jsonl (newest by birth time on macOS)
+        new_session=$(find "$session_dir" -name "*.jsonl" -newer "$log_file" -type f 2>/dev/null \
+          | xargs ls -t 2>/dev/null | head -1)
+      done
+
+      if [ -n "$new_session" ]; then
+        echo -e "  ${CYAN}Monitoring: $(basename "$new_session")${NC}"
+        tail -f "$new_session" 2>/dev/null | python3 -uc "
+import sys, json
+for line in sys.stdin:
+    try:
+        obj = json.loads(line.strip())
+        t = obj.get('type','')
+        if t == 'assistant':
+            for c in obj.get('message',{}).get('content',[]):
+                if c.get('type') == 'text' and c['text'].strip():
+                    txt = c['text'].replace('\n',' ')[:200]
+                    print(f'  [TEXT] {txt}', flush=True)
+                elif c.get('type') == 'tool_use':
+                    name = c.get('name','')
+                    inp = str(c.get('input',{}))[:120]
+                    print(f'  [TOOL] {name}: {inp}', flush=True)
+    except: pass
+" &
+        tail_pid=$!
+        CHILD_PIDS+=("$tail_pid")
+      else
+        echo -e "  ${YELLOW}Could not detect session file -- check logs after completion${NC}"
+      fi
+    fi
+
+    # Wait for claude to finish
+    wait $claude_pid 2>/dev/null || exit_code=$?
+
+    # Cleanup tail monitor
+    [ -n "$tail_pid" ] && kill $tail_pid 2>/dev/null || true
+    wait $tail_pid 2>/dev/null || true
+    echo ""
   else
     "${cmd[@]}" > "$log_file" 2>&1 || exit_code=$?
     # Show only the result line

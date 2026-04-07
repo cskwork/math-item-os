@@ -73,17 +73,17 @@ Turborepo monorepo:
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] Implement LaTeX-to-MathML converter (KaTeX renderToMathMLTree) in packages/math-parser/src/latex-to-mathml.ts
-- [ ] T021 [P] [US1] Create /convert/latex-to-sympy endpoint in services/math-ai/app/routers/validate.py with SymPy parse_latex
-- [ ] T022 [US1] Implement 3중 변환 pipeline (LaTeX -> MathML + SymPy AST, 실패 시 body_sympy NULL) in apps/web/src/server/services/conversion.service.ts
-- [ ] T023 [US1] Implement item service (create with 3중 변환, update with version, getById, list with pagination) in apps/web/src/server/services/item.service.ts
-- [ ] T024 [P] [US1] Implement quality status state machine (draft->reviewed->approved->retired, approved->draft 역전이) in apps/web/src/server/services/quality-status.service.ts
-- [ ] T025 [US1] Create item tRPC router (create, update, updateStatus, getById, list) in apps/web/src/server/routers/item.router.ts
-- [ ] T026 [P] [US1] Create formula editor component with live KaTeX preview in apps/web/src/components/math/formula-editor.tsx
-- [ ] T027 [P] [US1] Create item card component (수식 미리보기, 메타 태그 표시) in apps/web/src/components/items/item-card.tsx
-- [ ] T028 [US1] Create item creation/edit page with formula editor in apps/web/src/app/(dashboard)/items/new/page.tsx
-- [ ] T029 [P] [US1] Create item list page with pagination and status filter in apps/web/src/app/(dashboard)/items/page.tsx
-- [ ] T030 [P] [US1] Create item detail page with version history and rendered math in apps/web/src/app/(dashboard)/items/[id]/page.tsx
+- [x] T020 [P] [US1] Implement LaTeX-to-MathML converter (KaTeX renderToMathMLTree) in packages/math-parser/src/latex-to-mathml.ts
+- [x] T021 [P] [US1] Create /convert/latex-to-sympy endpoint in services/math-ai/app/routers/validate.py with SymPy parse_latex
+- [x] T022 [US1] Implement 3중 변환 pipeline (LaTeX -> MathML + SymPy AST, 실패 시 body_sympy NULL) in apps/web/src/server/services/conversion.service.ts
+- [x] T023 [US1] Implement item service (create with 3중 변환, update with version, getById, list with pagination) in apps/web/src/server/services/item.service.ts
+- [x] T024 [P] [US1] Implement quality status state machine (draft->reviewed->approved->retired, approved->draft 역전이) in apps/web/src/server/services/quality-status.service.ts
+- [x] T025 [US1] Create item tRPC router (create, update, updateStatus, getById, list) in apps/web/src/server/routers/item.router.ts
+- [x] T026 [P] [US1] Create formula editor component with live KaTeX preview in apps/web/src/components/math/formula-editor.tsx
+- [x] T027 [P] [US1] Create item card component (수식 미리보기, 메타 태그 표시) in apps/web/src/components/items/item-card.tsx
+- [x] T028 [US1] Create item creation/edit page with formula editor in apps/web/src/app/(dashboard)/items/new/page.tsx
+- [x] T029 [P] [US1] Create item list page with pagination and status filter in apps/web/src/app/(dashboard)/items/page.tsx
+- [x] T030 [P] [US1] Create item detail page with version history and rendered math in apps/web/src/app/(dashboard)/items/[id]/page.tsx
 - [ ] T031 [US1] Implement bulk upload service (CSV/JSON/QTI parsing, BullMQ job, 1만건 제한) in apps/web/src/server/services/upload.service.ts
 - [ ] T032 [US1] Add bulkUpload and getBulkUploadStatus to item router in apps/web/src/server/routers/item.router.ts
 - [ ] T033 [US1] Create bulk upload page with progress tracking and error report in apps/web/src/app/(dashboard)/items/upload/page.tsx

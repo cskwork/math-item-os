@@ -3,6 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.validate import router as validate_router
+
 app = FastAPI(
     title="Math AI Service",
     description="SymPy 기반 수학 수식 검증, 변환, 유사문항 생성 서비스",
@@ -16,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(validate_router, prefix="/convert", tags=["convert"])
 
 
 @app.get("/health")

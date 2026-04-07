@@ -31,11 +31,11 @@ Turborepo monorepo:
 **Purpose**: Turborepo monorepo 초기화 및 개발 환경 구성
 
 - [x] T001 Create Turborepo monorepo with pnpm workspace config in turbo.json and pnpm-workspace.yaml
-- [ ] T002 [P] Create Docker Compose config (PostgreSQL 17 + pgvector/ltree/pg_trgm, Redis 7, Meilisearch 1.12) in docker-compose.yml
-- [ ] T003 [P] Create environment config template with validation in .env.example
-- [ ] T004 [P] Configure ESLint, Prettier, and TypeScript base config in root and per-package tsconfig
-- [ ] T005 [P] Initialize apps/web as Next.js 15 App Router project with Tailwind CSS
-- [ ] T006 [P] Initialize services/math-ai Python FastAPI scaffold with app/main.py, Dockerfile, and requirements.txt
+- [x] T002 [P] Create Docker Compose config (PostgreSQL 17 + pgvector/ltree/pg_trgm, Redis 7, Meilisearch 1.12) in docker-compose.yml
+- [x] T003 [P] Create environment config template with validation in .env.example
+- [x] T004 [P] Configure ESLint, Prettier, and TypeScript base config in root and per-package tsconfig
+- [x] T005 [P] Initialize apps/web as Next.js 15 App Router project with Tailwind CSS
+- [x] T006 [P] Initialize services/math-ai Python FastAPI scaffold with app/main.py, Dockerfile, and requirements.txt
 
 ---
 

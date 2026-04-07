@@ -1,0 +1,16 @@
+{
+  "name": "@math-item-os/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./validators/*": "./validators/*.ts",
+    "./types/*": "./types/*.ts",
+    "./constants/*": "./constants/*.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@math-item-os/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./client.ts"
+  },
+  "scripts": {
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx seed.ts",
+    "db:studio": "prisma studio",
+    "build": "tsc --noEmit"
+  }
+}

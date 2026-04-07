@@ -45,19 +45,19 @@ Turborepo monorepo:
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Define Prisma schema with all entities (Item, ItemVersion, Skill, PrerequisiteEdge, Standard, Misconception, DifficultyProfile, Solution, Template, Variant, Assignment, RecommendationEvent, AuditLog) and enums in packages/db/prisma/schema.prisma
-- [ ] T008 Run initial Prisma migration and export typed client in packages/db/client.ts
-- [ ] T009 [P] Create Zod input validators for item, search, skill, admin contracts in packages/shared/validators/
-- [ ] T010 [P] Create TypeScript type definitions (Item, Skill, Standard, Misconception, etc.) in packages/shared/types/
-- [ ] T011 [P] Create enum constants (SchoolLevel, ItemType, FormulaType, AnswerFormat, QualityStatus, UsagePurpose, etc.) in packages/shared/constants/
-- [ ] T012 Configure Auth.js v5 with Prisma adapter and Google OAuth in apps/web/src/app/api/auth/[...nextauth]/route.ts
-- [ ] T013 Implement RBAC middleware (admin, reviewer, teacher roles) in apps/web/src/server/middleware/rbac.ts
-- [ ] T014 Setup tRPC v11 server with appRouter, context, and auth middleware in apps/web/src/server/trpc.ts and apps/web/src/app/api/trpc/[trpc]/route.ts
-- [ ] T015 [P] Setup tRPC client with React Query in apps/web/src/lib/trpc.ts
-- [ ] T016 [P] Create audit log service (immutable INSERT, UPDATE/DELETE blocked) in apps/web/src/server/services/audit.service.ts
-- [ ] T017 [P] Install shadcn/ui and create dashboard layout with sidebar navigation in apps/web/src/components/ui/ and apps/web/src/app/(dashboard)/layout.tsx
-- [ ] T018 [P] Create KaTeX renderer component (server + client dual rendering, MathML output) in packages/math-parser/src/renderer.ts and apps/web/src/components/math/katex-renderer.tsx
-- [ ] T019 Create seed data script (50 skills, 30 standards, 20 misconceptions, 80 prerequisite edges, 100 sample items) in packages/db/seed.ts
+- [x] T007 Define Prisma schema with all entities (Item, ItemVersion, Skill, PrerequisiteEdge, Standard, Misconception, DifficultyProfile, Solution, Template, Variant, Assignment, RecommendationEvent, AuditLog) and enums in packages/db/prisma/schema.prisma
+- [x] T008 Run initial Prisma migration and export typed client in packages/db/client.ts
+- [x] T009 [P] Create Zod input validators for item, search, skill, admin contracts in packages/shared/validators/
+- [x] T010 [P] Create TypeScript type definitions (Item, Skill, Standard, Misconception, etc.) in packages/shared/types/
+- [x] T011 [P] Create enum constants (SchoolLevel, ItemType, FormulaType, AnswerFormat, QualityStatus, UsagePurpose, etc.) in packages/shared/constants/
+- [x] T012 Configure Auth.js v5 with Prisma adapter and Google OAuth in apps/web/src/app/api/auth/[...nextauth]/route.ts
+- [x] T013 Implement RBAC middleware (admin, reviewer, teacher roles) in apps/web/src/server/middleware/rbac.ts
+- [x] T014 Setup tRPC v11 server with appRouter, context, and auth middleware in apps/web/src/server/trpc.ts and apps/web/src/app/api/trpc/[trpc]/route.ts
+- [x] T015 [P] Setup tRPC client with React Query in apps/web/src/lib/trpc.ts
+- [x] T016 [P] Create audit log service (immutable INSERT, UPDATE/DELETE blocked) in apps/web/src/server/services/audit.service.ts
+- [x] T017 [P] Install shadcn/ui and create dashboard layout with sidebar navigation in apps/web/src/components/ui/ and apps/web/src/app/(dashboard)/layout.tsx
+- [x] T018 [P] Create KaTeX renderer component (server + client dual rendering, MathML output) in packages/math-parser/src/renderer.ts and apps/web/src/components/math/katex-renderer.tsx
+- [x] T019 Create seed data script (50 skills, 30 standards, 20 misconceptions, 80 prerequisite edges, 100 sample items) in packages/db/seed.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: mathitem-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mathitem
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/init-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mathitem"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - math-item-os
+
+  redis:
+    image: redis:7
+    container_name: mathitem-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - math-item-os
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: mathitem-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: mathitem-dev-master-key
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    networks:
+      - math-item-os
+
+volumes:
+  postgres_data:
+
+networks:
+  math-item-os:
+    name: math-item-os

@@ -237,7 +237,7 @@ Turborepo monorepo:
 - [x] T082 [P] Create audit log viewer page (listAuditLogs with date/table/action filters) in apps/web/src/app/(dashboard)/admin/audit/page.tsx
 - [x] T083 Performance optimization (Meilisearch query tuning, pgvector HNSW params, Redis caching for frequent queries)
 - [x] T084 Security hardening (rate limiting middleware, CSRF protection, input sanitization, RLS verification)
-- [ ] T085 Run quickstart.md validation (Docker Compose up, migration, seed, dev server, all endpoints reachable)
+- [x] T085 Run quickstart.md validation (Docker Compose up, migration, seed, dev server, all endpoints reachable)
 
 ---
 

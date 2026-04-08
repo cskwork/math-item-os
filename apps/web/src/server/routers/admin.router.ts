@@ -63,7 +63,7 @@ const createTemplateSchema = z.object({
   title: z.string().min(1),
   bodyTemplate: z.string().min(1),
   parameters: z.array(z.record(z.unknown())),
-  answerTemplate: z.string().min(1),
+  answerTemplate: z.string(),
   constraints: z.record(z.unknown()).optional(),
 });
 

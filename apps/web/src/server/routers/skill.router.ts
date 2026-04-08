@@ -54,6 +54,7 @@ const updateSkillSchema = z.object({
   topicPath: z.string().min(1).optional(),
   bloomLevel: z.number().int().min(1).max(6).optional(),
   estimatedTimeMin: z.number().int().min(1).optional(),
+  typeLevel: z.number().int().min(1).max(6).optional(),
 });
 
 /** 선수 학습 관계 삭제 스키마 */

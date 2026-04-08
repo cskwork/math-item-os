@@ -18,6 +18,7 @@ export interface CreateSkillInput {
   readonly topicPath: string;
   readonly bloomLevel?: number;
   readonly estimatedTimeMin?: number;
+  readonly typeLevel?: number;
 }
 
 export interface UpdateSkillInput {
@@ -27,11 +28,13 @@ export interface UpdateSkillInput {
   readonly topicPath?: string;
   readonly bloomLevel?: number;
   readonly estimatedTimeMin?: number;
+  readonly typeLevel?: number;
 }
 
 export interface ListSkillsParams {
   readonly topicPath?: string;
   readonly bloomLevel?: number;
+  readonly typeLevel?: number;
   readonly page: number;
   readonly limit: number;
 }
@@ -89,6 +92,7 @@ export async function createSkill(
         topicPath: input.topicPath,
         bloomLevel: input.bloomLevel,
         estimatedTimeMin: input.estimatedTimeMin,
+        typeLevel: input.typeLevel,
       },
       include: SKILL_DETAIL_INCLUDE,
     });
@@ -106,6 +110,7 @@ export async function createSkill(
           title: input.title,
           topicPath: input.topicPath,
           bloomLevel: input.bloomLevel,
+          typeLevel: input.typeLevel,
         } as Prisma.InputJsonValue,
       },
     });
@@ -133,6 +138,7 @@ export async function updateSkill(
       topicPath: true,
       bloomLevel: true,
       estimatedTimeMin: true,
+      typeLevel: true,
     },
   });
 
@@ -160,6 +166,7 @@ export async function updateSkill(
       ...(input.estimatedTimeMin !== undefined && {
         estimatedTimeMin: input.estimatedTimeMin,
       }),
+      ...(input.typeLevel !== undefined && { typeLevel: input.typeLevel }),
     };
 
     const updated = await tx.skill.update({
@@ -182,6 +189,7 @@ export async function updateSkill(
           topicPath: existing.topicPath,
           bloomLevel: existing.bloomLevel,
           estimatedTimeMin: existing.estimatedTimeMin,
+          typeLevel: existing.typeLevel,
         } as Prisma.InputJsonValue,
         newData: {
           title: updated.title,
@@ -189,6 +197,7 @@ export async function updateSkill(
           topicPath: updated.topicPath,
           bloomLevel: updated.bloomLevel,
           estimatedTimeMin: updated.estimatedTimeMin,
+          typeLevel: updated.typeLevel,
         } as Prisma.InputJsonValue,
       },
     });
@@ -283,13 +292,14 @@ export async function getSkillById(id: string, orgId: string) {
 
 /** 필터 + 페이지네이션으로 스킬 목록을 조회한다. ltree 접두사 매칭 지원. */
 export async function listSkills(params: ListSkillsParams, orgId: string) {
-  const { topicPath, bloomLevel, page, limit } = params;
+  const { topicPath, bloomLevel, typeLevel, page, limit } = params;
 
   // 동적 where 절 구성
   const where: Prisma.SkillWhereInput = {
     orgId,
     ...(topicPath != null && { topicPath: { startsWith: topicPath } }),
     ...(bloomLevel != null && { bloomLevel }),
+    ...(typeLevel !== undefined && { typeLevel }),
   };
 
   const [skills, total] = await Promise.all([

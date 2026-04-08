@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { trpc } from "@/lib/trpc";
-import { BLOOM_LEVEL, BLOOM_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
+import { BLOOM_LEVEL, BLOOM_LEVEL_OPTIONS, TYPE_LEVEL, TYPE_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
 import { SkillFormModal, INITIAL_FORM } from "./_components/skill-form-modal";
 import type { SkillFormData } from "./_components/skill-form-modal";
 
@@ -20,15 +20,24 @@ const DEFAULT_LIMIT = 20;
 interface Filters {
   readonly topicPath: string;
   readonly bloomLevel: string;
+  readonly typeLevel: string;
 }
 
-const INITIAL_FILTERS: Filters = { topicPath: "", bloomLevel: "" };
+const INITIAL_FILTERS: Filters = { topicPath: "", bloomLevel: "", typeLevel: "" };
 
 // --- Bloom 수준 라벨 조회 ---
 
 function getBloomLabel(level: number | null | undefined): string {
   if (level == null) return "-";
   const entry = BLOOM_LEVEL[level as keyof typeof BLOOM_LEVEL];
+  return entry ? `${level}. ${entry.label}` : String(level);
+}
+
+// --- 문제 유형 레벨 라벨 조회 ---
+
+function getTypeLevelLabel(level: number | null | undefined): string {
+  if (level == null) return "-";
+  const entry = TYPE_LEVEL[level as keyof typeof TYPE_LEVEL];
   return entry ? `${level}. ${entry.label}` : String(level);
 }
 
@@ -181,6 +190,7 @@ export default function SkillListPage() {
     const input: Record<string, unknown> = { page, limit: DEFAULT_LIMIT };
     if (filters.topicPath) input.topicPath = filters.topicPath;
     if (filters.bloomLevel) input.bloomLevel = Number(filters.bloomLevel);
+    if (filters.typeLevel) input.typeLevel = Number(filters.typeLevel);
     return input;
   }, [filters, page]);
 
@@ -244,6 +254,7 @@ export default function SkillListPage() {
       bloomLevel?: number | null;
       estimatedTimeMin?: number | null;
       description?: string | null;
+      typeLevel?: number | null;
     }) => {
       setFormError("");
       setFormModal({
@@ -257,6 +268,7 @@ export default function SkillListPage() {
           topicPath: skill.topicPath,
           bloomLevel: skill.bloomLevel != null ? String(skill.bloomLevel) : "",
           estimatedTimeMin: skill.estimatedTimeMin != null ? String(skill.estimatedTimeMin) : "",
+          typeLevel: skill.typeLevel != null ? String(skill.typeLevel) : "",
         },
       });
     },
@@ -280,6 +292,7 @@ export default function SkillListPage() {
           topicPath: formData.topicPath,
           bloomLevel: formData.bloomLevel ? Number(formData.bloomLevel) : undefined,
           estimatedTimeMin: formData.estimatedTimeMin ? Number(formData.estimatedTimeMin) : undefined,
+          typeLevel: formData.typeLevel ? Number(formData.typeLevel) : undefined,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
       } else if (formModal.editingId) {
@@ -290,6 +303,7 @@ export default function SkillListPage() {
           topicPath: formData.topicPath || undefined,
           bloomLevel: formData.bloomLevel ? Number(formData.bloomLevel) : undefined,
           estimatedTimeMin: formData.estimatedTimeMin ? Number(formData.estimatedTimeMin) : undefined,
+          typeLevel: formData.typeLevel ? Number(formData.typeLevel) : undefined,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
       }
@@ -314,7 +328,7 @@ export default function SkillListPage() {
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return filters.topicPath !== "" || filters.bloomLevel !== "";
+    return filters.topicPath !== "" || filters.bloomLevel !== "" || filters.typeLevel !== "";
   }, [filters]);
 
   return (
@@ -351,6 +365,13 @@ export default function SkillListPage() {
             value={filters.bloomLevel}
             onChange={(v) => handleFilterChange("bloomLevel", v)}
             options={BLOOM_LEVEL_OPTIONS}
+          />
+
+          <FilterSelect
+            label="문제 유형"
+            value={filters.typeLevel}
+            onChange={(v) => handleFilterChange("typeLevel", v)}
+            options={TYPE_LEVEL_OPTIONS}
           />
         </div>
 
@@ -389,6 +410,7 @@ export default function SkillListPage() {
                   <th className="px-4 py-3 font-medium text-slate-600">스킬명</th>
                   <th className="px-4 py-3 font-medium text-slate-600">분류 경로</th>
                   <th className="px-4 py-3 font-medium text-slate-600">Bloom 수준</th>
+                  <th className="px-4 py-3 font-medium text-slate-600">문제 유형</th>
                   <th className="px-4 py-3 font-medium text-slate-600">문항 수</th>
                   <th className="px-4 py-3 font-medium text-slate-600">작업</th>
                 </tr>
@@ -404,6 +426,9 @@ export default function SkillListPage() {
                     <td className="px-4 py-3 text-slate-600">{skill.topicPath}</td>
                     <td className="px-4 py-3 text-slate-600">
                       {getBloomLabel(skill.bloomLevel)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {getTypeLevelLabel(skill.typeLevel)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {skill._count?.items ?? 0}

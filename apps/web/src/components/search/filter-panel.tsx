@@ -7,6 +7,7 @@ import {
   DIFFICULTY_LEVEL_OPTIONS,
   USAGE_PURPOSE_OPTIONS,
   GRADE_BY_LEVEL,
+  TYPE_LEVEL_OPTIONS,
 } from "@math-item-os/shared/constants/index";
 import type { SearchFacets } from "@math-item-os/shared/types/index";
 
@@ -18,6 +19,7 @@ export interface SearchFilters {
   readonly difficultyMin: string;
   readonly difficultyMax: string;
   readonly usagePurpose: string;
+  readonly typeLevel: string;
 }
 
 export const INITIAL_SEARCH_FILTERS: SearchFilters = {
@@ -27,6 +29,7 @@ export const INITIAL_SEARCH_FILTERS: SearchFilters = {
   difficultyMin: "",
   difficultyMax: "",
   usagePurpose: "",
+  typeLevel: "",
 };
 
 function FilterSelect({
@@ -104,7 +107,7 @@ export function FilterPanel({ filters, onFilterChange, onReset, facets }: Filter
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <FilterSelect
           label="학교급"
           value={filters.schoolLevel}
@@ -142,6 +145,12 @@ export function FilterPanel({ filters, onFilterChange, onReset, facets }: Filter
           value={filters.usagePurpose}
           onChange={(v) => onFilterChange("usagePurpose", v)}
           options={USAGE_PURPOSE_OPTIONS}
+        />
+        <FilterSelect
+          label="문제 유형"
+          value={filters.typeLevel}
+          onChange={(v) => onFilterChange("typeLevel", v)}
+          options={TYPE_LEVEL_OPTIONS}
         />
       </div>
 

@@ -16,6 +16,7 @@ import "@xyflow/react/dist/style.css";
 
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { TYPE_LEVEL } from "@math-item-os/shared/constants/index";
 
 // ─── 타입 정의 ───
 
@@ -26,6 +27,7 @@ interface SkillNodeData extends Record<string, unknown> {
   readonly itemCount: number;
   readonly difficultyDistribution: Record<number, number>;
   readonly isRoot: boolean;
+  readonly typeLevel: number | null;
 }
 
 type SkillNode = Node<SkillNodeData, "skill">;
@@ -186,12 +188,20 @@ const DifficultyBar = memo(function DifficultyBar({
   );
 });
 
+// ─── 문제 유형 레벨 색상 매핑 ───
+
+function getTypeLevelColor(level: number): string {
+  if (level <= 2) return "bg-green-100 text-green-700";
+  if (level <= 4) return "bg-blue-100 text-blue-700";
+  return "bg-purple-100 text-purple-700";
+}
+
 // ─── 커스텀 스킬 노드 컴포넌트 ───
 
 const SkillNodeComponent = memo(function SkillNodeComponent({
   data,
 }: NodeProps<SkillNode>) {
-  const { title, itemCount, difficultyDistribution, isRoot } = data;
+  const { title, itemCount, difficultyDistribution, isRoot, typeLevel } = data;
 
   return (
     <div
@@ -206,6 +216,13 @@ const SkillNodeComponent = memo(function SkillNodeComponent({
       <p className="truncate text-center text-sm font-bold text-slate-800">
         {title}
       </p>
+
+      {/* 문제 유형 레벨 배지 */}
+      {typeLevel != null && (
+        <p className={cn("mx-auto rounded-full px-2 py-0.5 text-center text-[10px] font-medium", getTypeLevelColor(typeLevel))}>
+          {TYPE_LEVEL[typeLevel as keyof typeof TYPE_LEVEL]?.label ?? `L${typeLevel}`}
+        </p>
+      )}
 
       {/* 문항 수 배지 */}
       <p className="text-center text-xs text-slate-500">
@@ -266,6 +283,7 @@ interface GraphData {
       title: string;
       topicPath: string;
       bloomLevel: number | null;
+      typeLevel: number | null;
     };
     itemCount: number;
     difficultyDistribution: Record<number, number>;
@@ -303,6 +321,7 @@ function transformToReactFlowData(
         itemCount: nodeData.itemCount,
         difficultyDistribution: nodeData.difficultyDistribution,
         isRoot: nodeData.skill.id === rootSkillId,
+        typeLevel: nodeData.skill.typeLevel ?? null,
       },
     };
   });

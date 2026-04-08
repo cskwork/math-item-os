@@ -171,6 +171,7 @@ export const searchItemsSchema = z.object({
       usagePurposes: z.array(usagePurposeSchema).optional(),
       isGenerated: z.boolean().optional(),
       status: z.array(qualityStatusSchema).optional(),
+      typeLevel: z.number().int().min(1).max(6).optional(),
     })
     .optional(),
   page: z.number().int().min(1).default(1),
@@ -203,6 +204,7 @@ export const createSkillSchema = z.object({
   topicPath: z.string().min(1),
   bloomLevel: z.number().int().min(1).max(6).optional(),
   estimatedTimeMin: z.number().int().min(1).optional(),
+  typeLevel: z.number().int().min(1).max(6).optional(),
 });
 
 /** 선수 스킬 관계 생성 */
@@ -224,6 +226,7 @@ export const getPrerequisiteGraphSchema = z.object({
 export const listSkillsSchema = paginationSchema.extend({
   topicPath: z.string().optional(),
   bloomLevel: z.number().int().min(1).max(6).optional(),
+  typeLevel: z.number().int().min(1).max(6).optional(),
 });
 
 /** 스킬별 문항 목록 */

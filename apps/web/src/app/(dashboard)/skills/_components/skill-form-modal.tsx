@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { BLOOM_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
+import { BLOOM_LEVEL_OPTIONS, TYPE_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
 
 // --- 폼 상태 타입 ---
 
@@ -20,6 +20,7 @@ export interface SkillFormData {
   readonly topicPath: string;
   readonly bloomLevel: string;
   readonly estimatedTimeMin: string;
+  readonly typeLevel: string;
 }
 
 export const INITIAL_FORM: SkillFormData = {
@@ -29,6 +30,7 @@ export const INITIAL_FORM: SkillFormData = {
   topicPath: "",
   bloomLevel: "",
   estimatedTimeMin: "",
+  typeLevel: "",
 };
 
 // --- 스킬 생성/수정 모달 ---
@@ -130,7 +132,7 @@ export function SkillFormModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">Bloom 수준</label>
               <select
@@ -141,6 +143,23 @@ export function SkillFormModal({
                 <option value="">선택 안 함</option>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {BLOOM_LEVEL_OPTIONS.map((opt: any) => (
+                  <option key={opt.value} value={String(opt.value)}>
+                    {opt.value}. {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-500">문제 유형</label>
+              <select
+                value={form.typeLevel}
+                onChange={(e) => handleChange("typeLevel", e.target.value)}
+                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              >
+                <option value="">선택 안 함</option>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {TYPE_LEVEL_OPTIONS.map((opt: any) => (
                   <option key={opt.value} value={String(opt.value)}>
                     {opt.value}. {opt.label}
                   </option>

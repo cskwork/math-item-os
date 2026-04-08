@@ -171,6 +171,7 @@ async function fetchItemsByPrisma(
       readonly itemType?: string;
       readonly skillIds?: string[];
       readonly isGenerated?: boolean;
+      readonly typeLevel?: number;
     };
   },
   orgId: string,
@@ -199,6 +200,9 @@ async function fetchItemsByPrisma(
     ...(f?.isGenerated != null && { isGenerated: f.isGenerated }),
     ...(f?.skillIds != null && f.skillIds.length > 0 && {
       skills: { some: { skillId: { in: f.skillIds } } },
+    }),
+    ...(f?.typeLevel !== undefined && {
+      skills: { some: { skill: { typeLevel: f.typeLevel } } },
     }),
   };
 

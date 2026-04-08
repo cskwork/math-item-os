@@ -123,6 +123,19 @@ enum UserRole {
   teacher
 }
 
+enum SessionStatus {
+  in_progress
+  submitted
+  graded
+}
+
+enum ResponseResult {
+  correct
+  incorrect
+  partial
+  skipped
+}
+
 // ─────────────────────────────────────────────────
 // Auth.js v5 Models (Prisma Adapter)
 // ─────────────────────────────────────────────────
@@ -305,6 +318,7 @@ model Skill {
   topicPath        String // ltree
   bloomLevel       Int?   @db.SmallInt // 1-6
   estimatedTimeMin Int?   @db.SmallInt
+  typeLevel        Int?   @db.SmallInt  // 1-6: 문제 유형 분류
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -464,12 +478,14 @@ model Assignment {
   title       String
   purpose     AssignmentPurpose
   isPublished Boolean           @default(false)
+  solveToken  String?           @unique      // 학생 접근용 토큰
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization   @relation(fields: [orgId], references: [id])
-  items        AssignmentItem[]
+  organization    Organization     @relation(fields: [orgId], references: [id])
+  items           AssignmentItem[]
+  studentSessions StudentSession[]
 
   @@map("assignments")
 }
@@ -594,10 +610,52 @@ model AssignmentItem {
   position     Int    @db.SmallInt
   points       Decimal? @db.Decimal(5, 1)
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  assignment Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  item       Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  responses  StudentResponse[]
 
   @@unique([assignmentId, itemId])
   @@index([assignmentId, position])
   @@map("assignment_items")
+}
+
+/// 학생 풀이 세션. 토큰 기반 접근, 인증 불필요.
+model StudentSession {
+  id             String        @id @default(cuid())
+  assignmentId   String
+  studentName    String
+  token          String        @unique
+  status         SessionStatus @default(in_progress)
+  startedAt      DateTime      @default(now())
+  submittedAt    DateTime?
+  gradedAt       DateTime?
+  totalScore     Decimal?      @db.Decimal(5, 1)
+  maxScore       Decimal?      @db.Decimal(5, 1)
+
+  assignment     Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  responses      StudentResponse[]
+
+  @@index([assignmentId, status])
+  @@map("student_sessions")
+}
+
+/// 문항별 학생 응답. 자동 채점 결과 포함.
+model StudentResponse {
+  id               String         @id @default(cuid())
+  sessionId        String
+  assignmentItemId String
+  studentAnswer    Json
+  result           ResponseResult @default(skipped)
+  score            Decimal?       @db.Decimal(5, 1)
+  maxScore         Decimal?       @db.Decimal(5, 1)
+  timeTakenSec     Int?           @db.SmallInt
+  misconceptionIds String[]       @default([])
+  createdAt        DateTime       @default(now())
+
+  session          StudentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  assignmentItem   AssignmentItem @relation(fields: [assignmentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, assignmentItemId])
+  @@index([sessionId, result])
+  @@map("student_responses")
 }

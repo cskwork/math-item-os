@@ -231,12 +231,12 @@ Turborepo monorepo:
 
 **Purpose**: 관리 기능 및 다수 User Story에 걸친 개선사항
 
-- [ ] T079 [P] Create admin quality metrics dashboard (totalItems, byStatus, metadataCompleteness, CAS passRate) in apps/web/src/app/(dashboard)/admin/dashboard/page.tsx
-- [ ] T080 [P] Create review queue page (listReviewTasks, updateReviewTask) in apps/web/src/app/(dashboard)/admin/reviews/page.tsx
-- [ ] T081 [P] Create user management page (listUsers, updateUserRole) in apps/web/src/app/(dashboard)/admin/users/page.tsx
-- [ ] T082 [P] Create audit log viewer page (listAuditLogs with date/table/action filters) in apps/web/src/app/(dashboard)/admin/audit/page.tsx
-- [ ] T083 Performance optimization (Meilisearch query tuning, pgvector HNSW params, Redis caching for frequent queries)
-- [ ] T084 Security hardening (rate limiting middleware, CSRF protection, input sanitization, RLS verification)
+- [x] T079 [P] Create admin quality metrics dashboard (totalItems, byStatus, metadataCompleteness, CAS passRate) in apps/web/src/app/(dashboard)/admin/dashboard/page.tsx
+- [x] T080 [P] Create review queue page (listReviewTasks, updateReviewTask) in apps/web/src/app/(dashboard)/admin/reviews/page.tsx
+- [x] T081 [P] Create user management page (listUsers, updateUserRole) in apps/web/src/app/(dashboard)/admin/users/page.tsx
+- [x] T082 [P] Create audit log viewer page (listAuditLogs with date/table/action filters) in apps/web/src/app/(dashboard)/admin/audit/page.tsx
+- [x] T083 Performance optimization (Meilisearch query tuning, pgvector HNSW params, Redis caching for frequent queries)
+- [x] T084 Security hardening (rate limiting middleware, CSRF protection, input sanitization, RLS verification)
 - [ ] T085 Run quickstart.md validation (Docker Compose up, migration, seed, dev server, all endpoints reachable)
 
 ---

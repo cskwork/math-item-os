@@ -1,7 +1,7 @@
-// 관리자 tRPC 라우터 - 템플릿 CRUD + 변형 문항 생성 + 생성 결과 조회 + 학습지 관리
+// 관리자 tRPC 라우터 - 템플릿/생성/학습지/품질대시보드/검수큐/사용자/감사로그
 // 모든 비즈니스 로직은 서비스 레이어에 위임
 import { z } from "zod";
-import { createTRPCRouter, reviewerProcedure } from "../trpc";
+import { createTRPCRouter, reviewerProcedure, adminProcedure } from "../trpc";
 import {
   listTemplatesSchema,
   generateVariantsSchema,
@@ -10,6 +10,11 @@ import {
   exportAssignmentSchema,
   paginationSchema,
   assignmentPurposeSchema,
+  listAuditLogsSchema,
+  listReviewTasksSchema,
+  updateReviewTaskSchema,
+  listUsersSchema,
+  updateUserRoleSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   listTemplates,
@@ -28,6 +33,13 @@ import {
   publishAssignment,
 } from "../services/assignment.service";
 import { exportAssignment } from "../services/pdf.service";
+import { getQualityMetrics } from "../services/quality-metrics.service";
+import {
+  listReviewTasks,
+  updateReviewTask,
+} from "../services/review.service";
+import { listUsers, updateUserRole } from "../services/user.service";
+import { listAuditLogs } from "../services/audit.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -152,5 +164,58 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const orgId = getOrgId();
       return exportAssignment(input.assignmentId, input.format, orgId);
+    }),
+
+  // ── Phase 10: 품질 대시보드 / 검수 큐 / 사용자 관리 / 감사 로그 ──
+
+  // 품질 KPI 대시보드 (검수자 이상)
+  getQualityMetrics: reviewerProcedure.query(async () => {
+    const orgId = getOrgId();
+    return getQualityMetrics(orgId);
+  }),
+
+  // 검수 작업 목록 (검수자 이상)
+  listReviewTasks: reviewerProcedure
+    .input(listReviewTasksSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return listReviewTasks({ ...input, orgId });
+    }),
+
+  // 검수 작업 상태 변경 (검수자 이상)
+  updateReviewTask: reviewerProcedure
+    .input(updateReviewTaskSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return updateReviewTask(
+        input.taskId,
+        input.status,
+        input.comment,
+        ctx.user.id,
+        orgId,
+      );
+    }),
+
+  // 사용자 목록 조회 (관리자 전용)
+  listUsers: adminProcedure
+    .input(listUsersSchema)
+    .query(async ({ input }) => {
+      return listUsers(input);
+    }),
+
+  // 사용자 역할 변경 (관리자 전용)
+  updateUserRole: adminProcedure
+    .input(updateUserRoleSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return updateUserRole(input.userId, input.role, ctx.user.id, orgId);
+    }),
+
+  // 감사 로그 목록 조회 (관리자 전용)
+  listAuditLogs: adminProcedure
+    .input(listAuditLogsSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return listAuditLogs({ ...input, orgId });
     }),
 });

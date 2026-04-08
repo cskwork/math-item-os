@@ -87,6 +87,36 @@ if [ -f "$PERF_SQL" ]; then
   fi
 fi
 
+# ── 6-2. 임베딩 시딩 (없으면 자동 생성) ────────────────
+EMBED_COUNT=$(docker exec mathitem-postgres psql -U postgres -d mathitem -tAc \
+  "SELECT count(*) FROM items WHERE embedding IS NOT NULL" 2>/dev/null || echo "0")
+if [ "$EMBED_COUNT" -eq 0 ] 2>/dev/null; then
+  step "임베딩 벡터 없음 -- math-ai 서비스 기동 후 시딩"
+  # math-ai를 백그라운드로 먼저 기동
+  "$VENV_DIR/bin/uvicorn" app.main:app --port 8000 \
+    --app-dir "$ROOT_DIR/services/math-ai" &
+  MATH_AI_PID=$!
+
+  # math-ai 준비 대기 (최대 60초)
+  step "math-ai 서비스 준비 대기..."
+  for i in $(seq 1 60); do
+    if "$VENV_DIR/bin/python" -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" 2>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+
+  step "임베딩 시드 실행"
+  pnpm --filter @math-item-os/db db:seed 2>&1 | tail -5
+
+  # 백그라운드 math-ai 종료 (pnpm dev에서 다시 기동)
+  kill "$MATH_AI_PID" 2>/dev/null || true
+  wait "$MATH_AI_PID" 2>/dev/null || true
+  sleep 1
+else
+  step "임베딩 벡터 존재 (${EMBED_COUNT}개) -- 시딩 건너뜀"
+fi
+
 # ── 7. 개발 서버 기동 ────────────────────────────────
 printf "\n${CYAN}========================================${NC}\n"
 printf "${CYAN}  Math Item OS - 개발 서버 시작${NC}\n"

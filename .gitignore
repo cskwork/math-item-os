@@ -27,6 +27,12 @@ out/
 coverage/
 .nyc_output/
 
+# Playwright
+**/e2e/test-results/
+**/e2e/.auth/
+playwright-report/
+blob-report/
+
 # Python (services/math-ai)
 __pycache__/
 *.py[cod]

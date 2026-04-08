@@ -13,11 +13,28 @@ import { TemplateEditor, type TemplateFormData } from "@/components/admin/templa
 const MIN_COUNT = 1;
 const MAX_COUNT = 50;
 const DEFAULT_COUNT = 5;
-const POLL_INTERVAL_MS = 2_000;
 const PASS_RATE_THRESHOLD = 0.95;
 
 type ActiveTab = "list" | "new";
 type JobStatus = "pending" | "processing" | "completed" | "failed";
+
+// --- Subscription 이벤트 타입 ---
+
+interface StreamingVariant {
+  readonly index: number;
+  readonly bodyLatex: string;
+  readonly answerValue: string;
+  readonly casStatus?: "pending" | "passed" | "failed";
+  readonly casFailureReason?: string;
+}
+
+interface StreamingState {
+  readonly status: JobStatus;
+  readonly variants: StreamingVariant[];
+  readonly passRate: number;
+  readonly error?: string;
+  readonly progressMessage: string;
+}
 
 // --- 매개변수 오버라이드 타입 ---
 
@@ -48,6 +65,9 @@ export default function GeneratePage() {
     useState<OverrideParams>(DEFAULT_OVERRIDES);
   const [jobId, setJobId] = useState<string | null>(null);
 
+  // 스트리밍 상태
+  const [streaming, setStreaming] = useState<StreamingState | null>(null);
+
   // 페이지네이션 상태
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -56,16 +76,119 @@ export default function GeneratePage() {
 
   const templatesQuery = trpc.admin.listTemplates.useQuery({ page, limit });
 
-  const generationResultQuery = trpc.admin.getGenerationResult.useQuery(
+  // --- SSE Subscription (polling 대체) ---
+
+  trpc.admin.onGenerationProgress.useSubscription(
     { jobId: jobId! },
     {
       enabled: !!jobId,
-      refetchInterval: (query) => {
-        const status = query.state.data?.status as JobStatus | undefined;
-        if (status === "completed" || status === "failed") {
-          return false;
+      onData: (tracked) => {
+        // tracked()로 감싼 데이터: useSubscription은 내부 데이터를 직접 전달
+        const event = tracked as unknown as {
+          jobId: string;
+          type: string;
+          data: Record<string, unknown>;
+          timestamp: string;
+        };
+        const data = event.data;
+
+        switch (event.type) {
+          case "job_started":
+            setStreaming({
+              status: "processing",
+              variants: [],
+              passRate: 0,
+              progressMessage: `${data.totalCount ?? 0}개 문항 생성 시작...`,
+            });
+            break;
+
+          case "variant_generating":
+            setStreaming((prev) =>
+              prev != null
+                ? {
+                    ...prev,
+                    progressMessage: `${(data.index as number) + 1}번째 문항 생성 중...`,
+                  }
+                : prev,
+            );
+            break;
+
+          case "variant_generated":
+            setStreaming((prev) => {
+              if (prev == null) return prev;
+              const newVariant: StreamingVariant = {
+                index: data.index as number,
+                bodyLatex: data.bodyLatex as string,
+                answerValue: data.answerValue as string,
+                casStatus: "pending",
+              };
+              return {
+                ...prev,
+                variants: [...prev.variants, newVariant],
+                progressMessage: `${(data.index as number) + 1}번째 문항 생성 완료, CAS 검증 대기...`,
+              };
+            });
+            break;
+
+          case "cas_verified":
+            setStreaming((prev) => {
+              if (prev == null) return prev;
+              const idx = data.index as number;
+              return {
+                ...prev,
+                variants: prev.variants.map((v) =>
+                  v.index === idx
+                    ? {
+                        ...v,
+                        casStatus: (data.passed as boolean)
+                          ? ("passed" as const)
+                          : ("failed" as const),
+                        casFailureReason: data.failureReason as
+                          | string
+                          | undefined,
+                      }
+                    : v,
+                ),
+                progressMessage: `${idx + 1}번째 CAS 검증 ${(data.passed as boolean) ? "통과" : "실패"}`,
+              };
+            });
+            break;
+
+          case "job_completed":
+            setStreaming((prev) =>
+              prev != null
+                ? {
+                    ...prev,
+                    status: "completed",
+                    passRate: data.passRate as number,
+                    progressMessage: "생성 완료",
+                  }
+                : prev,
+            );
+            toast.success(
+              `${data.variantCount}개 문항 생성 완료 (통과율: ${Math.round((data.passRate as number) * 100)}%)`,
+            );
+            // 템플릿 목록 갱신 (variantCount 반영)
+            templatesQuery.refetch();
+            break;
+
+          case "job_failed":
+            setStreaming((prev) =>
+              prev != null
+                ? {
+                    ...prev,
+                    status: "failed",
+                    error: data.error as string,
+                    progressMessage: "생성 실패",
+                  }
+                : prev,
+            );
+            toast.error(`생성 실패: ${data.error}`);
+            break;
         }
-        return POLL_INTERVAL_MS;
+      },
+      onError: (err) => {
+        toast.error(`스트리밍 연결 오류: ${err.message}`);
       },
     },
   );
@@ -98,6 +221,7 @@ export default function GeneratePage() {
   const handleSelectTemplate = useCallback((id: string) => {
     setSelectedTemplateId(id);
     setJobId(null);
+    setStreaming(null);
   }, []);
 
   const handleCountChange = useCallback(
@@ -158,10 +282,10 @@ export default function GeneratePage() {
   const totalTemplates = templatesQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalTemplates / limit));
 
-  const generationResult = generationResultQuery.data;
-  const jobStatus = generationResult?.status as JobStatus | undefined;
-  const isPolling =
-    !!jobId && (jobStatus === "pending" || jobStatus === "processing");
+  const jobStatus = streaming?.status;
+  const isStreaming =
+    !!jobId &&
+    (jobStatus === "pending" || jobStatus === "processing");
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4">
@@ -267,24 +391,42 @@ export default function GeneratePage() {
                 </p>
               )}
 
-              {/* 섹션 2: 진행 상태 */}
-              {isPolling && <GenerationProgress status={jobStatus!} />}
-
-              {/* 섹션 3: 결과 표시 */}
-              {generationResult && jobStatus === "completed" && (
-                <GenerationResults
-                  variants={generationResult.variants}
-                  passRate={generationResult.passRate}
+              {/* 섹션 2: 실시간 진행 상태 */}
+              {isStreaming && streaming != null && (
+                <GenerationProgress
+                  status={jobStatus!}
+                  message={streaming.progressMessage}
+                  streamingVariants={streaming.variants}
                 />
               )}
 
-              {jobStatus === "failed" && (
+              {/* 섹션 3: 결과 표시 */}
+              {streaming != null && jobStatus === "completed" && (
+                <GenerationResults
+                  variants={streaming.variants.map((sv) => ({
+                    bodyLatex: sv.bodyLatex,
+                    answerValue: sv.answerValue,
+                    casVerification: {
+                      passed: sv.casStatus === "passed",
+                      answerEquivalence: sv.casStatus === "passed",
+                      solutionUniqueness: true,
+                      ...(sv.casFailureReason != null && {
+                        failureReason: sv.casFailureReason,
+                      }),
+                    },
+                  }))}
+                  passRate={streaming.passRate}
+                />
+              )}
+
+              {jobStatus === "failed" && streaming != null && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-4">
                   <p className="text-sm font-medium text-red-800">
                     생성 작업 실패
                   </p>
                   <p className="mt-1 text-sm text-red-600">
-                    작업이 실패했습니다. 템플릿을 확인하고 다시 시도하세요.
+                    {streaming.error ??
+                      "작업이 실패했습니다. 템플릿을 확인하고 다시 시도하세요."}
                   </p>
                 </div>
               )}
@@ -522,26 +664,58 @@ function GenerationControls({
   );
 }
 
-// --- 생성 진행 상태 ---
+// --- 생성 진행 상태 (실시간 스트리밍) ---
 
 interface GenerationProgressProps {
   readonly status: JobStatus;
+  readonly message: string;
+  readonly streamingVariants: StreamingVariant[];
 }
 
-function GenerationProgress({ status }: GenerationProgressProps) {
+function GenerationProgress({
+  status,
+  message,
+  streamingVariants,
+}: GenerationProgressProps) {
   const label = status === "pending" ? "대기 중" : "처리 중";
 
   return (
     <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-        <p className="text-sm font-medium text-slate-700">
-          {label}...
-        </p>
+        <p className="text-sm font-medium text-slate-700">{label}</p>
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        2초 간격으로 결과를 확인하고 있습니다
-      </p>
+      <p className="mt-1 text-xs text-slate-500">{message}</p>
+
+      {/* 실시간 variant 미리보기 */}
+      {streamingVariants.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {streamingVariants.map((sv) => (
+            <li
+              key={sv.index}
+              className="flex items-center gap-2 text-xs text-slate-600"
+            >
+              {/* CAS 상태 인디케이터 */}
+              {sv.casStatus === "pending" && (
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+              )}
+              {sv.casStatus === "passed" && (
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              )}
+              {sv.casStatus === "failed" && (
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+              )}
+              {sv.casStatus == null && (
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+              )}
+
+              <span className="truncate">
+                #{sv.index + 1}: {sv.bodyLatex}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

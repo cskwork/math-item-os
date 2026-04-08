@@ -21,11 +21,15 @@ export async function createTRPCContext() {
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
 
-// tRPC 초기화
+// tRPC 초기화 (SSE subscription 지원)
 const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape }) {
     return shape;
+  },
+  sse: {
+    ping: { enabled: true, intervalMs: 3000 },
+    client: { reconnectAfterInactivityMs: 10000 },
   },
 });
 

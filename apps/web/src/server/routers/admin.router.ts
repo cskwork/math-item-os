@@ -1,7 +1,12 @@
 // 관리자 tRPC 라우터 - 템플릿/생성/학습지/품질대시보드/검수큐/사용자/감사로그
 // 모든 비즈니스 로직은 서비스 레이어에 위임
 import { z } from "zod";
+import { tracked } from "@trpc/server";
 import { createTRPCRouter, reviewerProcedure, adminProcedure } from "../trpc";
+import {
+  generationEmitter,
+  type GenerationEvent,
+} from "../services/generation-events";
 import {
   listTemplatesSchema,
   generateVariantsSchema,
@@ -110,6 +115,58 @@ export const adminRouter = createTRPCRouter({
     .input(getGenerationResultSchema)
     .query(({ input }) => {
       return getGenerationResult(input.jobId);
+    }),
+
+  // 생성 진행 상태 실시간 스트리밍 (SSE subscription)
+  onGenerationProgress: reviewerProcedure
+    .input(z.object({ jobId: z.string() }))
+    .subscription(async function* ({ input, signal }) {
+      const { jobId } = input;
+      let eventIndex = 0;
+
+      // Promise 기반 이벤트 대기 큐
+      const eventQueue: GenerationEvent[] = [];
+      let resolve: (() => void) | null = null;
+
+      const listener = (event: GenerationEvent) => {
+        if (event.jobId !== jobId) return;
+        eventQueue.push(event);
+        if (resolve != null) {
+          resolve();
+          resolve = null;
+        }
+      };
+
+      generationEmitter.on("generation", listener);
+
+      try {
+        while (!signal?.aborted) {
+          // 큐에 이벤트가 없으면 대기
+          if (eventQueue.length === 0) {
+            await new Promise<void>((r) => {
+              resolve = r;
+              // signal abort 시 resolve하여 루프 탈출
+              signal?.addEventListener("abort", () => r(), { once: true });
+            });
+          }
+
+          // 큐에 쌓인 이벤트를 모두 yield
+          while (eventQueue.length > 0) {
+            const event = eventQueue.shift()!;
+            yield tracked(String(eventIndex++), event);
+
+            // 종료 이벤트면 generator 종료
+            if (
+              event.type === "job_completed" ||
+              event.type === "job_failed"
+            ) {
+              return;
+            }
+          }
+        }
+      } finally {
+        generationEmitter.off("generation", listener);
+      }
     }),
 
   // 학습지 생성 (검수자 이상)

@@ -1,8 +1,13 @@
 // tRPC 클라이언트 + React Query 통합
+// SSE subscription 지원을 위한 splitLink 설정
 "use client";
 
 import { createTRPCReact } from "@trpc/react-query";
-import { httpBatchLink } from "@trpc/client";
+import {
+  splitLink,
+  httpBatchLink,
+  unstable_httpSubscriptionLink,
+} from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@/server/routers/_app";
 
@@ -13,9 +18,16 @@ export const trpc = createTRPCReact<AppRouter>();
 export function createTRPCClient() {
   return trpc.createClient({
     links: [
-      httpBatchLink({
-        url: "/api/trpc",
-        transformer: superjson,
+      splitLink({
+        condition: (op) => op.type === "subscription",
+        true: unstable_httpSubscriptionLink({
+          url: "/api/trpc",
+          transformer: superjson,
+        }),
+        false: httpBatchLink({
+          url: "/api/trpc",
+          transformer: superjson,
+        }),
       }),
     ],
   });

@@ -6,6 +6,7 @@ import { skillRouter } from "./skill.router";
 import { adminRouter } from "./admin.router";
 import { solveRouter } from "./solve.router";
 import { worksheetRouter } from "./worksheet.router";
+import { analyticsRouter } from "./analytics.router";
 
 export const appRouter = createTRPCRouter({
   item: itemRouter,
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   admin: adminRouter,
   solve: solveRouter,
   worksheet: worksheetRouter,
+  analytics: analyticsRouter,
 });
 
 export type AppRouter = typeof appRouter;

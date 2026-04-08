@@ -1,5 +1,6 @@
 // 검색 tRPC 라우터
 // Meilisearch(전문 검색) + PostgreSQL(구조 필터링, 전체 데이터 조회) 결합
+// Redis 캐싱으로 빈번한 쿼리 성능 최적화 (Phase 10)
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
   searchItemsSchema,
@@ -12,6 +13,12 @@ import { findSimilarItems } from "../services/similarity.service";
 import type { SimilarItemResult } from "../services/similarity.service";
 import { prisma } from "@math-item-os/db";
 import type { Prisma } from "@math-item-os/db";
+import {
+  cacheGetOrSet,
+  buildSearchCacheKey,
+  CACHE_TTL,
+  CACHE_PREFIX,
+} from "../services/cache.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -338,29 +345,37 @@ export const searchRouter = createTRPCRouter({
         );
       }
 
-      // Meilisearch 검색 + PostgreSQL 전체 데이터 조회
+      // Meilisearch 검색 + PostgreSQL 전체 데이터 조회 (Redis 캐싱)
       const filtersWithStatus = {
         ...input.filters,
         status: statusFilter,
       };
 
-      return fetchItemsByMeilisearch(
-        {
-          query: input.query,
-          filters: filtersWithStatus,
-          page: input.page,
-          limit: input.limit,
-          sort: input.sort,
-        },
-        orgId,
+      const searchParams = {
+        query: input.query,
+        filters: filtersWithStatus,
+        page: input.page,
+        limit: input.limit,
+        sort: input.sort,
+      };
+
+      const cacheKey = buildSearchCacheKey(searchParams);
+
+      return cacheGetOrSet(
+        cacheKey,
+        CACHE_TTL.SEARCH_RESULTS,
+        () => fetchItemsByMeilisearch(searchParams, orgId),
       );
     }),
 
-  // 구조적 유사 문항 검색 (6-시그널 랭킹)
+  // 구조적 유사 문항 검색 (6-시그널 랭킹, Redis 캐싱)
   similar: protectedProcedure
     .input(searchSimilarSchema)
     .query(async ({ input }) => {
       const orgId = getOrgId();
+      const cacheKey = `${CACHE_PREFIX.SIMILAR}${input.itemId}:${input.limit}`;
+
+      return cacheGetOrSet(cacheKey, CACHE_TTL.SIMILAR_ITEMS, async () => {
       const results = await findSimilarItems(input.itemId, orgId, input.limit);
 
       // 각 결과에 대해 문항 전체 데이터를 조회하여 응답 구성
@@ -395,6 +410,7 @@ export const searchRouter = createTRPCRouter({
         .filter((x): x is NonNullable<typeof x> => x != null);
 
       return { items };
+      }); // end cacheGetOrSet
     }),
 
   // 유사도 피드백 기록 (RecommendationEvent)

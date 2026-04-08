@@ -155,11 +155,24 @@ export async function initializeIndex(): Promise<void> {
   const client = getClient();
   const index = client.index(INDEX_NAME);
 
-  // CJK(한국어) 토크나이저를 위한 localizedAttributes 포함
+  // CJK(한국어) 토크나이저 + 랭킹/성능 튜닝
   await index.updateSettings({
     searchableAttributes: [...SEARCHABLE_ATTRIBUTES],
     filterableAttributes: [...FILTERABLE_ATTRIBUTES],
     sortableAttributes: [...SORTABLE_ATTRIBUTES],
+    // 랭킹 규칙 커스텀: 정확도 > 필터 정합 > 근접성 > 속성 우선순위 순
+    rankingRules: [
+      "words",
+      "typo",
+      "proximity",
+      "attribute",
+      "sort",
+      "exactness",
+    ],
+    // typo 허용 범위 제한 (수학 용어 오타 방지)
+    typoTolerance: {
+      minWordSizeForTypos: { oneTypo: 4, twoTypos: 8 },
+    },
     pagination: {
       maxTotalHits: 10_000,
     },

@@ -363,11 +363,11 @@ export async function findSkillsByTopicPath(
       bloomLevel: number | null;
     }>
   >`
-    SELECT id, code, title, topic_path AS "topicPath", bloom_level AS "bloomLevel"
+    SELECT id, code, title, "topicPath", "bloomLevel"
     FROM skills
-    WHERE org_id = ${orgId}
-      AND topic_path <@ ${topicPath}::ltree
-    ORDER BY topic_path
+    WHERE "orgId" = ${orgId}
+      AND "topicPath" <@ ${topicPath}::ltree
+    ORDER BY "topicPath"
   `;
 
   return skills;
@@ -388,11 +388,11 @@ export async function findStandardsByTopicPath(
       topicPath: string;
     }>
   >`
-    SELECT id, code, title, school_level AS "schoolLevel", grade, topic_path AS "topicPath"
+    SELECT id, code, title, "schoolLevel"::text, grade, "topicPath"
     FROM standards
-    WHERE org_id = ${orgId}
-      AND topic_path <@ ${topicPath}::ltree
-    ORDER BY topic_path
+    WHERE "orgId" = ${orgId}
+      AND "topicPath" <@ ${topicPath}::ltree
+    ORDER BY "topicPath"
   `;
 
   return standards;

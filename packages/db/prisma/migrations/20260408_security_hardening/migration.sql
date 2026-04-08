@@ -9,57 +9,57 @@
 ALTER TABLE items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY items_org_isolation ON items
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- skills 테이블 RLS
 ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY skills_org_isolation ON skills
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- standards 테이블 RLS
 ALTER TABLE standards ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY standards_org_isolation ON standards
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- misconceptions 테이블 RLS
 ALTER TABLE misconceptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY misconceptions_org_isolation ON misconceptions
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- templates 테이블 RLS
 ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY templates_org_isolation ON templates
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- assignments 테이블 RLS
 ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY assignments_org_isolation ON assignments
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- audit_logs 테이블 RLS
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY audit_logs_org_isolation ON audit_logs
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- recommendation_events 테이블 RLS
 ALTER TABLE recommendation_events ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY rec_events_org_isolation ON recommendation_events
-  USING (org_id = current_setting('app.current_org_id', true))
-  WITH CHECK (org_id = current_setting('app.current_org_id', true));
+  USING ("orgId" = current_setting('app.current_org_id', true))
+  WITH CHECK ("orgId" = current_setting('app.current_org_id', true));
 
 -- 2. Prisma 서비스 계정은 RLS bypass 허용 (BYPASSRLS 권한)
 -- 운영 환경에서 별도 설정 필요:

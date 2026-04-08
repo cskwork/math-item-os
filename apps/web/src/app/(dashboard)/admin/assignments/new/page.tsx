@@ -174,19 +174,37 @@ export default function NewAssignmentPage() {
   );
 
   const handleAddItem = useCallback(
-    (item: AssignmentBuilderItem) => {
+    (rawItem: { id: string; bodyLatex: string; itemType: string; difficultyAuthor?: number | null; points?: number }) => {
       // 중복 방지
-      const alreadyExists = selectedItems.some((si) => si.id === item.id);
+      const alreadyExists = selectedItems.some((si) => si.item.id === rawItem.id);
       if (alreadyExists) return;
 
-      setSelectedItems((prev) => [...prev, item]);
+      const entry: AssignmentBuilderItem = {
+        item: {
+          id: rawItem.id,
+          bodyLatex: rawItem.bodyLatex,
+          itemType: rawItem.itemType,
+          difficultyAuthor: rawItem.difficultyAuthor ?? null,
+        },
+        position: selectedItems.length + 1,
+        points: rawItem.points ?? 10,
+      };
+
+      setSelectedItems((prev) => [...prev, entry]);
     },
     [selectedItems],
   );
 
   const handleItemsChange = useCallback(
-    (items: AssignmentBuilderItem[]) => {
-      setSelectedItems(items);
+    (items: readonly AssignmentBuilderItem[]) => {
+      setSelectedItems([...items]);
+    },
+    [],
+  );
+
+  const handleRemoveItem = useCallback(
+    (itemId: string) => {
+      setSelectedItems((prev) => prev.filter((si) => si.item.id !== itemId));
     },
     [],
   );
@@ -198,15 +216,15 @@ export default function NewAssignmentPage() {
     createAssignmentMutation.mutate({
       title: title.trim(),
       purpose,
-      itemIds: selectedItems.map((item) => item.id),
-      points: selectedItems.map((item) => item.points ?? 10),
+      itemIds: selectedItems.map((si) => si.item.id),
+      points: selectedItems.map((si) => si.points),
     });
   }, [title, purpose, selectedItems, createAssignmentMutation]);
 
   // --- 파생 상태 ---
 
   const selectedItemIds = useMemo(
-    () => new Set(selectedItems.map((item) => item.id)),
+    () => new Set(selectedItems.map((si) => si.item.id)),
     [selectedItems],
   );
 
@@ -260,7 +278,8 @@ export default function NewAssignmentPage() {
             ) : (
               <AssignmentBuilder
                 items={selectedItems}
-                onChange={handleItemsChange}
+                onItemsChange={handleItemsChange}
+                onRemoveItem={handleRemoveItem}
               />
             )}
           </div>
@@ -643,7 +662,7 @@ function ItemCardList({ items, selectedIds, onAdd }: ItemCardListProps) {
                   id: item.id,
                   bodyLatex: item.bodyLatex,
                   itemType: item.itemType,
-                  difficulty: item.difficultyAuthor ?? undefined,
+                  difficultyAuthor: item.difficultyAuthor,
                   points: 10,
                 })
               }

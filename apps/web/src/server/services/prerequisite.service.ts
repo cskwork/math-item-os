@@ -77,16 +77,16 @@ export async function createPrerequisiteEdge(
   // 후손 중 fromSkillId가 존재하면 이 엣지 추가 시 순환이 발생
   const cycleResult = await prisma.$queryRaw<ReadonlyArray<{ has_cycle: boolean }>>`
     WITH RECURSIVE descendants AS (
-      SELECT to_skill_id AS skill_id
+      SELECT "toSkillId" AS skill_id
       FROM prerequisite_edges
-      WHERE from_skill_id = ${input.toSkillId} AND org_id = ${orgId}
+      WHERE "fromSkillId" = ${input.toSkillId} AND "orgId" = ${orgId}
 
       UNION
 
-      SELECT pe.to_skill_id
+      SELECT pe."toSkillId"
       FROM prerequisite_edges pe
-      INNER JOIN descendants d ON pe.from_skill_id = d.skill_id
-      WHERE pe.org_id = ${orgId}
+      INNER JOIN descendants d ON pe."fromSkillId" = d.skill_id
+      WHERE pe."orgId" = ${orgId}
     )
     SELECT EXISTS (
       SELECT 1 FROM descendants WHERE skill_id = ${input.fromSkillId}
@@ -260,16 +260,16 @@ async function traverseAncestors(
 ): Promise<ReadonlyArray<string>> {
   const rows = await prisma.$queryRaw<ReadonlyArray<RawTraversalRow>>`
     WITH RECURSIVE ancestors AS (
-      SELECT from_skill_id AS skill_id, 1 AS depth
+      SELECT "fromSkillId" AS skill_id, 1 AS depth
       FROM prerequisite_edges
-      WHERE to_skill_id = ${skillId} AND org_id = ${orgId}
+      WHERE "toSkillId" = ${skillId} AND "orgId" = ${orgId}
 
       UNION
 
-      SELECT pe.from_skill_id, a.depth + 1
+      SELECT pe."fromSkillId", a.depth + 1
       FROM prerequisite_edges pe
-      INNER JOIN ancestors a ON pe.to_skill_id = a.skill_id
-      WHERE pe.org_id = ${orgId} AND a.depth < ${depth}
+      INNER JOIN ancestors a ON pe."toSkillId" = a.skill_id
+      WHERE pe."orgId" = ${orgId} AND a.depth < ${depth}
     )
     SELECT DISTINCT skill_id FROM ancestors
   `;
@@ -283,16 +283,16 @@ async function traverseDescendants(
 ): Promise<ReadonlyArray<string>> {
   const rows = await prisma.$queryRaw<ReadonlyArray<RawTraversalRow>>`
     WITH RECURSIVE descendants AS (
-      SELECT to_skill_id AS skill_id, 1 AS depth
+      SELECT "toSkillId" AS skill_id, 1 AS depth
       FROM prerequisite_edges
-      WHERE from_skill_id = ${skillId} AND org_id = ${orgId}
+      WHERE "fromSkillId" = ${skillId} AND "orgId" = ${orgId}
 
       UNION
 
-      SELECT pe.to_skill_id, d.depth + 1
+      SELECT pe."toSkillId", d.depth + 1
       FROM prerequisite_edges pe
-      INNER JOIN descendants d ON pe.from_skill_id = d.skill_id
-      WHERE pe.org_id = ${orgId} AND d.depth < ${depth}
+      INNER JOIN descendants d ON pe."fromSkillId" = d.skill_id
+      WHERE pe."orgId" = ${orgId} AND d.depth < ${depth}
     )
     SELECT DISTINCT skill_id FROM descendants
   `;

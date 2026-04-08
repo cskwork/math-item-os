@@ -154,7 +154,7 @@ async function fetchItemsByMeilisearch(
 }
 
 // -------------------------------------------------
-// Prisma-only 폴백 (쿼리 없고 필터도 없는 경우)
+// Prisma-only 폴백 (텍스트 쿼리 없는 경우)
 // -------------------------------------------------
 
 async function fetchItemsByPrisma(
@@ -163,10 +163,20 @@ async function fetchItemsByPrisma(
     readonly limit: number;
     readonly sort?: "relevance" | "difficulty" | "createdAt";
     readonly statusFilter?: string[];
+    readonly filters?: {
+      readonly difficultyMin?: number;
+      readonly difficultyMax?: number;
+      readonly schoolLevel?: string;
+      readonly grade?: number;
+      readonly itemType?: string;
+      readonly skillIds?: string[];
+      readonly isGenerated?: boolean;
+    };
   },
   orgId: string,
 ): Promise<SearchItemsResponse> {
   const startTime = Date.now();
+  const f = input.filters;
 
   const where: Prisma.ItemWhereInput = {
     orgId,
@@ -174,6 +184,22 @@ async function fetchItemsByPrisma(
       input.statusFilter.length > 0 && {
         status: { in: input.statusFilter as Prisma.EnumQualityStatusFilter["in"] },
       }),
+    ...(f?.difficultyMin != null || f?.difficultyMax != null
+      ? {
+          difficultyAuthor: {
+            not: null,
+            ...(f?.difficultyMin != null && { gte: f.difficultyMin }),
+            ...(f?.difficultyMax != null && { lte: f.difficultyMax }),
+          },
+        }
+      : {}),
+    ...(f?.schoolLevel != null && { schoolLevel: f.schoolLevel as any }),
+    ...(f?.grade != null && { grade: f.grade }),
+    ...(f?.itemType != null && { itemType: f.itemType as any }),
+    ...(f?.isGenerated != null && { isGenerated: f.isGenerated }),
+    ...(f?.skillIds != null && f.skillIds.length > 0 && {
+      skills: { some: { skillId: { in: f.skillIds } } },
+    }),
   };
 
   // 정렬 규칙 결정
@@ -332,14 +358,16 @@ export const searchRouter = createTRPCRouter({
         input.filters?.status,
       );
 
-      // 쿼리와 필터가 모두 비어있으면 Prisma-only 폴백
-      if (!hasSearchCriteria(input)) {
+      // 텍스트 쿼리가 없으면 Prisma-only 폴백 (Meilisearch 인덱스 불필요)
+      const hasTextQuery = input.query != null && input.query.trim().length > 0;
+      if (!hasTextQuery) {
         return fetchItemsByPrisma(
           {
             page: input.page,
             limit: input.limit,
             sort: input.sort,
             statusFilter,
+            filters: input.filters,
           },
           orgId,
         );

@@ -218,7 +218,7 @@ export async function findSimilarByVector(
   const rows = await prisma.$queryRawUnsafe<RawSimilarRow[]>(
     `SELECT id as "itemId", (embedding <=> $1::vector) as distance
      FROM items
-     WHERE org_id = $2
+     WHERE "orgId" = $2
        AND status = 'approved'
        AND id != $3
        AND embedding IS NOT NULL

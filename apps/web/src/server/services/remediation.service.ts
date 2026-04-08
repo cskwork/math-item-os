@@ -86,10 +86,21 @@ export async function getRemediationPath(
     });
   }
 
-  const relatedSkills = misconception.relatedSkills;
+  const relatedSkillCodes = misconception.relatedSkills;
 
   // 관련 스킬이 없으면 빈 경로 반환
-  if (relatedSkills.length === 0) {
+  if (relatedSkillCodes.length === 0) {
+    return { steps: [] };
+  }
+
+  // relatedSkills에는 code가 저장되어 있으므로 id로 변환
+  const skillRows = await prisma.skill.findMany({
+    where: { orgId, code: { in: [...relatedSkillCodes] } },
+    select: { id: true },
+  });
+  const relatedSkillIds = skillRows.map((s) => s.id);
+
+  if (relatedSkillIds.length === 0) {
     return { steps: [] };
   }
 
@@ -98,7 +109,7 @@ export async function getRemediationPath(
 
   // Phase 1: 선수 개념 복습
   const prerequisiteItems = await fetchPrerequisiteReviewItems(
-    relatedSkills,
+    relatedSkillIds,
     orgId,
     difficulty,
     limit,
@@ -108,7 +119,7 @@ export async function getRemediationPath(
 
   // Phase 2: 기본 연습
   const basicItems = await fetchBasicPracticeItems(
-    relatedSkills,
+    relatedSkillIds,
     orgId,
     difficulty,
     limit,
@@ -118,7 +129,7 @@ export async function getRemediationPath(
 
   // Phase 3: 확인 심화
   const confirmationItems = await fetchConfirmationItems(
-    relatedSkills,
+    relatedSkillIds,
     orgId,
     difficulty,
     limit,

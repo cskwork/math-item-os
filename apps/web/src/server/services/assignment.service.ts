@@ -2,6 +2,7 @@
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
 import type { AssignmentPurpose, Prisma } from "@math-item-os/db";
+import { randomBytes } from "crypto";
 
 /** 인터랙티브 트랜잭션 클라이언트 타입 */
 type TxClient = Omit<
@@ -348,9 +349,12 @@ export async function publishAssignment(
   }
 
   return prisma.$transaction(async (tx: TxClient) => {
+    // 학생 접근용 solveToken 생성
+    const solveToken = randomBytes(16).toString("hex");
+
     const updated = await tx.assignment.update({
       where: { id },
-      data: { isPublished: true },
+      data: { isPublished: true, solveToken },
       include: ASSIGNMENT_DETAIL_INCLUDE,
     });
 
@@ -363,12 +367,12 @@ export async function publishAssignment(
         action: "update",
         performedBy,
         oldData: { isPublished: false } as Prisma.InputJsonValue,
-        newData: { isPublished: true } as Prisma.InputJsonValue,
+        newData: { isPublished: true, solveToken } as Prisma.InputJsonValue,
       },
     });
 
-    // 결정론적 공유 URL 생성 (assignment ID 기반)
-    const shareUrl = buildShareUrl(id);
+    // 결정론적 공유 URL 생성 (solveToken 기반)
+    const shareUrl = buildShareUrl(id, solveToken);
 
     return { assignment: updated, shareUrl };
   });
@@ -430,8 +434,11 @@ export async function deleteAssignment(
 // 내부 유틸리티
 // -------------------------------------------------
 
-/** 학습지 공유 URL 생성 (결정론적, assignment ID 기반) */
-function buildShareUrl(assignmentId: string): string {
+/** 학습지 공유 URL 생성 (solveToken 기반 풀이 접근 URL) */
+function buildShareUrl(assignmentId: string, solveToken?: string): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  if (solveToken) {
+    return `${baseUrl}/solve/${assignmentId}?token=${solveToken}`;
+  }
   return `${baseUrl}/assignments/${assignmentId}/share`;
 }

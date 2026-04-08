@@ -108,8 +108,8 @@ Turborepo monorepo:
 - [x] T037 [P] [US2] Create search bar component with Korean autocomplete in apps/web/src/components/search/search-bar.tsx
 - [x] T038 [P] [US2] Create search filter panel (학제, 학년, 스킬, 난이도, 유형, 목적) in apps/web/src/components/search/filter-panel.tsx
 - [x] T039 [P] [US2] Create search results component with faceted counts and KaTeX preview in apps/web/src/components/search/search-results.tsx
-- [ ] T040 [US2] Create search page combining search bar, filters, and results in apps/web/src/app/(dashboard)/search/page.tsx
-- [ ] T041 [US2] Hook Meilisearch sync into item create/update/delete workflows in apps/web/src/server/services/item.service.ts
+- [x] T040 [US2] Create search page combining search bar, filters, and results in apps/web/src/app/(dashboard)/search/page.tsx
+- [x] T041 [US2] Hook Meilisearch sync into item create/update/delete workflows in apps/web/src/server/services/item.service.ts
 
 **Checkpoint**: 문항 분류 + 한국어 검색 + 구조 필터 독립 동작 확인. p95 < 1.5s 성능 검증.
 

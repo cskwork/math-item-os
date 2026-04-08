@@ -14,6 +14,7 @@ import type {
 } from "@math-item-os/db";
 import { convertLatex } from "./conversion.service";
 import type { FullConversionResult } from "./conversion.service";
+import { indexItem } from "./meilisearch.service";
 
 /** 인터랙티브 트랜잭션 클라이언트 타입 */
 type TxClient = Omit<
@@ -239,6 +240,11 @@ export async function createItem(
     });
   });
 
+  // Meilisearch 인덱스 동기화 (비동기, 실패해도 문항 생성은 성공)
+  if (item) {
+    void indexItem(item);
+  }
+
   return { item, conversionResult };
 }
 
@@ -425,6 +431,11 @@ export async function updateItem(
 
     return [updatedItem, newVersion] as const;
   });
+
+  // Meilisearch 인덱스 동기화
+  if (item) {
+    void indexItem(item);
+  }
 
   return { item, version };
 }

@@ -14,6 +14,17 @@ fail() { printf "${RED}[error]${NC} %s\n" "$1"; exit 1; }
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
+# ── 0. 기존 프로세스 정리 ────────────────────────────
+step "기존 포트 사용 프로세스 정리 (3000, 8000)"
+for port in 3000 8000; do
+  pids=$(lsof -ti:"$port" 2>/dev/null || true)
+  if [ -n "$pids" ]; then
+    echo "$pids" | xargs kill 2>/dev/null || true
+    warn "포트 $port 프로세스 종료됨"
+  fi
+done
+sleep 1
+
 # ── 1. 사전 조건 확인 ────────────────────────────────
 step "사전 조건 확인"
 command -v docker  >/dev/null 2>&1 || fail "docker 가 설치되어 있지 않습니다"
@@ -44,9 +55,9 @@ step "Python 의존성 설치"
 step "pnpm 의존성 설치"
 pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
-# ── 5. DB 마이그레이션 ───────────────────────────────
-step "DB 마이그레이션 실행"
-if ! pnpm db:migrate; then
+# ── 5. DB 마이그레이션 (이미 적용된 상태면 즉시 통과) ──
+step "DB 마이그레이션 적용 (deploy)"
+if ! pnpm --filter @math-item-os/db exec dotenv -e ../../.env -- prisma migrate deploy 2>/dev/null; then
   warn "마이그레이션 실패 -- 기존 스키마로 계속 진행합니다"
 fi
 

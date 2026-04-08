@@ -176,7 +176,7 @@ Turborepo monorepo:
 - [x] T060 [P] [US5] Create misconception selector component in apps/web/src/components/skills/misconception-selector.tsx
 - [x] T061 [US5] Create remediation path display component (3-phase stepped view with explanations) in apps/web/src/components/skills/remediation-path.tsx
 - [x] T062 [US5] Create misconception exploration page with remediation recommendations in apps/web/src/app/(dashboard)/misconceptions/page.tsx
-- [ ] T063 [US5] Implement RecommendationEvent logging for remediation recommendations in apps/web/src/server/services/recommendation.service.ts
+- [x] T063 [US5] Implement RecommendationEvent logging for remediation recommendations in apps/web/src/server/services/recommendation.service.ts
 
 **Checkpoint**: 오개념 선택 -> 교정 경로 추천 -> 추천 근거 표시 독립 동작 확인
 

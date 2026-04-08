@@ -3,6 +3,7 @@
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
 import type { Prisma } from "@math-item-os/db";
+import { logRemediationRecommendation } from "./recommendation.service";
 
 // -------------------------------------------------
 // 상수 정의
@@ -141,6 +142,24 @@ export async function getRemediationPath(
       explanation: "이해를 확인하는 심화 문제입니다",
     },
   ];
+
+  // 추천 이벤트 로깅 (Constitution II: 설명 가능한 추천)
+  const hasItems = steps.some((s) => s.items.length > 0);
+  if (hasItems) {
+    await logRemediationRecommendation(
+      {
+        misconceptionId: misconception.id,
+        misconceptionCode: misconception.code,
+        difficulty,
+        steps: steps.map((s) => ({
+          phase: s.phase,
+          itemIds: s.items.map((item) => item.id),
+          explanation: s.explanation,
+        })),
+      },
+      orgId,
+    );
+  }
 
   return { steps };
 }

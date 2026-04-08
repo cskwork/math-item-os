@@ -130,6 +130,7 @@ enum SessionStatus {
 }
 
 enum ResponseResult {
+  pending
   correct
   incorrect
   partial
@@ -632,6 +633,9 @@ model StudentSession {
   totalScore     Decimal?      @db.Decimal(5, 1)
   maxScore       Decimal?      @db.Decimal(5, 1)
 
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
   assignment     Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   responses      StudentResponse[]
 
@@ -645,10 +649,10 @@ model StudentResponse {
   sessionId        String
   assignmentItemId String
   studentAnswer    Json
-  result           ResponseResult @default(skipped)
+  result           ResponseResult @default(pending)
   score            Decimal?       @db.Decimal(5, 1)
   maxScore         Decimal?       @db.Decimal(5, 1)
-  timeTakenSec     Int?           @db.SmallInt
+  timeTakenSec     Int?
   misconceptionIds String[]       @default([])
   createdAt        DateTime       @default(now())
 

@@ -1,4 +1,4 @@
-// 스킬 CRUD + 선수 학습 관계 tRPC 라우터
+// 스킬 CRUD + 선수 학습 관계 + 오개념 + 교정 경로 tRPC 라우터
 // 모든 비즈니스 로직은 서비스 레이어에 위임
 import { z } from "zod";
 import {
@@ -13,6 +13,9 @@ import {
   listSkillsSchema,
   getSkillItemsSchema,
   getByIdSchema,
+  createMisconceptionSchema,
+  listMisconceptionsSchema,
+  getRemediationPathSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   createSkill,
@@ -27,6 +30,11 @@ import {
   deletePrerequisiteEdge,
   getPrerequisiteGraph,
 } from "../services/prerequisite.service";
+import {
+  createMisconception,
+  listMisconceptions,
+} from "../services/misconception.service";
+import { getRemediationPath } from "../services/remediation.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -127,11 +135,35 @@ export const skillRouter = createTRPCRouter({
       return deletePrerequisiteEdge(input.edgeId, ctx.user.id, orgId);
     }),
 
-  // 선수 학습 그래프 조회 (인증된 사용자) - T045에서 서비스 구현 예정
+  // 선수 학습 그래프 조회 (인증된 사용자)
   getPrerequisiteGraph: protectedProcedure
     .input(getPrerequisiteGraphSchema)
     .query(async ({ input }) => {
       const orgId = getOrgId();
       return getPrerequisiteGraph(input, orgId);
+    }),
+
+  // 오개념 목록 조회 (인증된 사용자)
+  listMisconceptions: protectedProcedure
+    .input(listMisconceptionsSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return listMisconceptions(input, orgId);
+    }),
+
+  // 오개념 생성 (검수자 이상)
+  createMisconception: reviewerProcedure
+    .input(createMisconceptionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return createMisconception(input, ctx.user.id, orgId);
+    }),
+
+  // 교정 학습 경로 조회 (인증된 사용자)
+  getRemediationPath: protectedProcedure
+    .input(getRemediationPathSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return getRemediationPath(input, orgId);
     }),
 });

@@ -21,6 +21,7 @@ export interface TemplateSnapshot {
 export interface StartGenerationInput {
   readonly templateId: string;
   readonly count: number;
+  readonly strategyOverride?: "sympy" | "llm";
   readonly params?: {
     readonly solutionSteps?: number;
     readonly coefficientRange?: readonly [number, number];
@@ -136,17 +137,24 @@ function stripCodeFence(text: string): string {
   return match != null ? match[1]!.trim() : text.trim();
 }
 
-/** 단일 variant의 필수 필드 검증 */
+/** 단일 variant의 필수 필드 검증 (answer_value는 비문자열도 허용 - 문자열로 변환) */
 function isValidVariant(
   item: unknown,
-): item is { body_latex: string; answer_value: string; answer_latex: string } {
+): item is { body_latex: string; answer_value: unknown; answer_latex: string } {
   if (typeof item !== "object" || item == null) return false;
   const obj = item as Record<string, unknown>;
   return (
     typeof obj.body_latex === "string" &&
-    typeof obj.answer_value === "string" &&
+    obj.answer_value != null &&
     typeof obj.answer_latex === "string"
   );
+}
+
+/** answer_value를 문자열로 변환 (배열, 숫자 등 대응) */
+function toAnswerString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  return String(value);
 }
 
 /**
@@ -182,7 +190,7 @@ export function parseGenerationResponse(text: string): {
               unknown
             >)
           : {},
-      answer_value: (item as Record<string, unknown>).answer_value as string,
+      answer_value: toAnswerString((item as Record<string, unknown>).answer_value),
       answer_latex: (item as Record<string, unknown>).answer_latex as string,
       seed: null,
     }));

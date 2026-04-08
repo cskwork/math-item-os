@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "katex": "^0.16.45",
     "lucide-react": "^1.7.0",
+    "meilisearch": "^0.57.0",
     "next": "^15.2.0",
     "next-auth": "5.0.0-beta.30",
     "react": "^19.0.0",

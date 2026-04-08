@@ -11,6 +11,7 @@ import {
   listTemplatesSchema,
   generateVariantsSchema,
   getGenerationResultSchema,
+  listGenerationJobsSchema,
   detectStrategyInputSchema,
   createAssignmentSchema,
   exportAssignmentSchema,
@@ -30,6 +31,7 @@ import {
 import {
   startGenerationJob,
   getGenerationResult,
+  listGenerationJobs,
   detectStrategyForTemplate,
 } from "../services/generation.service";
 import {
@@ -127,20 +129,28 @@ export const adminRouter = createTRPCRouter({
       return getGenerationResult(input.jobId);
     }),
 
+  // 생성 작업 목록 조회 (검수자 이상)
+  listGenerationJobs: reviewerProcedure
+    .input(listGenerationJobsSchema)
+    .query(({ input }) => {
+      return listGenerationJobs({ limit: input.limit });
+    }),
+
   // 생성 진행 상태 실시간 스트리밍 (SSE subscription)
+  // 버퍼 리플레이: 구독 시작 전에 발행된 이벤트도 누락 없이 전달
   onGenerationProgress: reviewerProcedure
     .input(z.object({ jobId: z.string() }))
     .subscription(async function* ({ input, signal }) {
       const { jobId } = input;
       let eventIndex = 0;
 
-      // Promise 기반 이벤트 대기 큐
-      const eventQueue: GenerationEvent[] = [];
+      // 1) 먼저 라이브 리스너 등록 (버퍼 조회 중 발행되는 이벤트 축적)
+      const liveQueue: GenerationEvent[] = [];
       let resolve: (() => void) | null = null;
 
       const listener = (event: GenerationEvent) => {
         if (event.jobId !== jobId) return;
-        eventQueue.push(event);
+        liveQueue.push(event);
         if (resolve != null) {
           resolve();
           resolve = null;
@@ -150,22 +160,54 @@ export const adminRouter = createTRPCRouter({
       generationEmitter.on("generation", listener);
 
       try {
+        // 2) 버퍼에서 기존 이벤트 리플레이
+        const buffered = generationEmitter.getBufferedEvents(jobId);
+        const replayedCount = buffered.length;
+
+        for (const event of buffered) {
+          yield tracked(String(eventIndex++), event);
+
+          // 터미널 이벤트가 버퍼에 있으면 즉시 종료
+          if (
+            event.type === "job_completed" ||
+            event.type === "job_failed"
+          ) {
+            return;
+          }
+        }
+
+        // 3) 라이브 이벤트 루프
+        // 리스너가 버퍼 조회 전에 등록되었으므로 라이브 큐에는
+        // 버퍼 이벤트가 중복 포함됨 -> replayedCount만큼 건너뜀
+        let skipped = 0;
+
+        // signal abort 리스너를 한 번만 등록
+        const onAbort = () => {
+          if (resolve != null) {
+            resolve();
+            resolve = null;
+          }
+        };
+        signal?.addEventListener("abort", onAbort, { once: true });
+
         while (!signal?.aborted) {
-          // 큐에 이벤트가 없으면 대기
-          if (eventQueue.length === 0) {
+          if (liveQueue.length === 0) {
             await new Promise<void>((r) => {
               resolve = r;
-              // signal abort 시 resolve하여 루프 탈출
-              signal?.addEventListener("abort", () => r(), { once: true });
             });
           }
 
-          // 큐에 쌓인 이벤트를 모두 yield
-          while (eventQueue.length > 0) {
-            const event = eventQueue.shift()!;
+          while (liveQueue.length > 0) {
+            const event = liveQueue.shift()!;
+
+            // 버퍼에서 이미 리플레이한 이벤트 건너뜀
+            if (skipped < replayedCount) {
+              skipped++;
+              continue;
+            }
+
             yield tracked(String(eventIndex++), event);
 
-            // 종료 이벤트면 generator 종료
             if (
               event.type === "job_completed" ||
               event.type === "job_failed"

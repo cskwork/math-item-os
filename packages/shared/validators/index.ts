@@ -306,6 +306,11 @@ export const detectStrategyInputSchema = z.object({
 /** 생성 결과 조회 */
 export const getGenerationResultSchema = z.object({ jobId: z.string() });
 
+/** 생성 작업 목록 조회 */
+export const listGenerationJobsSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(20),
+});
+
 /** 과제 생성 */
 export const createAssignmentSchema = z.object({
   title: z.string().min(1),

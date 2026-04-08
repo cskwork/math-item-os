@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { trpc } from "@/lib/trpc";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { PageHelp } from "@/components/help/page-help";
 import { TemplateEditor, type TemplateFormData } from "@/components/admin/template-editor";
+import { RecentJobsPanel } from "./_components/recent-jobs-panel";
 
 // --- 상수 ---
 
@@ -14,6 +15,10 @@ const MIN_COUNT = 1;
 const MAX_COUNT = 50;
 const DEFAULT_COUNT = 5;
 const PASS_RATE_THRESHOLD = 0.95;
+/** SSE 연결 실패 시 폴링 폴백 타임아웃 (ms) */
+const POLLING_FALLBACK_MS = 5_000;
+/** 작업 이력 목록 자동 갱신 간격 (ms) */
+const JOB_LIST_REFETCH_INTERVAL = 10_000;
 
 type ActiveTab = "list" | "new";
 type JobStatus = "pending" | "processing" | "completed" | "failed";
@@ -50,6 +55,17 @@ const DEFAULT_OVERRIDES: OverrideParams = {
   includeFractions: false,
   includeNegatives: true,
 };
+
+// --- 기본 StreamingState 팩토리 (null-safety) ---
+
+function makeDefaultStreamingState(): StreamingState {
+  return {
+    status: "processing",
+    variants: [],
+    passRate: 0,
+    progressMessage: "생성 진행 중...",
+  };
+}
 
 // --- 메인 페이지 ---
 
@@ -88,14 +104,95 @@ export default function GeneratePage() {
     { enabled: selectedTemplateId != null },
   );
 
-  // --- SSE Subscription (polling 대체) ---
+  // --- 폴링 폴백 (SSE 연결 실패 대비) ---
+
+  const trpcUtils = trpc.useUtils();
+  const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** jobId를 명시적으로 받아 stale closure 문제 회피 */
+  const pollJobResult = useCallback(
+    (targetJobId: string) => {
+      trpcUtils.admin.getGenerationResult
+        .fetch({ jobId: targetJobId })
+        .then((r) => {
+          if (r.status === "completed" || r.status === "failed") {
+            setStreaming({
+              status: r.status,
+              strategy: r.strategy,
+              variants: r.variants.map((v, i) => ({
+                index: i,
+                bodyLatex: v.bodyLatex,
+                answerValue: v.answerValue,
+                casStatus: v.casVerification.passed
+                  ? ("passed" as const)
+                  : ("failed" as const),
+                casFailureReason: v.casVerification.failureReason,
+              })),
+              passRate: r.passRate,
+              error: r.error,
+              progressMessage:
+                r.status === "completed" ? "생성 완료" : "생성 실패",
+            });
+            if (r.status === "completed") {
+              toast.success(
+                `${r.generatedCount}개 문항 생성 완료 (통과율: ${Math.round(r.passRate * 100)}%)`,
+              );
+              templatesQuery.refetch();
+            } else {
+              toast.error(`생성 실패: ${r.error ?? "알 수 없는 오류"}`);
+            }
+          } else {
+            // 아직 처리 중이면 진행 상태 표시 + 5초 후 재폴링
+            setStreaming((prev) => {
+              const base = prev ?? makeDefaultStreamingState();
+              return {
+                ...base,
+                strategy: r.strategy,
+                progressMessage: `처리 중... (${r.generatedCount}건 생성됨)`,
+              };
+            });
+            pollingTimerRef.current = setTimeout(
+              () => pollJobResult(targetJobId),
+              POLLING_FALLBACK_MS,
+            );
+          }
+        })
+        .catch(() => {
+          toast.error("생성 결과 조회 실패");
+        });
+    },
+    [trpcUtils, templatesQuery],
+  );
+
+  // jobId 설정 후 5초 내에 streaming이 null이면 폴링 폴백 시작
+  useEffect(() => {
+    if (!jobId) return;
+
+    const timerId = setTimeout(() => {
+      setStreaming((prev) => {
+        if (prev == null) {
+          pollJobResult(jobId);
+        }
+        return prev;
+      });
+    }, POLLING_FALLBACK_MS);
+    pollingTimerRef.current = timerId;
+
+    return () => {
+      if (pollingTimerRef.current != null) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
+  }, [jobId, pollJobResult]);
+
+  // --- SSE Subscription ---
 
   trpc.admin.onGenerationProgress.useSubscription(
     { jobId: jobId! },
     {
       enabled: !!jobId,
       onData: (tracked) => {
-        // tracked()로 감싼 데이터: useSubscription은 내부 데이터를 직접 전달
         const event = tracked as unknown as {
           jobId: string;
           type: string;
@@ -116,19 +213,18 @@ export default function GeneratePage() {
             break;
 
           case "variant_generating":
-            setStreaming((prev) =>
-              prev != null
-                ? {
-                    ...prev,
-                    progressMessage: `${(data.index as number) + 1}번째 문항 생성 중...`,
-                  }
-                : prev,
-            );
+            setStreaming((prev) => {
+              const base = prev ?? makeDefaultStreamingState();
+              return {
+                ...base,
+                progressMessage: `${(data.index as number) + 1}번째 문항 생성 중...`,
+              };
+            });
             break;
 
           case "variant_generated":
             setStreaming((prev) => {
-              if (prev == null) return prev;
+              const base = prev ?? makeDefaultStreamingState();
               const newVariant: StreamingVariant = {
                 index: data.index as number,
                 bodyLatex: data.bodyLatex as string,
@@ -136,8 +232,8 @@ export default function GeneratePage() {
                 casStatus: "pending",
               };
               return {
-                ...prev,
-                variants: [...prev.variants, newVariant],
+                ...base,
+                variants: [...base.variants, newVariant],
                 progressMessage: `${(data.index as number) + 1}번째 문항 생성 완료, CAS 검증 대기...`,
               };
             });
@@ -145,11 +241,11 @@ export default function GeneratePage() {
 
           case "cas_verified":
             setStreaming((prev) => {
-              if (prev == null) return prev;
+              const base = prev ?? makeDefaultStreamingState();
               const idx = data.index as number;
               return {
-                ...prev,
-                variants: prev.variants.map((v) =>
+                ...base,
+                variants: base.variants.map((v) =>
                   v.index === idx
                     ? {
                         ...v,
@@ -168,43 +264,52 @@ export default function GeneratePage() {
             break;
 
           case "job_completed":
-            setStreaming((prev) =>
-              prev != null
-                ? {
-                    ...prev,
-                    status: "completed",
-                    passRate: data.passRate as number,
-                    progressMessage: "생성 완료",
-                  }
-                : prev,
-            );
+            setStreaming((prev) => {
+              const base = prev ?? makeDefaultStreamingState();
+              return {
+                ...base,
+                status: "completed",
+                passRate: data.passRate as number,
+                progressMessage: "생성 완료",
+              };
+            });
             toast.success(
               `${data.variantCount}개 문항 생성 완료 (통과율: ${Math.round((data.passRate as number) * 100)}%)`,
             );
-            // 템플릿 목록 갱신 (variantCount 반영)
             templatesQuery.refetch();
             break;
 
           case "job_failed":
-            setStreaming((prev) =>
-              prev != null
-                ? {
-                    ...prev,
-                    status: "failed",
-                    error: data.error as string,
-                    progressMessage: "생성 실패",
-                  }
-                : prev,
-            );
+            setStreaming((prev) => {
+              const base = prev ?? makeDefaultStreamingState();
+              return {
+                ...base,
+                status: "failed",
+                error: data.error as string,
+                progressMessage: "생성 실패",
+              };
+            });
             toast.error(`생성 실패: ${data.error}`);
             break;
         }
       },
       onError: (err) => {
         toast.error(`스트리밍 연결 오류: ${err.message}`);
+        if (jobId) pollJobResult(jobId);
       },
     },
   );
+
+  // --- 작업 이력 쿼리 ---
+
+  const jobListQuery = trpc.admin.listGenerationJobs.useQuery(
+    { limit: 10 },
+    {
+      refetchInterval: JOB_LIST_REFETCH_INTERVAL,
+    },
+  );
+
+  const recentJobs = jobListQuery.data ?? [];
 
   // --- tRPC 뮤테이션 ---
 
@@ -291,6 +396,18 @@ export default function GeneratePage() {
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
   }, []);
+
+  /** 작업 이력에서 작업 클릭 시 결과 로드 */
+  const handleSelectJob = useCallback(
+    (selectedJobId: string) => {
+      if (selectedJobId === jobId) return;
+      setJobId(selectedJobId);
+      setStreaming(null);
+      // trpcUtils.fetch로 정확한 jobId를 사용하여 결과 조회
+      pollJobResult(selectedJobId);
+    },
+    [jobId, pollJobResult],
+  );
 
   // --- 파생 상태 ---
 
@@ -453,6 +570,13 @@ export default function GeneratePage() {
                   </p>
                 </div>
               )}
+
+              {/* 섹션 4: 최근 생성 작업 이력 */}
+              <RecentJobsPanel
+                jobs={recentJobs}
+                currentJobId={jobId}
+                onSelectJob={handleSelectJob}
+              />
             </div>
           )}
         </div>
@@ -979,3 +1103,4 @@ function GenerationResults({ variants, passRate }: GenerationResultsProps) {
     </section>
   );
 }
+

@@ -120,7 +120,9 @@ export type GenerationJobStatus =
 /** 생성 작업 결과 */
 export interface GenerationJobResult {
   readonly status: GenerationJobStatus;
+  readonly strategy?: GenerationStrategy;
   readonly variants: GeneratedVariant[];
+  readonly generatedCount: number;
   readonly passRate: number;
   readonly error?: string;
 }
@@ -151,6 +153,9 @@ interface VerifyApiResponse {
 /** 내부 가변 작업 상태 (Map 내에서만 사용) */
 interface MutableJobState {
   status: GenerationJobStatus;
+  strategy?: GenerationStrategy;
+  templateId?: string;
+  templateTitle?: string;
   variants: GeneratedVariant[];
   passRate: number;
   error?: string;
@@ -294,6 +299,8 @@ export async function startGenerationJob(
   // 초기 작업 상태 등록
   jobStore.set(jobId, {
     status: "pending",
+    templateId: template.id,
+    templateTitle: template.title,
     variants: [],
     passRate: 0,
     createdAt: Date.now(),
@@ -324,10 +331,54 @@ export function getGenerationResult(jobId: string): GenerationJobResult {
 
   return {
     status: job.status,
+    strategy: job.strategy,
     variants: job.variants,
+    generatedCount: job.variants.length,
     passRate: job.passRate,
     ...(job.error != null && { error: job.error }),
   };
+}
+
+// ─────────────────────────────────────────────────
+// 2-1. 작업 목록 조회 (공개)
+// ─────────────────────────────────────────────────
+
+/** 작업 목록 항목 */
+export interface GenerationJobSummary {
+  readonly jobId: string;
+  readonly status: GenerationJobStatus;
+  readonly strategy?: GenerationStrategy;
+  readonly templateId?: string;
+  readonly templateTitle?: string;
+  readonly variantCount: number;
+  readonly passRate: number;
+  readonly error?: string;
+  readonly createdAt: number;
+}
+
+/**
+ * 최근 생성 작업 목록을 반환한다.
+ * 최신순 정렬, limit 기본 20.
+ */
+export function listGenerationJobs(options?: {
+  readonly limit?: number;
+}): readonly GenerationJobSummary[] {
+  const limit = options?.limit ?? 20;
+
+  return [...jobStore.entries()]
+    .sort(([, a], [, b]) => b.createdAt - a.createdAt)
+    .slice(0, limit)
+    .map(([id, job]) => ({
+      jobId: id,
+      status: job.status,
+      strategy: job.strategy,
+      templateId: job.templateId,
+      templateTitle: job.templateTitle,
+      variantCount: job.variants.length,
+      passRate: job.passRate,
+      error: job.error,
+      createdAt: job.createdAt,
+    }));
 }
 
 // ─────────────────────────────────────────────────
@@ -358,6 +409,7 @@ async function _processGeneration(
 
     // (b) 전략 결정: 오버라이드 우선, 없으면 자동 감지
     const strategy = input.strategyOverride ?? detectStrategy(template);
+    job.strategy = strategy;
     emitEvent(jobId, "job_started", { totalCount: input.count, strategy });
     emitEvent(jobId, "variant_generating", { index: 0, strategy });
 

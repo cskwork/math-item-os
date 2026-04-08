@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.similarity import router as similarity_router
 from app.routers.validate import router as validate_router
 
 app = FastAPI(
@@ -20,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(validate_router, prefix="/convert", tags=["convert"])
+app.include_router(similarity_router, prefix="/similarity", tags=["similarity"])
 
 
 @app.get("/health")

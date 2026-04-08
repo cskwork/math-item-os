@@ -148,6 +148,19 @@ def _worker_verify_answer(
         if eq_expr.is_Relational:
             # Eq(lhs, rhs) 형태인 경우
             substituted = eq_expr.subs(var, ans_expr)
+            # 대입 결과가 True/False(BooleanAtom)이면 직접 판정
+            if substituted is True or substituted == True:  # noqa: E712
+                is_correct = True
+                explanation = (
+                    f"변수 {var}에 {ans_expr}을 대입한 결과: 만족 (잔차: 0)"
+                )
+                return is_correct, explanation
+            if substituted is False or substituted == False:  # noqa: E712
+                is_correct = False
+                explanation = (
+                    f"변수 {var}에 {ans_expr}을 대입한 결과: 불만족"
+                )
+                return is_correct, explanation
             lhs = substituted.lhs if hasattr(substituted, "lhs") else substituted
             rhs = substituted.rhs if hasattr(substituted, "rhs") else 0
             diff = simplify(lhs - rhs)

@@ -152,9 +152,9 @@ Turborepo monorepo:
 - [x] T051 [P] [US4] Implement embedding sync service (item 생성 시 pgvector 저장) in apps/web/src/server/services/embedding.service.ts
 - [x] T052 [US4] Implement 6-signal similarity ranking service (skill 0.30, formula 0.20, prerequisite 0.15, text 0.15, difficulty 0.10, misconception 0.10) in apps/web/src/server/services/similarity.service.ts
 - [x] T053 [US4] Add search.similar and search.similarFeedback to search router in apps/web/src/server/routers/search.router.ts
-- [ ] T054 [P] [US4] Create similar items panel component with signal breakdown and explanation in apps/web/src/components/search/similar-items-panel.tsx
+- [x] T054 [P] [US4] Create similar items panel component with signal breakdown and explanation in apps/web/src/components/search/similar-items-panel.tsx
 - [ ] T055 [US4] Integrate similar items panel into item detail page in apps/web/src/app/(dashboard)/items/[id]/page.tsx
-- [ ] T056 [US4] Implement similarity feedback UI (relevant/not relevant) with RecommendationEvent logging in apps/web/src/components/search/similarity-feedback.tsx
+- [x] T056 [US4] Implement similarity feedback UI (relevant/not relevant) with RecommendationEvent logging in apps/web/src/components/search/similarity-feedback.tsx
 
 **Checkpoint**: 유사문항 검색 + 6신호 랭킹 + 피드백 기록 독립 동작 확인
 

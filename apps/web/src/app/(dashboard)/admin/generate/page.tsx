@@ -30,6 +30,7 @@ interface StreamingVariant {
 
 interface StreamingState {
   readonly status: JobStatus;
+  readonly strategy?: "sympy" | "llm";
   readonly variants: StreamingVariant[];
   readonly passRate: number;
   readonly error?: string;
@@ -68,6 +69,12 @@ export default function GeneratePage() {
   // 스트리밍 상태
   const [streaming, setStreaming] = useState<StreamingState | null>(null);
 
+  // 전략 오버라이드 상태
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [strategyOverride, setStrategyOverride] = useState<
+    "sympy" | "llm" | null
+  >(null);
+
   // 페이지네이션 상태
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -75,6 +82,11 @@ export default function GeneratePage() {
   // --- tRPC 쿼리 ---
 
   const templatesQuery = trpc.admin.listTemplates.useQuery({ page, limit });
+
+  const strategyQuery = trpc.admin.detectStrategy.useQuery(
+    { templateId: selectedTemplateId! },
+    { enabled: selectedTemplateId != null },
+  );
 
   // --- SSE Subscription (polling 대체) ---
 
@@ -96,6 +108,7 @@ export default function GeneratePage() {
           case "job_started":
             setStreaming({
               status: "processing",
+              strategy: data.strategy as "sympy" | "llm" | undefined,
               variants: [],
               passRate: 0,
               progressMessage: `${data.totalCount ?? 0}개 문항 생성 시작...`,
@@ -222,6 +235,8 @@ export default function GeneratePage() {
     setSelectedTemplateId(id);
     setJobId(null);
     setStreaming(null);
+    setStrategyOverride(null);
+    setShowAdvanced(false);
   }, []);
 
   const handleCountChange = useCallback(
@@ -244,13 +259,14 @@ export default function GeneratePage() {
     generateVariantsMutation.mutate({
       templateId: selectedTemplateId,
       count: generationCount,
+      strategyOverride: strategyOverride ?? undefined,
       params: {
         coefficientRange: overrideParams.coefficientRange,
         includeFractions: overrideParams.includeFractions,
         includeNegatives: overrideParams.includeNegatives,
       },
     });
-  }, [selectedTemplateId, generationCount, overrideParams, generateVariantsMutation]);
+  }, [selectedTemplateId, generationCount, strategyOverride, overrideParams, generateVariantsMutation]);
 
   const handleTemplateSave = useCallback(
     (data: TemplateFormData) => {
@@ -380,6 +396,12 @@ export default function GeneratePage() {
                 count={generationCount}
                 overrideParams={overrideParams}
                 isGenerating={generateVariantsMutation.isPending}
+                detectedStrategy={strategyQuery.data?.strategy ?? null}
+                isDetecting={strategyQuery.isLoading}
+                strategyOverride={strategyOverride}
+                showAdvanced={showAdvanced}
+                onToggleAdvanced={() => setShowAdvanced((prev) => !prev)}
+                onStrategyOverrideChange={setStrategyOverride}
                 onCountChange={handleCountChange}
                 onOverrideChange={handleOverrideChange}
                 onGenerate={handleGenerate}
@@ -395,6 +417,7 @@ export default function GeneratePage() {
               {isStreaming && streaming != null && (
                 <GenerationProgress
                   status={jobStatus!}
+                  strategy={streaming.strategy ?? null}
                   message={streaming.progressMessage}
                   streamingVariants={streaming.variants}
                 />
@@ -547,6 +570,12 @@ interface GenerationControlsProps {
   readonly count: number;
   readonly overrideParams: OverrideParams;
   readonly isGenerating: boolean;
+  readonly detectedStrategy: "sympy" | "llm" | null;
+  readonly isDetecting: boolean;
+  readonly strategyOverride: "sympy" | "llm" | null;
+  readonly showAdvanced: boolean;
+  readonly onToggleAdvanced: () => void;
+  readonly onStrategyOverrideChange: (value: "sympy" | "llm" | null) => void;
   readonly onCountChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readonly onOverrideChange: <K extends keyof OverrideParams>(
     key: K,
@@ -559,13 +588,28 @@ function GenerationControls({
   count,
   overrideParams,
   isGenerating,
+  detectedStrategy,
+  isDetecting,
+  strategyOverride,
+  showAdvanced,
+  onToggleAdvanced,
+  onStrategyOverrideChange,
   onCountChange,
   onOverrideChange,
   onGenerate,
 }: GenerationControlsProps) {
+  // 오버라이드가 자동 감지와 다른 경우 경고 표시
+  const showOverrideWarning =
+    strategyOverride != null &&
+    detectedStrategy != null &&
+    strategyOverride !== detectedStrategy;
+
   return (
     <section>
-      <h2 className="text-sm font-semibold text-slate-900">생성 설정</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-900">생성 설정</h2>
+        <StrategyBadge strategy={detectedStrategy} isLoading={isDetecting} />
+      </div>
 
       <div className="mt-3 flex flex-col gap-4">
         {/* 생성 개수 */}
@@ -650,6 +694,63 @@ function GenerationControls({
           />
         </div>
 
+        {/* 고급 설정 토글 */}
+        <button
+          type="button"
+          onClick={onToggleAdvanced}
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <span>{showAdvanced ? "\u25BC" : "\u25B8"}</span>
+          <span>고급 설정</span>
+        </button>
+
+        {/* 고급 설정 펼침 영역 */}
+        {showAdvanced && (
+          <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="strategy-override"
+                className="w-24 text-xs font-medium text-slate-600"
+              >
+                전략 선택
+              </label>
+              <select
+                id="strategy-override"
+                value={strategyOverride ?? ""}
+                onChange={(e) =>
+                  onStrategyOverrideChange(
+                    e.target.value === ""
+                      ? null
+                      : (e.target.value as "sympy" | "llm"),
+                  )
+                }
+                className="h-9 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              >
+                <option value="">자동 감지</option>
+                <option value="sympy">SymPy (파라미터 치환)</option>
+                <option value="llm">LLM (Claude AI 생성)</option>
+              </select>
+            </div>
+
+            {/* 오버라이드 경고 */}
+            {showOverrideWarning && strategyOverride === "sympy" && (
+              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2">
+                <p className="text-xs text-amber-800">
+                  이 템플릿은 SymPy 조건을 충족하지 않습니다. 생성이 실패할 수 있습니다.
+                </p>
+              </div>
+            )}
+
+            {showOverrideWarning && strategyOverride === "llm" && (
+              <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-2">
+                <p className="text-xs text-blue-800">
+                  SymPy 가능 템플릿이지만 LLM으로 전환합니다. 생성 시간이 더 걸릴 수 있습니다.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 생성 버튼 */}
         <button
           type="button"
@@ -664,16 +765,50 @@ function GenerationControls({
   );
 }
 
+// --- 전략 뱃지 ---
+
+interface StrategyBadgeProps {
+  readonly strategy: "sympy" | "llm" | null;
+  readonly isLoading?: boolean;
+}
+
+function StrategyBadge({ strategy, isLoading }: StrategyBadgeProps) {
+  if (isLoading) {
+    return (
+      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-400">
+        감지 중...
+      </span>
+    );
+  }
+
+  if (strategy == null) return null;
+
+  const styles =
+    strategy === "sympy"
+      ? "bg-blue-100 text-blue-800"
+      : "bg-purple-100 text-purple-800";
+
+  const label = strategy === "sympy" ? "SymPy" : "LLM";
+
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles}`}>
+      {label}
+    </span>
+  );
+}
+
 // --- 생성 진행 상태 (실시간 스트리밍) ---
 
 interface GenerationProgressProps {
   readonly status: JobStatus;
+  readonly strategy: "sympy" | "llm" | null;
   readonly message: string;
   readonly streamingVariants: StreamingVariant[];
 }
 
 function GenerationProgress({
   status,
+  strategy,
   message,
   streamingVariants,
 }: GenerationProgressProps) {
@@ -684,6 +819,7 @@ function GenerationProgress({
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
         <p className="text-sm font-medium text-slate-700">{label}</p>
+        <StrategyBadge strategy={strategy} />
       </div>
       <p className="mt-1 text-xs text-slate-500">{message}</p>
 

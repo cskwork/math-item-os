@@ -1,7 +1,7 @@
 // generation.service 통합 테스트
 // 자동 전략 감지 + 이벤트 발행 + CAS 검증 흐름 검증
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { detectStrategy } from "../generation.service";
+import { detectStrategy, type GenerationStrategy } from "../generation.service";
 import { generationEmitter, type GenerationEvent } from "../generation-events";
 
 // ─────────────────────────────────────────────
@@ -343,5 +343,95 @@ describe("generation.service (Anthropic 통합)", () => {
     expect((failEvent!.data as { error: string }).error).toContain(
       "Anthropic API rate limit",
     );
+  });
+
+  it("strategyOverride가 있으면 자동 감지 대신 오버라이드 전략을 사용한다", async () => {
+    const { prisma } = await import("@math-item-os/db");
+    const { generateWithAnthropic } = await import(
+      "../anthropic-generation.service"
+    );
+
+    // SymPy 호환 템플릿 (자동 감지 시 sympy)
+    (prisma.template.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "tmpl-1",
+      orgId: "default-org",
+      title: "일차방정식",
+      bodyTemplate: "{{a}}x + {{b}} = 0",
+      parameters: [
+        { name: "a", min: 1, max: 5 },
+        { name: "b", min: -10, max: 10 },
+      ],
+      answerTemplate: "x = -{{b}}/{{a}}",
+      constraints: {},
+    });
+
+    // LLM으로 오버라이드 -> generateWithAnthropic이 호출되어야 함
+    (generateWithAnthropic as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        body_latex: "3x + 5 = 0",
+        params: { a: 3, b: 5 },
+        answer_value: "-5/3",
+        answer_latex: "x = -\\frac{5}{3}",
+        seed: null,
+      },
+    ]);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        verification: {
+          answer_correct: true,
+          answer_equivalence: true,
+          solution_uniqueness: true,
+          explanation: "정답 확인",
+        },
+        error: null,
+      }),
+    });
+
+    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          item: { create: vi.fn().mockResolvedValue({ id: "item-1" }) },
+          itemVersion: { create: vi.fn().mockResolvedValue({}) },
+          variant: { create: vi.fn().mockResolvedValue({}) },
+        };
+        return fn(tx);
+      },
+    );
+
+    const events: GenerationEvent[] = [];
+    generationEmitter.on("generation", (e: GenerationEvent) => {
+      events.push(e);
+    });
+
+    const { startGenerationJob, getGenerationResult } = await import(
+      "../generation.service"
+    );
+
+    const { jobId } = await startGenerationJob(
+      { templateId: "tmpl-1", count: 1, strategyOverride: "llm" },
+      "user-1",
+      "default-org",
+    );
+
+    await vi.waitFor(
+      () => {
+        const result = getGenerationResult(jobId);
+        expect(result.status).toBe("completed");
+      },
+      { timeout: 5000 },
+    );
+
+    // LLM 오버라이드로 generateWithAnthropic이 호출되었는지 확인
+    expect(generateWithAnthropic).toHaveBeenCalled();
+
+    // job_started 이벤트에 strategy가 포함되어 있는지 확인
+    const startEvent = events.find(
+      (e) => e.jobId === jobId && e.type === "job_started",
+    );
+    expect(startEvent).toBeDefined();
+    expect((startEvent!.data as { strategy: string }).strategy).toBe("llm");
   });
 });

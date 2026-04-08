@@ -11,6 +11,7 @@ import {
   listTemplatesSchema,
   generateVariantsSchema,
   getGenerationResultSchema,
+  detectStrategyInputSchema,
   createAssignmentSchema,
   exportAssignmentSchema,
   paginationSchema,
@@ -29,6 +30,7 @@ import {
 import {
   startGenerationJob,
   getGenerationResult,
+  detectStrategyForTemplate,
 } from "../services/generation.service";
 import {
   createAssignment,
@@ -100,6 +102,14 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const orgId = getOrgId();
       return createTemplate(input, ctx.user.id, orgId);
+    }),
+
+  // 전략 사전 감지 (검수자 이상)
+  detectStrategy: reviewerProcedure
+    .input(detectStrategyInputSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return detectStrategyForTemplate(input.templateId, orgId);
     }),
 
   // 변형 문항 생성 - 비동기 (검수자 이상)

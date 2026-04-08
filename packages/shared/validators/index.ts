@@ -280,10 +280,14 @@ export const updateUserRoleSchema = z.object({
   role: userRoleSchema,
 });
 
+/** 생성 전략 */
+export const generationStrategySchema = z.enum(["sympy", "llm"]);
+
 /** AI 변형 문항 생성 요청 */
 export const generateVariantsSchema = z.object({
   templateId: z.string(),
   count: z.number().int().min(1).max(50),
+  strategyOverride: generationStrategySchema.optional(),
   params: z
     .object({
       solutionSteps: z.number().int().min(1).optional(),
@@ -292,6 +296,11 @@ export const generateVariantsSchema = z.object({
       includeNegatives: z.boolean().optional(),
     })
     .optional(),
+});
+
+/** 전략 감지 요청 */
+export const detectStrategyInputSchema = z.object({
+  templateId: z.string(),
 });
 
 /** 생성 결과 조회 */

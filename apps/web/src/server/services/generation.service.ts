@@ -39,7 +39,7 @@ const GENERATE_TIMEOUT_MS = 30_000;
 // 생성 전략 자동 감지
 // ─────────────────────────────────────────────────
 
-type GenerationStrategy = "sympy" | "llm";
+export type GenerationStrategy = "sympy" | "llm";
 
 /**
  * 템플릿 구조를 분석하여 SymPy(파라미터 치환) 가능 여부를 판단한다.
@@ -203,6 +203,49 @@ function emitEvent(
 }
 
 // ─────────────────────────────────────────────────
+// 0. 전략 사전 감지 (공개)
+// ─────────────────────────────────────────────────
+
+/**
+ * 템플릿 ID로 전략을 사전 감지한다.
+ * UI에서 생성 전 전략 뱃지 표시용.
+ */
+export async function detectStrategyForTemplate(
+  templateId: string,
+  orgId: string,
+): Promise<{ readonly strategy: GenerationStrategy; readonly warnings: readonly string[] }> {
+  const template = await prisma.template.findUnique({
+    where: { id: templateId },
+    select: {
+      id: true,
+      orgId: true,
+      title: true,
+      bodyTemplate: true,
+      parameters: true,
+      answerTemplate: true,
+      constraints: true,
+    },
+  });
+
+  if (!template) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: `템플릿을 찾을 수 없습니다: ${templateId}`,
+    });
+  }
+
+  if (template.orgId !== orgId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "해당 조직의 템플릿이 아닙니다",
+    });
+  }
+
+  const strategy = detectStrategy(template as TemplateSnapshot);
+  return { strategy, warnings: [] };
+}
+
+// ─────────────────────────────────────────────────
 // 1. 생성 작업 시작 (공개)
 // ─────────────────────────────────────────────────
 
@@ -312,10 +355,10 @@ async function _processGeneration(
   try {
     // (a) 상태를 processing으로 전환 + 이벤트 발행
     job.status = "processing";
-    emitEvent(jobId, "job_started", { totalCount: input.count });
 
-    // (b) 전략 자동 감지 후 문항 생성
-    const strategy = detectStrategy(template);
+    // (b) 전략 결정: 오버라이드 우선, 없으면 자동 감지
+    const strategy = input.strategyOverride ?? detectStrategy(template);
+    emitEvent(jobId, "job_started", { totalCount: input.count, strategy });
     emitEvent(jobId, "variant_generating", { index: 0, strategy });
 
     const apiVariants =

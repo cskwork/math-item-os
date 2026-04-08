@@ -11,6 +11,8 @@ import {
   updateStatusSchema,
   getByIdSchema,
   listItemsSchema,
+  bulkUploadSchema,
+  getBulkUploadStatusSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   createItem,
@@ -19,6 +21,10 @@ import {
   listItems,
 } from "../services/item.service";
 import { transitionStatus } from "../services/quality-status.service";
+import {
+  startBulkUpload,
+  getBulkUploadJobStatus,
+} from "../services/upload.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -74,5 +80,20 @@ export const itemRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const orgId = getOrgId();
       return listItems(input, orgId);
+    }),
+
+  // 대량 업로드 시작 (검수자 이상)
+  bulkUpload: reviewerProcedure
+    .input(bulkUploadSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return startBulkUpload(input, ctx.user.id, orgId);
+    }),
+
+  // 대량 업로드 상태 조회 (검수자 이상)
+  getBulkUploadStatus: reviewerProcedure
+    .input(getBulkUploadStatusSchema)
+    .query(async ({ input }) => {
+      return getBulkUploadJobStatus(input.jobId);
     }),
 });

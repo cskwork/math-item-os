@@ -170,8 +170,8 @@ Turborepo monorepo:
 
 ### Implementation for User Story 5
 
-- [ ] T057 [P] [US5] Implement misconception service (CRUD, related skills mapping) in apps/web/src/server/services/misconception.service.ts
-- [ ] T058 [P] [US5] Implement remediation path algorithm (prerequisite_review -> basic_practice -> confirmation 3단계) in apps/web/src/server/services/remediation.service.ts
+- [x] T057 [P] [US5] Implement misconception service (CRUD, related skills mapping) in apps/web/src/server/services/misconception.service.ts
+- [x] T058 [P] [US5] Implement remediation path algorithm (prerequisite_review -> basic_practice -> confirmation 3단계) in apps/web/src/server/services/remediation.service.ts
 - [ ] T059 [US5] Add listMisconceptions, createMisconception, getRemediationPath to skill router in apps/web/src/server/routers/skill.router.ts
 - [ ] T060 [P] [US5] Create misconception selector component in apps/web/src/components/skills/misconception-selector.tsx
 - [ ] T061 [US5] Create remediation path display component (3-phase stepped view with explanations) in apps/web/src/components/skills/remediation-path.tsx

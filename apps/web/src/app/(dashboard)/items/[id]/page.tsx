@@ -6,6 +6,7 @@ import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { SimilarItemsPanel } from "@/components/search/similar-items-panel";
 import {
   QUALITY_STATUS,
   ITEM_TYPE,
@@ -667,7 +668,10 @@ export default function ItemDetailPage({
           )}
         </Section>
 
-        {/* ─── 6. 3중 표현 정보 (접기/펼치기) ─── */}
+        {/* ─── 6. 유사 문항 (Phase 6) ─── */}
+        <SimilarItemsPanel itemId={id} />
+
+        {/* ─── 7. 3중 표현 정보 (접기/펼치기) ─── */}
         <CollapsibleSection title="3중 표현 정보">
           <div className="flex flex-col gap-4">
             {/* MathML */}

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 import { trpc } from "@/lib/trpc";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import { PageHelp } from "@/components/help/page-help";
 import { TemplateEditor, type TemplateFormData } from "@/components/admin/template-editor";
 
@@ -74,12 +76,20 @@ export default function GeneratePage() {
     onSuccess: () => {
       templatesQuery.refetch();
       setActiveTab("list");
+      toast.success("템플릿이 저장되었습니다");
+    },
+    onError: () => {
+      toast.error("템플릿 저장에 실패했습니다");
     },
   });
 
   const generateVariantsMutation = trpc.admin.generateVariants.useMutation({
     onSuccess: (data) => {
       setJobId(data.jobId);
+      toast.success("생성 요청이 접수되었습니다");
+    },
+    onError: () => {
+      toast.error("생성 요청에 실패했습니다");
     },
   });
 
@@ -620,8 +630,8 @@ function GenerationResults({ variants, passRate }: GenerationResultsProps) {
                 <div className="flex items-start justify-between gap-3">
                   {/* 본문 및 정답 */}
                   <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-sm text-slate-800 font-mono">
-                      {bodyLatex}
+                    <p className="truncate text-sm text-slate-800">
+                      <KatexRenderer latex={bodyLatex} displayMode={false} />
                     </p>
                     <div className="mt-1 flex gap-4 text-xs text-slate-500">
                       {answerValue !== undefined && (

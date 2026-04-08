@@ -2,9 +2,11 @@
 
 import { use, useState, useCallback } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import type { Prisma } from "@math-item-os/db";
 
 // --- 상수 ---
@@ -44,7 +46,7 @@ function formatDate(date: Date | string): string {
 
 function truncateContent(text: string, maxLength: number = 60): string {
   if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength)}...`;
+  return `${text.slice(0, maxLength)}\\ldots`;
 }
 
 // --- 메인 페이지 ---
@@ -79,10 +81,18 @@ export default function AssignmentDetailPage({
       if (result.shareUrl) {
         setShareUrl(result.shareUrl);
       }
+      toast.success("학습지가 공개되었습니다");
+    },
+    onError: () => {
+      toast.error("학습지 공개에 실패했습니다");
     },
   });
 
-  const exportMutation = trpc.admin.exportAssignment.useMutation();
+  const exportMutation = trpc.admin.exportAssignment.useMutation({
+    onError: () => {
+      toast.error("내보내기에 실패했습니다");
+    },
+  });
 
   // --- 핸들러 ---
 
@@ -435,8 +445,8 @@ function AssignmentItemRow({ position, item, points }: AssignmentItemRowProps) {
       </span>
 
       {/* 콘텐츠 미리보기 */}
-      <p className="min-w-0 flex-1 truncate font-mono text-sm text-slate-800">
-        {contentPreview}
+      <p className="min-w-0 flex-1 truncate text-sm text-slate-800">
+        <KatexRenderer latex={contentPreview} displayMode={false} />
       </p>
 
       {/* 문항 유형 배지 */}

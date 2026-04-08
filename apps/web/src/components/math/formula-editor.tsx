@@ -61,6 +61,18 @@ const MATH_SYMBOLS: readonly MathSymbol[] = [
   { latex: "\\leq", display: "<=", tooltip: "이하", cursorOffset: 4 },
   { latex: "\\geq", display: ">=", tooltip: "이상", cursorOffset: 4 },
   { latex: "\\neq", display: "!=", tooltip: "같지 않음", cursorOffset: 4 },
+  { latex: "\\alpha", display: "alpha", tooltip: "알파", cursorOffset: 6 },
+  { latex: "\\beta", display: "beta", tooltip: "베타", cursorOffset: 5 },
+  { latex: "\\theta", display: "theta", tooltip: "세타", cursorOffset: 6 },
+  { latex: "\\pi", display: "pi", tooltip: "파이", cursorOffset: 3 },
+  { latex: "\\sin", display: "sin", tooltip: "사인", cursorOffset: 4 },
+  { latex: "\\cos", display: "cos", tooltip: "코사인", cursorOffset: 4 },
+  { latex: "\\tan", display: "tan", tooltip: "탄젠트", cursorOffset: 4 },
+  { latex: "\\sum_{i=1}^{n}", display: "sum", tooltip: "합", cursorOffset: 14 },
+  { latex: "\\int_{a}^{b}", display: "int", tooltip: "적분", cursorOffset: 12 },
+  { latex: "\\lim_{x \\to \\infty}", display: "lim", tooltip: "극한", cursorOffset: 19 },
+  { latex: "\\infty", display: "inf", tooltip: "무한대", cursorOffset: 6 },
+  { latex: "\\left| \\right|", display: "|x|", tooltip: "절대값", cursorOffset: 6 },
 ] as const;
 
 // --- 디바운스 훅 ---

@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { trpc } from "@/lib/trpc";
 import { BLOOM_LEVEL, BLOOM_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
 import { SkillFormModal, INITIAL_FORM } from "./_components/skill-form-modal";
@@ -84,10 +86,13 @@ function TableSkeleton() {
 
 // --- 빈 상태 ---
 
-function EmptyState() {
+function EmptyState({ onCreateClick }: Readonly<{ onCreateClick: () => void }>) {
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16">
       <p className="text-sm text-slate-500">등록된 스킬이 없습니다</p>
+      <Button variant="outline" size="sm" className="mt-3" onClick={onCreateClick}>
+        새 스킬 추가
+      </Button>
     </div>
   );
 }
@@ -136,37 +141,6 @@ function Pagination({
       >
         다음
       </Button>
-    </div>
-  );
-}
-
-// --- 삭제 확인 모달 ---
-
-function DeleteConfirmModal({
-  skillTitle,
-  onConfirm,
-  onCancel,
-}: Readonly<{
-  skillTitle: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}>) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <h3 className="text-lg font-semibold text-slate-900">스킬 삭제</h3>
-        <p className="mt-2 text-sm text-slate-600">
-          &ldquo;{skillTitle}&rdquo; 스킬을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            취소
-          </Button>
-          <Button variant="destructive" size="sm" onClick={onConfirm}>
-            삭제
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -222,9 +196,11 @@ export default function SkillListPage() {
       utils.skill.list.invalidate();
       setFormModal({ open: false, mode: "create", editingId: null, initialData: INITIAL_FORM });
       setFormError("");
+      toast.success("스킬이 추가되었습니다");
     },
     onError: (err) => {
       setFormError(err.message);
+      toast.error("스킬 처리에 실패했습니다");
     },
   });
 
@@ -233,9 +209,11 @@ export default function SkillListPage() {
       utils.skill.list.invalidate();
       setFormModal({ open: false, mode: "create", editingId: null, initialData: INITIAL_FORM });
       setFormError("");
+      toast.success("스킬이 수정되었습니다");
     },
     onError: (err) => {
       setFormError(err.message);
+      toast.error("스킬 처리에 실패했습니다");
     },
   });
 
@@ -243,6 +221,10 @@ export default function SkillListPage() {
     onSuccess: () => {
       utils.skill.list.invalidate();
       setDeleteTarget(null);
+      toast.success("스킬이 삭제되었습니다");
+    },
+    onError: () => {
+      toast.error("스킬 처리에 실패했습니다");
     },
   });
 
@@ -391,7 +373,7 @@ export default function SkillListPage() {
         />
       )}
 
-      {!isLoading && !isError && data && data.skills.length === 0 && <EmptyState />}
+      {!isLoading && !isError && data && data.skills.length === 0 && <EmptyState onCreateClick={handleOpenCreate} />}
 
       {!isLoading && !isError && data && data.skills.length > 0 && (
         <>
@@ -456,26 +438,35 @@ export default function SkillListPage() {
         </>
       )}
 
-      {/* 생성/수정 모달 */}
-      {formModal.open && (
-        <SkillFormModal
-          mode={formModal.mode}
-          initialData={formModal.initialData}
-          onSubmit={handleFormSubmit}
-          onCancel={handleCloseModal}
-          isSubmitting={createMutation.isPending || updateMutation.isPending}
-          errorMessage={formError}
-        />
-      )}
+      <SkillFormModal
+        open={formModal.open}
+        onOpenChange={(open) => {
+          if (!open) handleCloseModal();
+        }}
+        mode={formModal.mode}
+        initialData={formModal.initialData}
+        onSubmit={handleFormSubmit}
+        isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errorMessage={formError}
+      />
 
-      {/* 삭제 확인 모달 */}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          skillTitle={deleteTarget.title}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="스킬 삭제"
+        description={
+          deleteTarget
+            ? `\u201C${deleteTarget.title}\u201D 스킬을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+            : ""
+        }
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

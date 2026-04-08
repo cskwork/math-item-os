@@ -8,15 +8,10 @@ import { PageHelp } from "@/components/help/page-help";
 
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import type { ComboboxOption } from "@/components/ui/combobox";
 import { SkillGraph } from "@/components/skills/skill-graph";
 import { SkillItemsPanel } from "@/components/skills/skill-items-panel";
-
-// --- 타입 정의 ---
-
-interface SkillOption {
-  readonly id: string;
-  readonly label: string;
-}
 
 // --- 방향 옵션 ---
 
@@ -91,19 +86,18 @@ export default function SkillGraphPage() {
     trpc.skill.list.useQuery({ page: 1, limit: 100 } as any);
 
   // -- 스킬 목록을 셀렉터 옵션으로 변환 --
-  const skillOptions: SkillOption[] = useMemo(() => {
+  const skillOptions: ComboboxOption[] = useMemo(() => {
     if (!skillListData?.skills) return [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return skillListData.skills.map((skill: any) => ({
-      id: skill.id as string,
+      value: skill.id as string,
       label: `[${skill.code}] ${skill.title}` as string,
     }));
   }, [skillListData]);
 
   // -- 스킬 선택 핸들러 --
-  const handleSkillSelect = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedSkillId(value || null);
+  const handleSkillSelect = useCallback((nextValue: string) => {
+    setSelectedSkillId(nextValue || null);
     setPanelSkillId(null);
   }, []);
 
@@ -156,25 +150,18 @@ export default function SkillGraphPage() {
 
           {/* 스킬 셀렉터 */}
           <div className="flex items-center gap-2">
-            <label
-              htmlFor="skill-selector"
-              className="text-xs font-medium text-slate-500 whitespace-nowrap"
-            >
+            <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
               루트 스킬
-            </label>
-            <select
-              id="skill-selector"
+            </span>
+            <Combobox
+              options={skillOptions}
               value={selectedSkillId ?? ""}
               onChange={handleSkillSelect}
-              className="h-9 min-w-[200px] rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-            >
-              <option value="">스킬 선택...</option>
-              {skillOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              placeholder="스킬 선택..."
+              searchPlaceholder="스킬 검색..."
+              emptyText="검색 결과가 없습니다."
+              className="min-w-[200px]"
+            />
           </div>
 
           <div className="h-6 w-px bg-slate-200" />

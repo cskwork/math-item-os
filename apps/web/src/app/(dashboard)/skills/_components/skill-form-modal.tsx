@@ -2,6 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { BLOOM_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
 
 // --- 폼 상태 타입 ---
@@ -27,17 +34,19 @@ export const INITIAL_FORM: SkillFormData = {
 // --- 스킬 생성/수정 모달 ---
 
 export function SkillFormModal({
+  open,
+  onOpenChange,
   mode,
   initialData,
   onSubmit,
-  onCancel,
   isSubmitting,
   errorMessage,
 }: Readonly<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
   initialData: SkillFormData;
   onSubmit: (data: SkillFormData) => void;
-  onCancel: () => void;
   isSubmitting: boolean;
   errorMessage: string;
 }>) {
@@ -59,14 +68,20 @@ export function SkillFormModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-        <h3 className="text-lg font-semibold text-slate-900">
-          {mode === "create" ? "새 스킬 추가" : "스킬 수정"}
-        </h3>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "create" ? "새 스킬 추가" : "스킬 수정"}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "새로운 스킬 정보를 입력하세요"
+              : "스킬 정보를 수정하세요"}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          {/* 코드 (생성 시에만 편집 가능) */}
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">코드</label>
             <input
@@ -80,7 +95,6 @@ export function SkillFormModal({
             />
           </div>
 
-          {/* 스킬명 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">스킬명</label>
             <input
@@ -93,7 +107,6 @@ export function SkillFormModal({
             />
           </div>
 
-          {/* 설명 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">설명</label>
             <textarea
@@ -105,7 +118,6 @@ export function SkillFormModal({
             />
           </div>
 
-          {/* 분류 경로 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">분류 경로</label>
             <input
@@ -118,7 +130,6 @@ export function SkillFormModal({
             />
           </div>
 
-          {/* Bloom 수준 + 예상 소요시간 (가로 배치) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">Bloom 수준</label>
@@ -150,16 +161,14 @@ export function SkillFormModal({
             </div>
           </div>
 
-          {/* 에러 메시지 */}
           {errorMessage && (
             <div className="rounded-md border border-red-200 bg-red-50 p-2">
               <p className="text-xs text-red-700">{errorMessage}</p>
             </div>
           )}
 
-          {/* 버튼 */}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               취소
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting}>
@@ -167,7 +176,7 @@ export function SkillFormModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

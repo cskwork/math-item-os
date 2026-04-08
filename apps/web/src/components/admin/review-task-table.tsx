@@ -1,5 +1,7 @@
 // 검수 태스크 테이블 컴포넌트
 
+import { KatexRenderer } from "@/components/math/katex-renderer";
+
 // --- 태스크 타입 라벨 ---
 
 export const TASK_TYPE_LABEL: Readonly<Record<string, string>> = {
@@ -152,8 +154,8 @@ function ReviewTaskRow({
       {/* 문항 제목 */}
       <td className="max-w-[280px] px-4 py-3">
         <div className="flex items-center gap-2">
-          <p className="truncate font-mono text-xs text-slate-800">
-            {task.itemTitle}
+          <p className="truncate text-xs text-slate-800">
+            <KatexRenderer latex={task.itemTitle} displayMode={false} />
           </p>
           {task.isGenerated && (
             <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">

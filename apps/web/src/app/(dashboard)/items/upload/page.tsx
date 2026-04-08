@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 
@@ -134,10 +135,15 @@ export default function BulkUploadPage() {
   const [fileUrl, setFileUrl] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
 
+  const prevJobStatusRef = useRef<string | undefined>(undefined);
+
   // -- 대량 업로드 mutation --
   const bulkUpload = trpc.item.bulkUpload.useMutation({
     onSuccess: (data) => {
       setJobId(data.jobId);
+    },
+    onError: () => {
+      toast.error("업로드 요청에 실패했습니다");
     },
   });
 
@@ -155,6 +161,17 @@ export default function BulkUploadPage() {
 
   const jobStatus = statusQuery.data?.status;
   const jobErrors = statusQuery.data?.errors ?? [];
+
+  useEffect(() => {
+    const prev = prevJobStatusRef.current;
+    prevJobStatusRef.current = jobStatus;
+    if (prev === jobStatus) return;
+    if (jobStatus === "completed") {
+      toast.success("업로드가 완료되었습니다");
+    } else if (jobStatus === "failed") {
+      toast.error("업로드에 실패했습니다");
+    }
+  }, [jobStatus]);
 
   // -- 업로드 실행 핸들러 --
   const handleUpload = useCallback(() => {

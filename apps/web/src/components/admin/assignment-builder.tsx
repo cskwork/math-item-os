@@ -3,6 +3,7 @@
 import { useCallback, useMemo, memo } from "react";
 import { GripVertical, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
 
 // ─── 타입 정의 ───
@@ -50,7 +51,7 @@ const DEFAULT_DIFFICULTY_COLOR = "border-slate-300 bg-slate-50 text-slate-700";
 /** bodyLatex를 미리보기용으로 잘라낸 문자열 반환 */
 function truncateBody(body: string, maxLength: number): string {
   if (body.length <= maxLength) return body;
-  return `${body.slice(0, maxLength)}...`;
+  return `${body.slice(0, maxLength)}\\ldots`;
 }
 
 /** 난이도 숫자에 해당하는 배지 CSS 클래스 반환 */
@@ -233,8 +234,8 @@ const ItemRow = memo(function ItemRow({
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {/* 상단: 본문 미리보기 + 배지 */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-mono text-sm text-slate-800">
-            {previewText}
+          <span className="truncate text-sm text-slate-800">
+            <KatexRenderer latex={previewText} displayMode={false} />
           </span>
           {item.difficultyAuthor != null && (
             <DifficultyBadge difficulty={item.difficultyAuthor} />

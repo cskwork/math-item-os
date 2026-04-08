@@ -9,6 +9,7 @@ import {
   BookOpen,
   Users,
   ScrollText,
+  Brain,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ export const navSections: readonly NavSection[] = [
     items: [
       { label: "문항 관리", href: "/items", icon: FileText },
       { label: "검색", href: "/search", icon: Search },
+      { label: "스킬 관리", href: "/skills", icon: Brain },
       { label: "스킬 그래프", href: "/skills/graph", icon: GitBranch },
       { label: "오개념", href: "/misconceptions", icon: AlertTriangle },
     ],

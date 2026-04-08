@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 import { trpc } from "@/lib/trpc";
 import { PageHelp } from "@/components/help/page-help";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // --- 상수 ---
 const DEFAULT_PAGE = 1;
@@ -52,6 +54,10 @@ function formatDate(date: Date): string {
 export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [page, setPage] = useState(DEFAULT_PAGE);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    userId: string;
+    newRole: UserRole;
+  } | null>(null);
 
   // --- tRPC 쿼리 ---
   const usersQuery = trpc.admin.listUsers.useQuery({
@@ -64,6 +70,10 @@ export default function UsersPage() {
   const updateRoleMutation = trpc.admin.updateUserRole.useMutation({
     onSuccess: () => {
       usersQuery.refetch();
+      toast.success("역할이 변경되었습니다");
+    },
+    onError: () => {
+      toast.error("역할 변경에 실패했습니다");
     },
   });
 
@@ -78,10 +88,19 @@ export default function UsersPage() {
 
   const handleRoleChange = useCallback(
     (userId: string, newRole: UserRole) => {
-      updateRoleMutation.mutate({ userId, role: newRole });
+      setPendingRoleChange({ userId, newRole });
     },
-    [updateRoleMutation],
+    [],
   );
+
+  const handleConfirmRoleChange = useCallback(() => {
+    if (pendingRoleChange === null) return;
+    updateRoleMutation.mutate({
+      userId: pendingRoleChange.userId,
+      role: pendingRoleChange.newRole,
+    });
+    setPendingRoleChange(null);
+  }, [pendingRoleChange, updateRoleMutation]);
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
@@ -171,6 +190,19 @@ export default function UsersPage() {
           onPageChange={handlePageChange}
         />
       )}
+
+      <ConfirmDialog
+        open={pendingRoleChange !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRoleChange(null);
+        }}
+        title="역할 변경"
+        description={`역할을 ${pendingRoleChange !== null ? ROLE_LABEL_MAP[pendingRoleChange.newRole] : ""}(으)로 변경하시겠습니까?`}
+        variant="default"
+        confirmLabel="변경"
+        loading={updateRoleMutation.isPending}
+        onConfirm={handleConfirmRoleChange}
+      />
     </div>
   );
 }

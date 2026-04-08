@@ -125,6 +125,7 @@ export default function SearchPage() {
             <button
               key={opt.value}
               onClick={() => handleSortChange(opt.value)}
+              aria-pressed={sort === opt.value}
               className={`rounded-full px-3 py-1 text-xs ${
                 sort === opt.value
                   ? "bg-slate-900 text-white"

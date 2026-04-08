@@ -3,6 +3,7 @@
 import { memo, useCallback } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -106,7 +107,7 @@ const DIFFICULTY_BADGE_COLORS: Record<number, string> = {
 /** LaTeX 본문을 100자로 절단 */
 function truncateLatex(latex: string): string {
   if (latex.length <= 100) return latex;
-  return `${latex.slice(0, 100)}...`;
+  return `${latex.slice(0, 100)}\\ldots`;
 }
 
 /** 숫자 키 상수에서 라벨 반환 */
@@ -197,8 +198,8 @@ const StepItemCard = memo(function StepItemCard({
       )}
     >
       {/* LaTeX 본문 */}
-      <p className="text-sm font-mono leading-relaxed text-slate-800">
-        {truncateLatex(item.bodyLatex)}
+      <p className="text-sm leading-relaxed text-slate-800">
+        <KatexRenderer latex={truncateLatex(item.bodyLatex)} displayMode={false} />
       </p>
 
       {/* 메타 배지 */}

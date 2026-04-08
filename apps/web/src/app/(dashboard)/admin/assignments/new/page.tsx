@@ -2,8 +2,10 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { trpc } from "@/lib/trpc";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -118,7 +120,11 @@ export default function NewAssignmentPage() {
 
   const createAssignmentMutation = trpc.admin.createAssignment.useMutation({
     onSuccess: (data) => {
+      toast.success("학습지가 저장되었습니다");
       router.push(`/admin/assignments/${data.assignment.id}`);
+    },
+    onError: () => {
+      toast.error("학습지 저장에 실패했습니다");
     },
   });
 
@@ -666,10 +672,13 @@ function ItemCardList({ items, selectedIds, onAdd }: ItemCardListProps) {
               )}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-xs text-slate-800">
-                  {item.bodyLatex.length > 60
-                    ? `${item.bodyLatex.slice(0, 60)}...`
-                    : item.bodyLatex}
+                <p className="truncate text-xs text-slate-800">
+                  <KatexRenderer
+                    latex={item.bodyLatex.length > 60
+                      ? `${item.bodyLatex.slice(0, 60)}\\ldots`
+                      : item.bodyLatex}
+                    displayMode={false}
+                  />
                 </p>
                 <div className="mt-0.5 flex gap-2 text-xs text-slate-400">
                   <span>{item.schoolLevel}</span>

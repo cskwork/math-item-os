@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 import { trpc } from "@/lib/trpc";
 import { PageHelp } from "@/components/help/page-help";
 import { ReviewTaskTable } from "@/components/admin/review-task-table";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // --- 상수 ---
 
@@ -48,6 +50,12 @@ export default function ReviewQueuePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [priorityFilter, setPriorityFilter] = useState(0);
 
+  // 확인 다이얼로그 상태
+  const [pendingAction, setPendingAction] = useState<{
+    taskId: string;
+    action: "approve" | "reject";
+  } | null>(null);
+
   // 페이지네이션 상태
   const [page, setPage] = useState(1);
 
@@ -66,6 +74,10 @@ export default function ReviewQueuePage() {
   const updateTaskMutation = trpc.admin.updateReviewTask.useMutation({
     onSuccess: () => {
       tasksQuery.refetch();
+      toast.success("검수 처리가 완료되었습니다");
+    },
+    onError: () => {
+      toast.error("검수 처리에 실패했습니다");
     },
   });
 
@@ -102,19 +114,20 @@ export default function ReviewQueuePage() {
     setPage(1);
   }, []);
 
-  const handleApprove = useCallback(
-    (taskId: string) => {
-      updateTaskMutation.mutate({ taskId, status: "completed" });
-    },
-    [updateTaskMutation],
-  );
+  const handleApprove = useCallback((taskId: string) => {
+    setPendingAction({ taskId, action: "approve" });
+  }, []);
 
-  const handleReject = useCallback(
-    (taskId: string) => {
-      updateTaskMutation.mutate({ taskId, status: "rejected" });
-    },
-    [updateTaskMutation],
-  );
+  const handleReject = useCallback((taskId: string) => {
+    setPendingAction({ taskId, action: "reject" });
+  }, []);
+
+  const handleConfirmAction = useCallback(() => {
+    if (pendingAction === null) return;
+    const status = pendingAction.action === "approve" ? "completed" : "rejected";
+    updateTaskMutation.mutate({ taskId: pendingAction.taskId, status });
+    setPendingAction(null);
+  }, [pendingAction, updateTaskMutation]);
 
   // --- 파생 상태 ---
 
@@ -215,6 +228,29 @@ export default function ReviewQueuePage() {
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(null);
+        }}
+        title={
+          pendingAction?.action === "approve" ? "검수 승인" : "반려 처리"
+        }
+        description={
+          pendingAction?.action === "approve"
+            ? "이 문항을 검수 완료 처리하시겠습니까?"
+            : "이 문항을 반려 처리하시겠습니까?"
+        }
+        variant={
+          pendingAction?.action === "reject" ? "destructive" : "default"
+        }
+        confirmLabel={
+          pendingAction?.action === "approve" ? "승인" : "반려"
+        }
+        loading={updateTaskMutation.isPending}
+        onConfirm={handleConfirmAction}
+      />
     </div>
   );
 }

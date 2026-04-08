@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { PageHelp } from "@/components/help/page-help";
 
@@ -80,17 +81,21 @@ export default function AdminDashboardPage() {
 
       {/* 상단: KPI 카드 4개 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title="전체 문항 수"
-          value={data.totalItems.toLocaleString()}
-          unit="건"
-        />
-        <KpiCard
-          title="검토 대기"
-          value={data.pendingReviews.toLocaleString()}
-          unit="건"
-          highlight={data.pendingReviews > 0}
-        />
+        <Link href="/items" className="block rounded-lg transition-shadow hover:shadow-md">
+          <KpiCard
+            title="전체 문항 수"
+            value={data.totalItems.toLocaleString()}
+            unit="건"
+          />
+        </Link>
+        <Link href="/admin/reviews" className="block rounded-lg transition-shadow hover:shadow-md">
+          <KpiCard
+            title="검토 대기"
+            value={data.pendingReviews.toLocaleString()}
+            unit="건"
+            highlight={data.pendingReviews > 0}
+          />
+        </Link>
         <KpiCard
           title="메타데이터 완성도"
           value={`${data.metadataCompleteness}`}

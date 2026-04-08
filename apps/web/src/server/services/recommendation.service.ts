@@ -1,5 +1,6 @@
 // 추천 이벤트 로깅 서비스 - 교정 경로 추천 기록 (Constitution II: 설명 가능한 추천)
 import { prisma } from "@math-item-os/db";
+import type { Prisma } from "@math-item-os/db";
 import type { RecType } from "@math-item-os/db";
 
 // -- 입력 타입 정의 --
@@ -7,7 +8,7 @@ import type { RecType } from "@math-item-os/db";
 export interface CreateRecommendationEventInput {
   readonly recType: RecType;
   readonly itemIds: readonly string[];
-  readonly reasoning: Readonly<Record<string, unknown>>;
+  readonly reasoning: Prisma.InputJsonObject;
 }
 
 export interface UpdateRecommendationFeedbackInput {
@@ -28,7 +29,7 @@ export async function createRecommendationEvent(
       orgId,
       recType: input.recType,
       itemIds: [...input.itemIds],
-      reasoning: input.reasoning as Record<string, unknown>,
+      reasoning: input.reasoning,
     },
   });
 

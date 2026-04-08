@@ -344,7 +344,7 @@ async function _processGeneration(
               casVerification: cas,
               generationSeed: apiVariant.seed,
               generationParams: apiVariant.params,
-            } as Prisma.InputJsonValue,
+            } as unknown as Prisma.InputJsonValue,
           },
         });
 
@@ -367,12 +367,12 @@ async function _processGeneration(
           data: {
             templateId: template.id,
             itemId: item.id,
-            paramValues: apiVariant.params as Prisma.InputJsonValue,
+            paramValues: apiVariant.params as unknown as Prisma.InputJsonValue,
             seed: apiVariant.seed != null ? BigInt(apiVariant.seed) : null,
             generationLog: {
               casVerification: cas,
               generatedAt: new Date().toISOString(),
-            } as Prisma.InputJsonValue,
+            } as unknown as Prisma.InputJsonValue,
           },
         });
 

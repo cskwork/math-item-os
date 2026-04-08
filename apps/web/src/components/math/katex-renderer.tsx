@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef, memo } from "react";
+import { memo } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import {
+  shouldTreatAsPlainText,
+  tokenizeKatexContent,
+} from "./katex-content";
 
 interface KatexRendererProps {
   latex: string;
@@ -24,25 +28,6 @@ const KatexRenderer = memo(function KatexRenderer({
   className,
   preRenderedHtml,
 }: KatexRendererProps) {
-  const containerRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current || preRenderedHtml) return;
-
-    try {
-      katex.render(latex, containerRef.current, {
-        displayMode,
-        throwOnError: false,
-        output: "htmlAndMathml",
-        strict: false,
-      });
-    } catch {
-      if (containerRef.current) {
-        containerRef.current.textContent = latex;
-      }
-    }
-  }, [latex, displayMode, preRenderedHtml]);
-
   if (preRenderedHtml) {
     return (
       <span
@@ -52,13 +37,69 @@ const KatexRenderer = memo(function KatexRenderer({
     );
   }
 
-  return (
-    <span
-      ref={containerRef}
-      className={className}
-      data-latex={latex}
-    />
-  );
+  const segments = tokenizeKatexContent(latex);
+  const hasMixedSegments = segments.some((segment) => segment.type === "math");
+
+  if (hasMixedSegments) {
+    return (
+      <span className={className} data-latex={latex}>
+        {segments.map((segment, index) => {
+          if (segment.type === "text") {
+            return <span key={`text-${index}`}>{segment.content}</span>;
+          }
+
+          try {
+            const html = katex.renderToString(segment.content, {
+              displayMode: segment.displayMode,
+              throwOnError: false,
+              output: "htmlAndMathml",
+              strict: false,
+            });
+
+            return (
+              <span
+                key={`math-${index}`}
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            );
+          } catch {
+            return <span key={`math-${index}`}>{segment.content}</span>;
+          }
+        })}
+      </span>
+    );
+  }
+
+  if (shouldTreatAsPlainText(latex)) {
+    return (
+      <span className={className} data-latex={latex}>
+        {latex}
+      </span>
+    );
+  }
+
+  try {
+    const html = katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      output: "htmlAndMathml",
+      strict: false,
+    });
+
+    return (
+      <span
+        className={className}
+        data-latex={latex}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  } catch {
+    return (
+      <span className={className} data-latex={latex}>
+        {latex}
+      </span>
+    );
+  }
 });
 
 export { KatexRenderer };

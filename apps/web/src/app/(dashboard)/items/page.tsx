@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ItemCard } from "@/components/items/item-card";
 import { trpc } from "@/lib/trpc";
-import type { Item } from "@math-item-os/shared/types/index";
 import {
   QUALITY_STATUS_OPTIONS,
   SCHOOL_LEVEL_OPTIONS,
@@ -363,7 +362,7 @@ export default function ItemListPage() {
 
           {/* 문항 그리드 */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.items.map((item: Item) => (
+            {data.items.map((item) => (
               <ItemCard
                 key={item.id}
                 item={item}

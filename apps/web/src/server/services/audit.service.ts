@@ -1,5 +1,6 @@
 // 감사 로그 서비스 - 불변 INSERT 전용, UPDATE/DELETE 차단
 import { prisma } from "@math-item-os/db";
+import type { Prisma } from "@math-item-os/db";
 import type { AuditAction } from "@math-item-os/db";
 
 interface CreateAuditLogInput {
@@ -8,8 +9,8 @@ interface CreateAuditLogInput {
   recordId: string;
   action: AuditAction;
   performedBy: string;
-  oldData?: Record<string, unknown> | null;
-  newData?: Record<string, unknown> | null;
+  oldData?: Prisma.InputJsonValue | null;
+  newData?: Prisma.InputJsonValue | null;
 }
 
 /** 감사 로그 기록 (INSERT 전용) */

@@ -34,10 +34,15 @@ export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 
 // 입력 정제 미들웨어 - 모든 문자열 입력에서 제어 문자 제거
-const sanitizeMiddleware = t.middleware(({ rawInput, next }) => {
+const sanitizeMiddleware = t.middleware(async ({ getRawInput, next }) => {
+  const rawInput = await getRawInput();
+
   if (rawInput != null && typeof rawInput === "object") {
-    return next({ rawInput: sanitizeInput(rawInput) });
+    return next({
+      getRawInput: async () => sanitizeInput(rawInput),
+    });
   }
+
   return next();
 });
 

@@ -36,12 +36,15 @@ const PRIORITY_OPTIONS = [
   { value: 5, label: "5" },
 ] as const;
 
+type TaskTypeFilter = (typeof TASK_TYPE_OPTIONS)[number]["value"];
+type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
+
 // --- 메인 페이지 ---
 
 export default function ReviewQueuePage() {
   // 필터 상태
-  const [taskTypeFilter, setTaskTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [taskTypeFilter, setTaskTypeFilter] = useState<TaskTypeFilter>("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [priorityFilter, setPriorityFilter] = useState(0);
 
   // 페이지네이션 상태
@@ -69,7 +72,7 @@ export default function ReviewQueuePage() {
 
   const handleTaskTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setTaskTypeFilter(e.target.value);
+      setTaskTypeFilter(e.target.value as TaskTypeFilter);
       setPage(1);
     },
     [],
@@ -77,7 +80,7 @@ export default function ReviewQueuePage() {
 
   const handleStatusChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setStatusFilter(e.target.value);
+      setStatusFilter(e.target.value as StatusFilter);
       setPage(1);
     },
     [],

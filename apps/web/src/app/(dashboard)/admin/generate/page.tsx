@@ -287,7 +287,7 @@ export default function GeneratePage() {
 interface TemplateListItem {
   id: string;
   title: string;
-  parameters: unknown[];
+  parameters: unknown;
   _count?: { variants?: number };
 }
 
@@ -543,10 +543,10 @@ interface CasVerification {
 
 interface VariantResult {
   itemId?: string;
-  item?: { id: string; bodyLatex?: string; answerValue?: number; answerLatex?: string };
+  item?: { id: string; bodyLatex?: string; answerValue?: string; answerLatex?: string };
   bodyLatex?: string;
   params?: Record<string, unknown>;
-  answerValue?: number;
+  answerValue?: string;
   answerLatex?: string;
   casVerification: CasVerification;
 }

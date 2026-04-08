@@ -13,12 +13,24 @@ import {
   type DifficultyLevelKey,
   type SchoolLevelKey,
 } from "@math-item-os/shared/constants/index";
-import type { Item } from "@math-item-os/shared/types/index";
+
+interface ItemCardItem {
+  readonly id: string;
+  readonly bodyLatex: string;
+  readonly status: string;
+  readonly currentVersion: number;
+  readonly isGenerated: boolean;
+  readonly schoolLevel: string;
+  readonly grade: number;
+  readonly itemType: string;
+  readonly difficultyAuthor: number | null;
+  readonly createdAt: Date | string;
+}
 
 // ─── Props ───
 
 export interface ItemCardProps {
-  readonly item: Item;
+  readonly item: ItemCardItem;
   readonly onClick?: (id: string) => void;
   readonly className?: string;
 }
@@ -34,7 +46,7 @@ const STATUS_COLOR_MAP: Record<QualityStatusKey, string> = {
 
 // ─── 날짜 포맷 (상대 시간) ───
 
-function formatRelativeDate(date: Date): string {
+function formatRelativeDate(date: Date | string): string {
   const now = new Date();
   const target = date instanceof Date ? date : new Date(date);
   const diffMs = now.getTime() - target.getTime();

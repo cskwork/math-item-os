@@ -118,7 +118,7 @@ export default function NewAssignmentPage() {
 
   const createAssignmentMutation = trpc.admin.createAssignment.useMutation({
     onSuccess: (data) => {
-      router.push(`/admin/assignments/${data.id}`);
+      router.push(`/admin/assignments/${data.assignment.id}`);
     },
   });
 
@@ -174,7 +174,7 @@ export default function NewAssignmentPage() {
   );
 
   const handleAddItem = useCallback(
-    (rawItem: { id: string; bodyLatex: string; itemType: string; difficultyAuthor?: number | null; points?: number }) => {
+    (rawItem: SearchResultItemData) => {
       // 중복 방지
       const alreadyExists = selectedItems.some((si) => si.item.id === rawItem.id);
       if (alreadyExists) return;
@@ -187,7 +187,7 @@ export default function NewAssignmentPage() {
           difficultyAuthor: rawItem.difficultyAuthor ?? null,
         },
         position: selectedItems.length + 1,
-        points: rawItem.points ?? 10,
+        points: 10,
       };
 
       setSelectedItems((prev) => [...prev, entry]);
@@ -528,7 +528,7 @@ interface RecommendedItemsPanelProps {
   readonly page: number;
   readonly isLoading: boolean;
   readonly selectedIds: ReadonlySet<string>;
-  readonly onAdd: (item: AssignmentBuilderItem) => void;
+  readonly onAdd: (item: SearchResultItemData) => void;
   readonly onPageChange: (page: number) => void;
 }
 
@@ -588,7 +588,7 @@ interface SearchResultsPanelProps {
   readonly page: number;
   readonly isLoading: boolean;
   readonly selectedIds: ReadonlySet<string>;
-  readonly onAdd: (item: AssignmentBuilderItem) => void;
+  readonly onAdd: (item: SearchResultItemData) => void;
   readonly onPageChange: (page: number) => void;
 }
 
@@ -643,7 +643,7 @@ function SearchResultsPanel({
 interface ItemCardListProps {
   readonly items: readonly SearchResultItemData[];
   readonly selectedIds: ReadonlySet<string>;
-  readonly onAdd: (item: AssignmentBuilderItem) => void;
+  readonly onAdd: (item: SearchResultItemData) => void;
 }
 
 function ItemCardList({ items, selectedIds, onAdd }: ItemCardListProps) {
@@ -657,15 +657,7 @@ function ItemCardList({ items, selectedIds, onAdd }: ItemCardListProps) {
             <button
               type="button"
               disabled={isAdded}
-              onClick={() =>
-                onAdd({
-                  id: item.id,
-                  bodyLatex: item.bodyLatex,
-                  itemType: item.itemType,
-                  difficultyAuthor: item.difficultyAuthor,
-                  points: 10,
-                })
-              }
+              onClick={() => onAdd(item)}
               className={cn(
                 "flex items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors",
                 isAdded

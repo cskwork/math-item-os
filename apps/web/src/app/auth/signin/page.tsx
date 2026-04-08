@@ -22,10 +22,13 @@ export default function SignInPage() {
       email,
       password,
       callbackUrl: "/items",
+      redirect: false,
     });
 
     if (result?.error) {
       setError("이메일 또는 비밀번호가 올바르지 않습니다");
+    } else if (result?.url) {
+      window.location.href = result.url;
     }
     setLoading(false);
   }

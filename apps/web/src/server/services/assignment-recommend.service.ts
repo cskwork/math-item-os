@@ -138,7 +138,7 @@ export async function recommendItems(
       {
         recType,
         itemIds: selectedItems.map((si) => si.item.id),
-        reasoning: reasoning as unknown as Record<string, unknown>,
+        reasoning: reasoning as unknown as import("@math-item-os/db").Prisma.InputJsonObject,
       },
       orgId,
     );

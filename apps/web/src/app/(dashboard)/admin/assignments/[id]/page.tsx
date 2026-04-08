@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import type { Prisma } from "@math-item-os/db";
 
 // --- 상수 ---
 
@@ -219,7 +220,7 @@ export default function AssignmentDetailPage({
 // --- 총 배점 계산 ---
 
 interface AssignmentItemForPoints {
-  readonly points: number | string | null;
+  readonly points: number | string | Prisma.Decimal | null;
 }
 
 function calculateTotalPoints(
@@ -364,7 +365,7 @@ function MetaSection({
 interface AssignmentItemData {
   readonly id: string;
   readonly position: number;
-  readonly points: number | string | null;
+  readonly points: number | string | Prisma.Decimal | null;
   readonly item: {
     readonly id: string;
     readonly bodyLatex: string;
@@ -411,7 +412,7 @@ function ItemsSection({ items }: ItemsSectionProps) {
 interface AssignmentItemRowProps {
   readonly position: number;
   readonly item: AssignmentItemData["item"];
-  readonly points: number | string | null;
+  readonly points: number | string | Prisma.Decimal | null;
 }
 
 function AssignmentItemRow({ position, item, points }: AssignmentItemRowProps) {

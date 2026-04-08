@@ -141,13 +141,7 @@ export const adminRouter = createTRPCRouter({
     .input(updateAssignmentItemsSchema)
     .mutation(async ({ input, ctx }) => {
       const orgId = getOrgId();
-      return updateAssignmentItems(
-        input.assignmentId,
-        input.itemIds,
-        input.points,
-        ctx.user.id,
-        orgId,
-      );
+      return updateAssignmentItems(input, ctx.user.id, orgId);
     }),
 
   // 학습지 공개 (검수자 이상)
@@ -163,7 +157,7 @@ export const adminRouter = createTRPCRouter({
     .input(exportAssignmentSchema)
     .mutation(async ({ input }) => {
       const orgId = getOrgId();
-      return exportAssignment(input.assignmentId, input.format, orgId);
+      return exportAssignment(input, orgId);
     }),
 
   // ── Phase 10: 품질 대시보드 / 검수 큐 / 사용자 관리 / 감사 로그 ──

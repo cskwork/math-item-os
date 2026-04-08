@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import type { AuditAction, Prisma } from "@math-item-os/db";
 
 // --- 상수 ---
 
@@ -42,7 +43,7 @@ const ACTION_BADGE_COLORS: Record<string, string> = {
 
 interface Filters {
   readonly tableName: string;
-  readonly action: string;
+  readonly action: AuditAction | "";
   readonly dateFrom: string;
   readonly dateTo: string;
 }
@@ -204,7 +205,7 @@ function FilterBar({ filters, onFilterChange, onReset }: FilterBarProps) {
 
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-slate-600">작업</label>
-        <select value={filters.action} onChange={(e) => onFilterChange("action", e.target.value)} className={selectClass}>
+        <select value={filters.action} onChange={(e) => onFilterChange("action", e.target.value as Filters["action"])} className={selectClass}>
           <option value="">전체</option>
           {ACTION_OPTIONS.map((action) => (
             <option key={action} value={action}>{ACTION_LABELS[action] ?? action}</option>
@@ -240,9 +241,9 @@ interface AuditLogEntry {
   readonly orgId: string;
   readonly tableName: string;
   readonly recordId: string;
-  readonly action: string;
-  readonly oldData: Record<string, unknown> | null;
-  readonly newData: Record<string, unknown> | null;
+  readonly action: AuditAction;
+  readonly oldData: Prisma.JsonValue | null;
+  readonly newData: Prisma.JsonValue | null;
   readonly performedBy: string;
   readonly createdAt: Date;
 }
@@ -292,8 +293,8 @@ function LogRow({ log, isExpanded, onToggleExpand }: LogRowProps) {
 // --- 로그 상세 (JSON 뷰) ---
 
 interface LogDetailProps {
-  readonly oldData: Record<string, unknown> | null;
-  readonly newData: Record<string, unknown> | null;
+  readonly oldData: Prisma.JsonValue | null;
+  readonly newData: Prisma.JsonValue | null;
 }
 
 function LogDetail({ oldData, newData }: LogDetailProps) {

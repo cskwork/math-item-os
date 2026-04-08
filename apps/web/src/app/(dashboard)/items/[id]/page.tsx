@@ -28,7 +28,7 @@ import {
 
 // ─── 상태 전이 맵 (quality-status.service.ts VALID_TRANSITIONS 미러) ───
 
-const VALID_TRANSITIONS: Record<string, readonly string[]> = {
+const VALID_TRANSITIONS: Record<QualityStatusKey, readonly QualityStatusKey[]> = {
   draft: ["reviewed"],
   reviewed: ["approved"],
   approved: ["retired", "draft"],
@@ -63,6 +63,40 @@ function formatShortDate(date: Date | string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatNumberish(value: number | { toString(): string }): string {
+  return typeof value === "number" ? String(value) : value.toString();
+}
+
+interface ParsedSolutionStep {
+  readonly stepNum: number;
+  readonly latex: string;
+  readonly explanation: string;
+}
+
+function parseSolutionSteps(input: unknown): ParsedSolutionStep[] {
+  if (!Array.isArray(input)) return [];
+
+  return input.flatMap((step) => {
+    if (
+      step == null ||
+      typeof step !== "object" ||
+      typeof step.stepNum !== "number" ||
+      typeof step.latex !== "string" ||
+      typeof step.explanation !== "string"
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        stepNum: step.stepNum,
+        latex: step.latex,
+        explanation: step.explanation,
+      },
+    ];
   });
 }
 
@@ -217,7 +251,7 @@ export default function ItemDetailPage({
 
   // 상태 전이 핸들러
   const handleStatusTransition = useCallback(
-    (newStatus: string) => {
+    (newStatus: QualityStatusKey) => {
       updateStatus.mutate({ id, status: newStatus });
     },
     [id, updateStatus],
@@ -271,7 +305,7 @@ export default function ItemDetailPage({
   const statusKey = item.status as QualityStatusKey;
   const statusLabel = QUALITY_STATUS[statusKey]?.label ?? item.status;
   const statusColor = STATUS_COLOR_MAP[statusKey] ?? STATUS_COLOR_MAP.draft;
-  const nextStatuses = VALID_TRANSITIONS[item.status] ?? [];
+  const nextStatuses = VALID_TRANSITIONS[statusKey] ?? [];
 
   const itemTypeLabel =
     ITEM_TYPE[item.itemType as ItemTypeKey]?.label ?? item.itemType;
@@ -335,7 +369,7 @@ export default function ItemDetailPage({
         </div>
         <div className="flex items-center gap-2">
           {/* 상태 전이 버튼 */}
-          {nextStatuses.map((nextStatus: string) => {
+          {nextStatuses.map((nextStatus) => {
             const nextLabel =
               QUALITY_STATUS[nextStatus as QualityStatusKey]?.label ?? nextStatus;
             return (
@@ -450,22 +484,22 @@ export default function ItemDetailPage({
                 </InfoRow>
                 {difficultyProfile.behavioralDifficulty != null && (
                   <InfoRow label="행동">
-                    {difficultyProfile.behavioralDifficulty}
+                    {formatNumberish(difficultyProfile.behavioralDifficulty)}
                   </InfoRow>
                 )}
                 {difficultyProfile.irtDifficulty != null && (
                   <InfoRow label="IRT 난이도">
-                    {difficultyProfile.irtDifficulty}
+                    {formatNumberish(difficultyProfile.irtDifficulty)}
                   </InfoRow>
                 )}
                 {difficultyProfile.irtDiscrimination != null && (
                   <InfoRow label="IRT 변별도">
-                    {difficultyProfile.irtDiscrimination}
+                    {formatNumberish(difficultyProfile.irtDiscrimination)}
                   </InfoRow>
                 )}
                 {difficultyProfile.irtGuessing != null && (
                   <InfoRow label="IRT 추측도">
-                    {difficultyProfile.irtGuessing}
+                    {formatNumberish(difficultyProfile.irtGuessing)}
                   </InfoRow>
                 )}
               </dl>
@@ -534,14 +568,8 @@ export default function ItemDetailPage({
         {solutions.length > 0 && (
           <Section title={`풀이 (${solutions.length})`}>
             <div className="flex flex-col gap-4">
-              {solutions.map(
-                (sol: {
-                  id: string;
-                  method: string;
-                  steps: { stepNum: number; latex: string; explanation: string }[];
-                  finalAnswer: string;
-                  explanation: string | null;
-                }) => {
+              {solutions.map((sol) => {
+                  const steps = parseSolutionSteps(sol.steps);
                   const methodLabel =
                     SOLUTION_METHOD[sol.method as SolutionMethodKey]?.label ??
                     sol.method;
@@ -563,9 +591,9 @@ export default function ItemDetailPage({
                           {sol.explanation}
                         </p>
                       )}
-                      {sol.steps.length > 0 && (
+                      {steps.length > 0 && (
                         <ol className="flex flex-col gap-2">
-                          {sol.steps.map((step) => (
+                          {steps.map((step) => (
                             <li
                               key={step.stepNum}
                               className="flex items-start gap-2 text-xs"
@@ -589,8 +617,7 @@ export default function ItemDetailPage({
                       )}
                     </div>
                   );
-                },
-              )}
+                })}
             </div>
           </Section>
         )}

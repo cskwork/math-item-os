@@ -85,7 +85,7 @@ const SkillInfoSection = memo(function SkillInfoSection({
 }: {
   readonly skillId: string;
 }) {
-  const { data, isLoading } = trpc.skill.getById.useQuery({ skillId });
+  const { data, isLoading } = trpc.skill.getById.useQuery({ id: skillId });
 
   if (isLoading) {
     return (

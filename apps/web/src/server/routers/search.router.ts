@@ -138,9 +138,9 @@ async function fetchItemsByMeilisearch(
   // 4. SearchResultItem 변환
   const items: SearchResultItem[] = sortedItems.map((item) => ({
     ...item,
-    choices: item.choices as SearchResultItem["choices"],
-    answer: item.answer as SearchResultItem["answer"],
-    metadata: item.metadata as SearchResultItem["metadata"],
+    choices: item.choices as unknown as SearchResultItem["choices"],
+    answer: item.answer as unknown as SearchResultItem["answer"],
+    metadata: item.metadata as unknown as SearchResultItem["metadata"],
     difficultyAuthor: item.difficultyAuthor,
   }));
 
@@ -221,9 +221,9 @@ async function fetchItemsByPrisma(
 
   const items: SearchResultItem[] = dbItems.map((item) => ({
     ...item,
-    choices: item.choices as SearchResultItem["choices"],
-    answer: item.answer as SearchResultItem["answer"],
-    metadata: item.metadata as SearchResultItem["metadata"],
+    choices: item.choices as unknown as SearchResultItem["choices"],
+    answer: item.answer as unknown as SearchResultItem["answer"],
+    metadata: item.metadata as unknown as SearchResultItem["metadata"],
     difficultyAuthor: item.difficultyAuthor,
   }));
 
@@ -426,9 +426,9 @@ export const searchRouter = createTRPCRouter({
           return {
             item: {
               ...item,
-              choices: item.choices as SearchResultItem["choices"],
-              answer: item.answer as SearchResultItem["answer"],
-              metadata: item.metadata as SearchResultItem["metadata"],
+              choices: item.choices as unknown as SearchResultItem["choices"],
+              answer: item.answer as unknown as SearchResultItem["answer"],
+              metadata: item.metadata as unknown as SearchResultItem["metadata"],
             },
             score: r.score,
             signals: r.signals,

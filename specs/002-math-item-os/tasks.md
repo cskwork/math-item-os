@@ -217,8 +217,8 @@ Turborepo monorepo:
 
 - [x] T072 [US7] Implement assignment service (create, item ordering, purpose-based recommendation) in apps/web/src/server/services/assignment.service.ts
 - [x] T073 [US7] Implement item recommendation engine for assignments (목적/난이도/스킬 조합 추천 + 근거) in apps/web/src/server/services/assignment-recommend.service.ts
-- [ ] T074 [US7] Add createAssignment and exportAssignment to admin router in apps/web/src/server/routers/admin.router.ts
-- [ ] T075 [US7] Implement PDF generation service (KaTeX-rendered math, layout) in apps/web/src/server/services/pdf.service.ts
+- [x] T074 [US7] Add createAssignment and exportAssignment to admin router in apps/web/src/server/routers/admin.router.ts
+- [x] T075 [US7] Implement PDF generation service (KaTeX-rendered math, layout) in apps/web/src/server/services/pdf.service.ts
 - [ ] T076 [P] [US7] Create assignment builder component (drag-drop item ordering, point assignment) in apps/web/src/components/admin/assignment-builder.tsx
 - [ ] T077 [US7] Create assignment creation page with recommendation + manual adjustment in apps/web/src/app/(dashboard)/admin/assignments/new/page.tsx
 - [ ] T078 [US7] Create assignment export page with PDF preview and share link generation in apps/web/src/app/(dashboard)/admin/assignments/[id]/page.tsx

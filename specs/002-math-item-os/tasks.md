@@ -192,14 +192,14 @@ Turborepo monorepo:
 
 ### Implementation for User Story 6
 
-- [ ] T064 [P] [US6] Implement SymPy solver service (solve, simplify, equals check) in services/math-ai/app/services/sympy_solver.py
-- [ ] T065 [P] [US6] Implement variant generation service (template parameter substitution, constraint validation) in services/math-ai/app/services/generator.py
-- [ ] T066 [US6] Create /generate and /verify CAS endpoints in services/math-ai/app/routers/generate.py
-- [ ] T067 [US6] Implement template service (CRUD, variant count tracking) in apps/web/src/server/services/template.service.ts
-- [ ] T068 [US6] Implement variant generation orchestrator (math-ai call, CAS verification, BullMQ async, is_generated=true) in apps/web/src/server/services/generation.service.ts
-- [ ] T069 [US6] Add listTemplates, generateVariants, getGenerationResult to admin router in apps/web/src/server/routers/admin.router.ts
-- [ ] T070 [P] [US6] Create template editor component (parameter definition, constraint config) in apps/web/src/components/admin/template-editor.tsx
-- [ ] T071 [US6] Create variant generation page with parameter controls and CAS result display in apps/web/src/app/(dashboard)/admin/generate/page.tsx
+- [x] T064 [P] [US6] Implement SymPy solver service (solve, simplify, equals check) in services/math-ai/app/services/sympy_solver.py
+- [x] T065 [P] [US6] Implement variant generation service (template parameter substitution, constraint validation) in services/math-ai/app/services/generator.py
+- [x] T066 [US6] Create /generate and /verify CAS endpoints in services/math-ai/app/routers/generate.py
+- [x] T067 [US6] Implement template service (CRUD, variant count tracking) in apps/web/src/server/services/template.service.ts
+- [x] T068 [US6] Implement variant generation orchestrator (math-ai call, CAS verification, BullMQ async, is_generated=true) in apps/web/src/server/services/generation.service.ts
+- [x] T069 [US6] Add listTemplates, generateVariants, getGenerationResult to admin router in apps/web/src/server/routers/admin.router.ts
+- [x] T070 [P] [US6] Create template editor component (parameter definition, constraint config) in apps/web/src/components/admin/template-editor.tsx
+- [x] T071 [US6] Create variant generation page with parameter controls and CAS result display in apps/web/src/app/(dashboard)/admin/generate/page.tsx
 
 **Checkpoint**: 템플릿 변형 생성 + CAS 검증 + AI 라벨 독립 동작 확인. 1건 < 10초, 통과율 95%+.
 

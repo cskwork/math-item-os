@@ -215,8 +215,8 @@ Turborepo monorepo:
 
 ### Implementation for User Story 7
 
-- [ ] T072 [US7] Implement assignment service (create, item ordering, purpose-based recommendation) in apps/web/src/server/services/assignment.service.ts
-- [ ] T073 [US7] Implement item recommendation engine for assignments (목적/난이도/스킬 조합 추천 + 근거) in apps/web/src/server/services/assignment-recommend.service.ts
+- [x] T072 [US7] Implement assignment service (create, item ordering, purpose-based recommendation) in apps/web/src/server/services/assignment.service.ts
+- [x] T073 [US7] Implement item recommendation engine for assignments (목적/난이도/스킬 조합 추천 + 근거) in apps/web/src/server/services/assignment-recommend.service.ts
 - [ ] T074 [US7] Add createAssignment and exportAssignment to admin router in apps/web/src/server/routers/admin.router.ts
 - [ ] T075 [US7] Implement PDF generation service (KaTeX-rendered math, layout) in apps/web/src/server/services/pdf.service.ts
 - [ ] T076 [P] [US7] Create assignment builder component (drag-drop item ordering, point assignment) in apps/web/src/components/admin/assignment-builder.tsx

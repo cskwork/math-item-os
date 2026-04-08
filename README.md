@@ -58,3 +58,27 @@ pnpm dev
 | `pnpm lint` | 린트 검사 |
 | `pnpm db:migrate` | DB 마이그레이션 |
 | `pnpm db:studio` | Prisma Studio 실행 |
+
+## Speckit 워크플로우
+
+이 프로젝트는 Spec-Driven Development 워크플로우를 사용한다.
+자세한 사용법은 [Speckit 워크플로우 가이드](docs/speckit-workflow.md)를 참고.
+
+### 빠른 시작 (Claude Code)
+
+| 명령어 | 설명 |
+|--------|------|
+| `/speckit.specify` | 새 기능 스펙 생성 |
+| `/speckit.plan` | 구현 계획 생성 |
+| `/speckit.tasks` | 태스크 목록 생성 |
+| `/speckit.implement` | 구현 실행 |
+
+### 수동 실행 (터미널)
+
+```bash
+# 기능 브랜치 생성
+bash .specify/scripts/bash/create-new-feature.sh "기능 설명"
+
+# 다단계 태스크 실행 (별도 터미널에서)
+bash .specify/scripts/bash/execute-phases.sh --verbose
+```

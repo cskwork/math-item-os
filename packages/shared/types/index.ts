@@ -278,3 +278,73 @@ export interface QualityMetrics {
   pendingReviews: number;
   generatedItemPassRate: number;
 }
+
+// 학생 풀이 세션
+export interface StudentSession {
+  readonly id: string;
+  readonly assignmentId: string;
+  readonly studentName: string;
+  readonly token: string;
+  readonly status: string;
+  readonly startedAt: Date;
+  readonly submittedAt: Date | null;
+  readonly gradedAt: Date | null;
+  readonly totalScore: number | null;
+  readonly maxScore: number | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+// 학생 응답
+export interface StudentResponse {
+  readonly id: string;
+  readonly sessionId: string;
+  readonly assignmentItemId: string;
+  readonly studentAnswer: Record<string, unknown>;
+  readonly result: string;
+  readonly score: number | null;
+  readonly maxScore: number | null;
+  readonly timeTakenSec: number | null;
+  readonly misconceptionIds: string[];
+  readonly createdAt: Date;
+}
+
+// typeLevel별 통계
+export interface TypeLevelStat {
+  readonly typeLevel: number;
+  readonly label: string;
+  readonly totalCount: number;
+  readonly correctCount: number;
+  readonly correctRate: number;
+}
+
+// 오답 워크시트 항목
+export interface ErrorWorksheetItem {
+  readonly originalItem: Item;
+  readonly studentAnswer: Record<string, unknown>;
+  readonly correctAnswer: Answer;
+  readonly result: string;
+  readonly misconceptions: Misconception[];
+  readonly twinProblems: SimilarItem[];
+}
+
+// 과제 분석 결과
+export interface AssignmentAnalytics {
+  readonly assignmentId: string;
+  readonly sessionCount: number;
+  readonly avgScore: number;
+  readonly medianScore: number;
+  readonly minScore: number;
+  readonly maxScore: number;
+  readonly typeLevelStats: TypeLevelStat[];
+}
+
+// 학생 약점 프로필
+export interface StudentWeaknessProfile {
+  readonly sessionId: string;
+  readonly studentName: string;
+  readonly totalScore: number;
+  readonly maxScore: number;
+  readonly weakTypeLevels: TypeLevelStat[];
+  readonly weakSkills: Array<{ readonly skillId: string; readonly title: string; readonly correctRate: number }>;
+}

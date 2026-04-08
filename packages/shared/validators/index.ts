@@ -339,3 +339,86 @@ export const listUsersSchema = paginationSchema.extend({
 
 /** 템플릿 목록 조회 */
 export const listTemplatesSchema = paginationSchema;
+
+// ---------------------------------------------------------------------------
+// 7. 풀이(Solve) 라우터 스키마
+// ---------------------------------------------------------------------------
+
+export const sessionStatusSchema = z.enum(["in_progress", "submitted", "graded"]);
+export const responseResultSchema = z.enum(["pending", "correct", "incorrect", "partial", "skipped"]);
+
+/** 과제 조회 (학생용, 토큰 기반) */
+export const getSolveAssignmentSchema = z.object({
+  assignmentId: z.string(),
+  solveToken: z.string().min(1),
+});
+
+/** 풀이 세션 시작 */
+export const startSessionSchema = z.object({
+  assignmentId: z.string(),
+  solveToken: z.string().min(1),
+  studentName: z.string().min(1).max(50),
+});
+
+/** 응답 제출 */
+export const submitResponseSchema = z.object({
+  sessionToken: z.string().min(1),
+  assignmentItemId: z.string(),
+  studentAnswer: z.record(z.string(), z.unknown()),
+  timeTakenSec: z.number().int().min(0).optional(),
+});
+
+/** 세션 전체 제출 */
+export const submitSessionSchema = z.object({
+  sessionToken: z.string().min(1),
+});
+
+/** 채점 결과 조회 */
+export const getResultsSchema = z.object({
+  sessionToken: z.string().min(1),
+});
+
+// ---------------------------------------------------------------------------
+// 8. 오답 워크시트(Worksheet) 라우터 스키마
+// ---------------------------------------------------------------------------
+
+/** 오답 워크시트 생성 */
+export const generateWorksheetSchema = z.object({
+  sessionId: z.string(),
+});
+
+/** 세션 목록 조회 */
+export const listSessionsSchema = paginationSchema.extend({
+  assignmentId: z.string(),
+  status: sessionStatusSchema.optional(),
+});
+
+// ---------------------------------------------------------------------------
+// 9. 성과 분석(Analytics) 라우터 스키마
+// ---------------------------------------------------------------------------
+
+/** 과제 전체 통계 */
+export const assignmentOverviewSchema = z.object({
+  assignmentId: z.string(),
+});
+
+/** typeLevel별 분석 */
+export const typeLevelBreakdownSchema = z.object({
+  assignmentId: z.string(),
+});
+
+/** 취약 유형 추출 */
+export const weakTypesSchema = z.object({
+  assignmentId: z.string(),
+  threshold: z.number().min(0).max(1).default(0.6),
+});
+
+/** 개별 학생 프로필 */
+export const studentProfileSchema = z.object({
+  sessionId: z.string(),
+});
+
+/** 다수 과제 트렌드 */
+export const trendsSchema = z.object({
+  assignmentIds: z.array(z.string()).min(1),
+});

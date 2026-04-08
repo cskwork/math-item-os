@@ -192,3 +192,38 @@ export const GRADE_BY_LEVEL = {
 } as const satisfies Record<SchoolLevelKey, readonly number[]>;
 
 export type GradeByLevelKey = keyof typeof GRADE_BY_LEVEL;
+
+// ─── 문제 유형 레벨 (숫자 키) ───
+export const TYPE_LEVEL = {
+  1: { value: 1 as const, label: "개념이해", order: 1 },
+  2: { value: 2 as const, label: "기본연산", order: 2 },
+  3: { value: 3 as const, label: "유형적용", order: 3 },
+  4: { value: 4 as const, label: "복합적용", order: 4 },
+  5: { value: 5 as const, label: "심화추론", order: 5 },
+  6: { value: 6 as const, label: "창의융합", order: 6 },
+} as const;
+
+export type TypeLevelKey = keyof typeof TYPE_LEVEL;
+export const TYPE_LEVEL_OPTIONS = Object.values(TYPE_LEVEL).sort((a, b) => a.order - b.order);
+
+// ─── 풀이 세션 상태 ───
+export const SESSION_STATUS = {
+  in_progress: { value: "in_progress" as const, label: "진행중", order: 1 },
+  submitted: { value: "submitted" as const, label: "제출완료", order: 2 },
+  graded: { value: "graded" as const, label: "채점완료", order: 3 },
+} as const;
+
+export type SessionStatusKey = keyof typeof SESSION_STATUS;
+export const SESSION_STATUS_OPTIONS = Object.values(SESSION_STATUS).sort((a, b) => a.order - b.order);
+
+// ─── 응답 결과 ───
+export const RESPONSE_RESULT = {
+  pending: { value: "pending" as const, label: "미채점", order: 1 },
+  correct: { value: "correct" as const, label: "정답", order: 2 },
+  incorrect: { value: "incorrect" as const, label: "오답", order: 3 },
+  partial: { value: "partial" as const, label: "부분정답", order: 4 },
+  skipped: { value: "skipped" as const, label: "건너뜀", order: 5 },
+} as const;
+
+export type ResponseResultKey = keyof typeof RESPONSE_RESULT;
+export const RESPONSE_RESULT_OPTIONS = Object.values(RESPONSE_RESULT).sort((a, b) => a.order - b.order);

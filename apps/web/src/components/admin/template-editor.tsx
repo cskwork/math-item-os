@@ -4,6 +4,11 @@ import { useState, useCallback, useMemo, memo } from "react";
 import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  TEMPLATE_PRESETS,
+  CATEGORY_LABELS,
+  type TemplatePreset,
+} from "./template-presets";
 
 // ─── 타입 정의 ───
 
@@ -348,6 +353,23 @@ export function TemplateEditor({
     initialData ?? DEFAULT_FORM_DATA,
   );
 
+  // 프리셋 선택 핸들러
+  const handlePresetSelect = useCallback(
+    (presetId: string) => {
+      if (presetId === "") return;
+      const preset = TEMPLATE_PRESETS.find((p) => p.id === presetId);
+      if (!preset) return;
+      setFormData({
+        title: preset.title,
+        bodyTemplate: preset.bodyTemplate,
+        parameters: preset.parameters.map((p) => ({ ...p })),
+        answerTemplate: preset.answerTemplate,
+        constraints: { ...preset.constraints },
+      });
+    },
+    [],
+  );
+
   // bodyTemplate에서 감지한 변수명 목록
   const detectedPlaceholders = useMemo(
     () => extractPlaceholders(formData.bodyTemplate),
@@ -441,6 +463,40 @@ export function TemplateEditor({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 0. 프리셋 선택 */}
+      <section className="space-y-1.5">
+        <label className="text-sm font-medium text-slate-700">
+          프리셋으로 시작
+        </label>
+        <select
+          value=""
+          onChange={(e) => handlePresetSelect(e.target.value)}
+          className={cn(
+            "h-9 w-full rounded-md border border-slate-200 px-3 text-sm",
+            "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1",
+            "text-slate-600",
+          )}
+        >
+          <option value="">직접 작성하기...</option>
+          {(["algebra", "geometry", "probability"] as const).map((cat) => {
+            const presets = TEMPLATE_PRESETS.filter((p) => p.category === cat);
+            if (presets.length === 0) return null;
+            return (
+              <optgroup key={cat} label={CATEGORY_LABELS[cat]}>
+                {presets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
+        </select>
+        <p className="text-xs text-slate-400">
+          프리셋을 선택하면 아래 폼이 자동으로 채워집니다. 선택 후 자유롭게 수정하세요.
+        </p>
+      </section>
+
       {/* 1. 템플릿 제목 */}
       <section className="space-y-1.5">
         <label className="text-sm font-medium text-slate-700">

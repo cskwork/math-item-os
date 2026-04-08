@@ -9,6 +9,7 @@ import { seedMisconceptions } from "./seed/misconceptions.js";
 import { seedEdges } from "./seed/edges.js";
 import { seedItems } from "./seed/items.js";
 import { seedEmbeddings } from "./seed/embeddings.js";
+import { seedTemplates } from "./seed/templates.js";
 
 const prisma = new PrismaClient({
   log: ["error", "warn"],
@@ -18,32 +19,36 @@ async function main() {
   console.log("=== 시드 데이터 생성 시작 ===\n");
 
   // 1단계: 조직
-  console.log("[1/7] 조직 생성...");
+  console.log("[1/8] 조직 생성...");
   const org = await seedOrganization(prisma);
 
   // 2단계: 스킬 (50개)
-  console.log("\n[2/7] 스킬 생성 (50개)...");
+  console.log("\n[2/8] 스킬 생성 (50개)...");
   const skillIds = await seedSkills(prisma, org.id);
 
   // 3단계: 성취기준 (30개)
-  console.log("\n[3/7] 성취기준 생성 (30개)...");
+  console.log("\n[3/8] 성취기준 생성 (30개)...");
   const standardIds = await seedStandards(prisma, org.id);
 
   // 4단계: 오개념 (20개)
-  console.log("\n[4/7] 오개념 생성 (20개)...");
+  console.log("\n[4/8] 오개념 생성 (20개)...");
   const misconceptionIds = await seedMisconceptions(prisma, org.id);
 
   // 5단계: 선수학습 간선 (80개)
-  console.log("\n[5/7] 선수학습 간선 생성 (80개)...");
+  console.log("\n[5/8] 선수학습 간선 생성 (80개)...");
   await seedEdges(prisma, org.id, skillIds);
 
   // 6단계: 문항 + 정션 + 난이도 프로필 (100개)
-  console.log("\n[6/7] 문항 생성 (100개) + 정션 테이블 + 난이도 프로필...");
+  console.log("\n[6/8] 문항 생성 (100개) + 정션 테이블 + 난이도 프로필...");
   await seedItems(prisma, org.id, skillIds, standardIds, misconceptionIds);
 
   // 7단계: 임베딩 벡터 생성 (math-ai 서비스 필요)
-  console.log("\n[7/7] 임베딩 벡터 생성...");
+  console.log("\n[7/8] 임베딩 벡터 생성...");
   await seedEmbeddings(prisma);
+
+  // 8단계: 예시 템플릿 (변형 문항 생성용)
+  console.log("\n[8/8] 예시 템플릿 생성 (6개)...");
+  await seedTemplates(prisma, org.id);
 
   console.log("\n=== 시드 데이터 생성 완료 ===");
 }

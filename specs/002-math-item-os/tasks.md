@@ -125,14 +125,14 @@ Turborepo monorepo:
 
 ### Implementation for User Story 3
 
-- [ ] T042 [P] [US3] Implement skill service (CRUD, ltree path management) in apps/web/src/server/services/skill.service.ts
-- [ ] T043 [P] [US3] Implement prerequisite edge service (DAG cycle detection via recursive CTE, self-reference check) in apps/web/src/server/services/prerequisite.service.ts
-- [ ] T044 [US3] Create skill tRPC router (create, list, getItems, createPrerequisite, getPrerequisiteGraph) in apps/web/src/server/routers/skill.router.ts
-- [ ] T045 [US3] Implement graph traversal query (recursive CTE for ancestor/descendant DAG, item count per node) in apps/web/src/server/services/prerequisite.service.ts
-- [ ] T046 [US3] Create React Flow DAG visualization component (nodes with item count + difficulty distribution) in apps/web/src/components/skills/skill-graph.tsx
-- [ ] T047 [P] [US3] Create skill-to-items drill-down component in apps/web/src/components/skills/skill-items-panel.tsx
-- [ ] T048 [US3] Create skill graph exploration page in apps/web/src/app/(dashboard)/skills/graph/page.tsx
-- [ ] T049 [P] [US3] Create skill management CRUD page in apps/web/src/app/(dashboard)/skills/page.tsx
+- [x] T042 [P] [US3] Implement skill service (CRUD, ltree path management) in apps/web/src/server/services/skill.service.ts
+- [x] T043 [P] [US3] Implement prerequisite edge service (DAG cycle detection via recursive CTE, self-reference check) in apps/web/src/server/services/prerequisite.service.ts
+- [x] T044 [US3] Create skill tRPC router (create, list, getItems, createPrerequisite, getPrerequisiteGraph) in apps/web/src/server/routers/skill.router.ts
+- [x] T045 [US3] Implement graph traversal query (recursive CTE for ancestor/descendant DAG, item count per node) in apps/web/src/server/services/prerequisite.service.ts
+- [x] T046 [US3] Create React Flow DAG visualization component (nodes with item count + difficulty distribution) in apps/web/src/components/skills/skill-graph.tsx
+- [x] T047 [P] [US3] Create skill-to-items drill-down component in apps/web/src/components/skills/skill-items-panel.tsx
+- [x] T048 [US3] Create skill graph exploration page in apps/web/src/app/(dashboard)/skills/graph/page.tsx
+- [x] T049 [P] [US3] Create skill management CRUD page in apps/web/src/app/(dashboard)/skills/page.tsx
 
 **Checkpoint**: 스킬 DAG 시각화 + 노드별 문항 조회 독립 동작 확인
 

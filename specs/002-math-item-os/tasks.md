@@ -104,7 +104,7 @@ Turborepo monorepo:
 
 - [x] T034 [P] [US2] Implement Meilisearch sync service (item CRUD 시 인덱스 동기화, CJK 토크나이저 설정) in apps/web/src/server/services/meilisearch.service.ts
 - [x] T035 [P] [US2] Implement metadata tagging service (스킬/성취기준/오개념 연결, ltree 분류) in apps/web/src/server/services/metadata.service.ts
-- [ ] T036 [US2] Create search tRPC router (search.items with hybrid Meilisearch + PostgreSQL filter) in apps/web/src/server/routers/search.router.ts
+- [x] T036 [US2] Create search tRPC router (search.items with hybrid Meilisearch + PostgreSQL filter) in apps/web/src/server/routers/search.router.ts
 - [ ] T037 [P] [US2] Create search bar component with Korean autocomplete in apps/web/src/components/search/search-bar.tsx
 - [ ] T038 [P] [US2] Create search filter panel (학제, 학년, 스킬, 난이도, 유형, 목적) in apps/web/src/components/search/filter-panel.tsx
 - [ ] T039 [P] [US2] Create search results component with faceted counts and KaTeX preview in apps/web/src/components/search/search-results.tsx

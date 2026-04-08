@@ -1,0 +1,372 @@
+// 검색 tRPC 라우터
+// Meilisearch(전문 검색) + PostgreSQL(구조 필터링, 전체 데이터 조회) 결합
+import { createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+  searchItemsSchema,
+  searchSimilarSchema,
+  similarFeedbackSchema,
+} from "@math-item-os/shared/validators/index";
+import type { SearchFacets, SearchResultItem } from "@math-item-os/shared/types/index";
+import { searchItems } from "../services/meilisearch.service";
+import { prisma } from "@math-item-os/db";
+import type { Prisma } from "@math-item-os/db";
+
+// MVP 단계에서 사용할 기본 조직 ID
+const DEFAULT_ORG_ID = "default-org";
+
+/** 사용자의 조직 ID를 반환한다. MVP에서는 고정값 사용. */
+function getOrgId(): string {
+  return DEFAULT_ORG_ID;
+}
+
+// -------------------------------------------------
+// 관계 포함 공통 include 정의
+// -------------------------------------------------
+
+const SEARCH_ITEM_INCLUDE = {
+  skills: { include: { skill: true } },
+  standards: { include: { standard: true } },
+  misconceptions: { include: { misconception: true } },
+  difficultyProfile: true,
+} satisfies Prisma.ItemInclude;
+
+// -------------------------------------------------
+// 검색 결과 응답 타입
+// -------------------------------------------------
+
+interface SearchItemsResponse {
+  readonly items: SearchResultItem[];
+  readonly total: number;
+  readonly page: number;
+  readonly facets: SearchFacets;
+  readonly queryTime: number;
+}
+
+// -------------------------------------------------
+// 역할 기반 상태 필터 적용
+// -------------------------------------------------
+
+/**
+ * 교사 역할인 경우 approved 상태만 조회할 수 있도록
+ * 상태 필터를 적용한다.
+ */
+function applyRoleStatusFilter(
+  userRole: string,
+  inputStatus?: string[],
+): string[] | undefined {
+  if (userRole === "teacher") {
+    return ["approved"];
+  }
+  // 검수자/관리자: 입력된 상태 필터 그대로 사용 (없으면 전체)
+  return inputStatus;
+}
+
+// -------------------------------------------------
+// Meilisearch 검색 후 PostgreSQL에서 전체 데이터 조회
+// -------------------------------------------------
+
+async function fetchItemsByMeilisearch(
+  input: {
+    readonly query?: string;
+    readonly filters?: {
+      readonly schoolLevel?: string;
+      readonly grade?: number;
+      readonly semester?: string;
+      readonly skillIds?: string[];
+      readonly standardIds?: string[];
+      readonly itemType?: string;
+      readonly difficultyMin?: number;
+      readonly difficultyMax?: number;
+      readonly usagePurposes?: string[];
+      readonly isGenerated?: boolean;
+      readonly status?: string[];
+    };
+    readonly page: number;
+    readonly limit: number;
+    readonly sort?: "relevance" | "difficulty" | "createdAt";
+  },
+  orgId: string,
+): Promise<SearchItemsResponse> {
+  const startTime = Date.now();
+
+  // 1. Meilisearch 검색
+  const searchResult = await searchItems({
+    query: input.query,
+    filters: input.filters,
+    page: input.page,
+    limit: input.limit,
+    sort: input.sort,
+  });
+
+  const { hitIds, total, facets } = searchResult;
+
+  // 검색 결과가 없으면 빈 배열 반환
+  if (hitIds.length === 0) {
+    return {
+      items: [],
+      total,
+      page: input.page,
+      facets,
+      queryTime: Date.now() - startTime,
+    };
+  }
+
+  // 2. PostgreSQL에서 전체 데이터 조회
+  const dbItems = await prisma.item.findMany({
+    where: {
+      id: { in: hitIds },
+      orgId,
+    },
+    include: SEARCH_ITEM_INCLUDE,
+  });
+
+  // 3. Meilisearch 관련도 순서 복원 + 삭제된 항목 필터링
+  const orderMap = new Map(hitIds.map((id, i) => [id, i]));
+  const sortedItems = [...dbItems].sort(
+    (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
+  );
+
+  // 4. SearchResultItem 변환
+  const items: SearchResultItem[] = sortedItems.map((item) => ({
+    ...item,
+    choices: item.choices as SearchResultItem["choices"],
+    answer: item.answer as SearchResultItem["answer"],
+    metadata: item.metadata as SearchResultItem["metadata"],
+    difficultyAuthor: item.difficultyAuthor,
+  }));
+
+  return {
+    items,
+    total,
+    page: input.page,
+    facets,
+    queryTime: Date.now() - startTime,
+  };
+}
+
+// -------------------------------------------------
+// Prisma-only 폴백 (쿼리 없고 필터도 없는 경우)
+// -------------------------------------------------
+
+async function fetchItemsByPrisma(
+  input: {
+    readonly page: number;
+    readonly limit: number;
+    readonly sort?: "relevance" | "difficulty" | "createdAt";
+    readonly statusFilter?: string[];
+  },
+  orgId: string,
+): Promise<SearchItemsResponse> {
+  const startTime = Date.now();
+
+  const where: Prisma.ItemWhereInput = {
+    orgId,
+    ...(input.statusFilter != null &&
+      input.statusFilter.length > 0 && {
+        status: { in: input.statusFilter as Prisma.EnumQualityStatusFilter["in"] },
+      }),
+  };
+
+  // 정렬 규칙 결정
+  const orderBy = buildPrismaOrderBy(input.sort);
+
+  const [dbItems, total] = await Promise.all([
+    prisma.item.findMany({
+      where,
+      include: SEARCH_ITEM_INCLUDE,
+      orderBy,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+    prisma.item.count({ where }),
+  ]);
+
+  // 패싯 데이터 별도 집계 (Prisma groupBy 사용)
+  const facets = await buildPrismaFacets(orgId, input.statusFilter);
+
+  const items: SearchResultItem[] = dbItems.map((item) => ({
+    ...item,
+    choices: item.choices as SearchResultItem["choices"],
+    answer: item.answer as SearchResultItem["answer"],
+    metadata: item.metadata as SearchResultItem["metadata"],
+    difficultyAuthor: item.difficultyAuthor,
+  }));
+
+  return {
+    items,
+    total,
+    page: input.page,
+    facets,
+    queryTime: Date.now() - startTime,
+  };
+}
+
+// -------------------------------------------------
+// Prisma 정렬 규칙 생성
+// -------------------------------------------------
+
+function buildPrismaOrderBy(
+  sort?: "relevance" | "difficulty" | "createdAt",
+): Prisma.ItemOrderByWithRelationInput {
+  switch (sort) {
+    case "difficulty":
+      return { difficultyAuthor: "asc" };
+    case "createdAt":
+      return { createdAt: "desc" };
+    case "relevance":
+    default:
+      return { createdAt: "desc" };
+  }
+}
+
+// -------------------------------------------------
+// Prisma 패싯 집계
+// -------------------------------------------------
+
+async function buildPrismaFacets(
+  orgId: string,
+  statusFilter?: string[],
+): Promise<SearchFacets> {
+  const baseWhere: Prisma.ItemWhereInput = {
+    orgId,
+    ...(statusFilter != null &&
+      statusFilter.length > 0 && {
+        status: { in: statusFilter as Prisma.EnumQualityStatusFilter["in"] },
+      }),
+  };
+
+  const [schoolLevelGroups, gradeGroups, itemTypeGroups, difficultyGroups] =
+    await Promise.all([
+      prisma.item.groupBy({
+        by: ["schoolLevel"],
+        where: baseWhere,
+        _count: true,
+      }),
+      prisma.item.groupBy({
+        by: ["grade"],
+        where: baseWhere,
+        _count: true,
+      }),
+      prisma.item.groupBy({
+        by: ["itemType"],
+        where: baseWhere,
+        _count: true,
+      }),
+      prisma.item.groupBy({
+        by: ["difficultyAuthor"],
+        where: { ...baseWhere, difficultyAuthor: { not: null } },
+        _count: true,
+      }),
+    ]);
+
+  const schoolLevel: Record<string, number> = {};
+  for (const g of schoolLevelGroups) {
+    schoolLevel[g.schoolLevel] = g._count;
+  }
+
+  const grade: Record<number, number> = {};
+  for (const g of gradeGroups) {
+    grade[g.grade] = g._count;
+  }
+
+  const itemType: Record<string, number> = {};
+  for (const g of itemTypeGroups) {
+    itemType[g.itemType] = g._count;
+  }
+
+  const difficulty: Record<number, number> = {};
+  for (const g of difficultyGroups) {
+    if (g.difficultyAuthor != null) {
+      difficulty[g.difficultyAuthor] = g._count;
+    }
+  }
+
+  return { schoolLevel, grade, itemType, difficulty };
+}
+
+// -------------------------------------------------
+// 빈 쿼리/필터 여부 판별
+// -------------------------------------------------
+
+function hasSearchCriteria(input: {
+  readonly query?: string;
+  readonly filters?: Record<string, unknown>;
+}): boolean {
+  if (input.query != null && input.query.trim().length > 0) {
+    return true;
+  }
+  if (input.filters == null) {
+    return false;
+  }
+  return Object.values(input.filters).some((v) => {
+    if (v == null) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    return true;
+  });
+}
+
+// -------------------------------------------------
+// 라우터 정의
+// -------------------------------------------------
+
+export const searchRouter = createTRPCRouter({
+  // 문항 검색 (Meilisearch + PostgreSQL)
+  items: protectedProcedure
+    .input(searchItemsSchema)
+    .query(async ({ input, ctx }): Promise<SearchItemsResponse> => {
+      const orgId = getOrgId();
+      const userRole = ctx.user.role;
+
+      // 역할 기반 상태 필터 적용
+      const statusFilter = applyRoleStatusFilter(
+        userRole,
+        input.filters?.status,
+      );
+
+      // 쿼리와 필터가 모두 비어있으면 Prisma-only 폴백
+      if (!hasSearchCriteria(input)) {
+        return fetchItemsByPrisma(
+          {
+            page: input.page,
+            limit: input.limit,
+            sort: input.sort,
+            statusFilter,
+          },
+          orgId,
+        );
+      }
+
+      // Meilisearch 검색 + PostgreSQL 전체 데이터 조회
+      const filtersWithStatus = {
+        ...input.filters,
+        status: statusFilter,
+      };
+
+      return fetchItemsByMeilisearch(
+        {
+          query: input.query,
+          filters: filtersWithStatus,
+          page: input.page,
+          limit: input.limit,
+          sort: input.sort,
+        },
+        orgId,
+      );
+    }),
+
+  // 유사 문항 검색 (Phase 6 스텁)
+  similar: protectedProcedure
+    .input(searchSimilarSchema)
+    .query(async () => {
+      // Phase 6에서 구현 예정 (US4)
+      return { items: [] };
+    }),
+
+  // 유사도 피드백 (Phase 6 스텁)
+  similarFeedback: protectedProcedure
+    .input(similarFeedbackSchema)
+    .mutation(async () => {
+      // Phase 6에서 구현 예정 (US4)
+      return { success: true };
+    }),
+});

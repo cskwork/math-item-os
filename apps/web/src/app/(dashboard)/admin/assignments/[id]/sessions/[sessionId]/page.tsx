@@ -236,6 +236,7 @@ interface ErrorWorksheetSectionProps {
       readonly choices: unknown;
       readonly answer: unknown;
       readonly itemType: string;
+      readonly answerFormat: string;
     };
     readonly studentAnswer: unknown;
     readonly correctAnswer: unknown;
@@ -327,7 +328,11 @@ function ErrorItemCard({ entry, index }: ErrorItemCardProps) {
             학생 답변
           </span>
           <span className="text-slate-700">
-            {formatAnswer(entry.studentAnswer)}
+            {entry.originalItem.answerFormat === "expression" ? (
+              <KatexRenderer latex={formatAnswer(entry.studentAnswer)} displayMode={false} className="inline text-sm" />
+            ) : (
+              formatAnswer(entry.studentAnswer)
+            )}
           </span>
         </div>
         <div className="rounded-md border border-green-100 bg-green-50 p-2">
@@ -335,7 +340,11 @@ function ErrorItemCard({ entry, index }: ErrorItemCardProps) {
             정답
           </span>
           <span className="text-slate-700">
-            {formatAnswer(entry.correctAnswer)}
+            {entry.originalItem.answerFormat === "expression" ? (
+              <KatexRenderer latex={formatAnswer(entry.correctAnswer)} displayMode={false} className="inline text-sm" />
+            ) : (
+              formatAnswer(entry.correctAnswer)
+            )}
           </span>
         </div>
       </div>

@@ -329,11 +329,18 @@ export default function ItemDetailPage({
   const difficultyProfile = item.difficultyProfile ?? null;
   const versions = item.versions ?? [];
 
-  // 정답 표시 (JSON 형태)
-  const answerDisplay =
+  // 정답 표시 (수식 형식이면 KaTeX 렌더링)
+  const answerValue =
     typeof item.answer === "object" && item.answer !== null
       ? (item.answer as { value?: string }).value ?? JSON.stringify(item.answer)
       : String(item.answer);
+
+  const answerDisplay =
+    item.answerFormat === "expression" ? (
+      <KatexRenderer latex={answerValue} displayMode={false} className="text-sm" />
+    ) : (
+      answerValue
+    );
 
   // 활용 목적 라벨
   const usagePurposeLabels = (item.usagePurposes ?? []).map(
@@ -583,7 +590,12 @@ export default function ItemDetailPage({
                           {methodLabel}
                         </MetaBadge>
                         <span className="text-xs text-slate-500">
-                          최종 정답: {sol.finalAnswer}
+                          최종 정답:{" "}
+                          <KatexRenderer
+                            latex={sol.finalAnswer}
+                            displayMode={false}
+                            className="inline text-xs"
+                          />
                         </span>
                       </div>
                       {sol.explanation && (

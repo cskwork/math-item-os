@@ -17,6 +17,7 @@ interface ErrorWorksheetEntry {
     readonly choices: unknown;
     readonly answer: unknown;
     readonly itemType: string;
+    readonly answerFormat: string;
   };
   readonly studentAnswer: unknown;
   readonly correctAnswer: unknown;
@@ -80,6 +81,7 @@ export async function generateErrorWorksheet(
                   choices: true,
                   answer: true,
                   itemType: true,
+                  answerFormat: true,
                   misconceptions: {
                     include: {
                       misconception: {
@@ -157,6 +159,7 @@ export async function generateErrorWorksheet(
           choices: item.choices,
           answer: item.answer,
           itemType: item.itemType,
+          answerFormat: item.answerFormat,
         },
         studentAnswer: response.studentAnswer,
         correctAnswer: item.answer,

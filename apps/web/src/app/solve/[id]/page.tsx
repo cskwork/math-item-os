@@ -583,6 +583,7 @@ interface ResultsStepProps {
           readonly choices: unknown;
           readonly answer: unknown;
           readonly itemType: string;
+          readonly answerFormat?: string | null;
         };
       }>;
     };
@@ -657,7 +658,11 @@ function ResultsStep({ session }: ResultsStepProps) {
               <div className="mb-2 text-sm">
                 <span className="font-medium text-slate-500">내 답변: </span>
                 <span className="text-slate-700">
-                  {formatAnswer(response.studentAnswer)}
+                  {ai.item.answerFormat === "expression" ? (
+                    <KatexRenderer latex={formatAnswer(response.studentAnswer)} displayMode={false} className="inline text-sm" />
+                  ) : (
+                    formatAnswer(response.studentAnswer)
+                  )}
                 </span>
               </div>
             )}
@@ -667,7 +672,11 @@ function ResultsStep({ session }: ResultsStepProps) {
               <div className="text-sm">
                 <span className="font-medium text-green-600">정답: </span>
                 <span className="text-slate-700">
-                  {formatAnswer(ai.item.answer)}
+                  {ai.item.answerFormat === "expression" ? (
+                    <KatexRenderer latex={formatAnswer(ai.item.answer)} displayMode={false} className="inline text-sm" />
+                  ) : (
+                    formatAnswer(ai.item.answer)
+                  )}
                 </span>
               </div>
             )}

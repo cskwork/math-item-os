@@ -77,11 +77,9 @@ export class SkillsListPage extends BasePage {
 
   /** Bloom 수준 필터 선택 */
   async filterByBloomLevel(level: string): Promise<void> {
-    // "Bloom 수준" 텍스트 옆의 combobox 선택
-    await this.page
-      .locator("div", { has: this.page.getByText("Bloom 수준") })
-      .getByRole("combobox")
-      .selectOption(level);
+    // "Bloom 수준" 라벨의 부모 div에서 combobox 선택
+    const bloomLabel = this.page.getByText("Bloom 수준", { exact: true }).first();
+    await bloomLabel.locator("..").getByRole("combobox").selectOption(level);
   }
 
   /** 다음 페이지로 이동 */

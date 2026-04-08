@@ -8,17 +8,15 @@ const adminAuth = path.join(__dirname, "../.auth/admin.json");
 test.describe("학생 풀이 (공개 페이지)", () => {
   test("유효하지 않은 토큰으로 접근 시 오류 표시", async ({ page }) => {
     await page.goto("/solve/nonexistent-id?token=invalid-token");
-    // 오류 메시지 또는 과제를 찾을 수 없음 표시 확인
     await expect(
-      page.getByText(/과제를 찾을 수 없|오류|찾을 수 없습니다/),
+      page.getByText(/유효한 풀이 링크가 아닙니다|과제를 찾을 수 없|선생님께 링크를/),
     ).toBeVisible({ timeout: 15_000 });
   });
 
   test("토큰 없이 접근 시 오류 표시", async ({ page }) => {
     await page.goto("/solve/some-id");
-    // 토큰이 없거나 과제를 찾을 수 없는 오류
     await expect(
-      page.getByText(/과제를 찾을 수 없|오류|토큰/),
+      page.getByText(/유효한 풀이 링크가 아닙니다|과제를 찾을 수 없|선생님께 링크를/),
     ).toBeVisible({ timeout: 15_000 });
   });
 });

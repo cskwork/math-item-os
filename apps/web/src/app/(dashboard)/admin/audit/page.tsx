@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 import type { AuditAction, Prisma } from "@math-item-os/db";
 
 // --- 상수 ---
@@ -118,7 +119,10 @@ export default function AuditLogPage() {
     <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4">
       {/* 페이지 헤더 */}
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">감사 로그</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-slate-900">감사 로그</h1>
+          <PageHelp pageId="admin-audit" />
+        </div>
         <p className="text-sm text-slate-500">시스템 변경 내역을 조회합니다</p>
       </div>
 

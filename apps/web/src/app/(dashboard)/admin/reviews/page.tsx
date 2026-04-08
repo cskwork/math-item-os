@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 import { ReviewTaskTable } from "@/components/admin/review-task-table";
 
 // --- 상수 ---
@@ -128,7 +129,10 @@ export default function ReviewQueuePage() {
     <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4">
       {/* 페이지 헤더 */}
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">검수 대기열</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-slate-900">검수 대기열</h1>
+          <PageHelp pageId="admin-reviews" />
+        </div>
         <p className="text-sm text-slate-500">
           검수가 필요한 문항을 확인하고 승인 또는 반려합니다
         </p>

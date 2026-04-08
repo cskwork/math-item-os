@@ -6,6 +6,7 @@ import { FilterPanel, INITIAL_SEARCH_FILTERS } from "@/components/search/filter-
 import type { SearchFilters } from "@/components/search/filter-panel";
 import { SearchResults } from "@/components/search/search-results";
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 
 // --- 상수 ---
 
@@ -93,7 +94,10 @@ export default function SearchPage() {
   return (
     <div className="mx-auto max-w-6xl">
       {/* 페이지 헤더 */}
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">문항 검색</h1>
+      <div className="mb-6 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900">문항 검색</h1>
+        <PageHelp pageId="search" />
+      </div>
 
       {/* 검색바 */}
       <div className="mb-4">

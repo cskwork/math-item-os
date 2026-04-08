@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
+import { HelpFab } from "@/components/help/help-fab";
 
 export default function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default function DashboardLayout({
           <main className="flex-1 overflow-y-auto bg-slate-50 p-6">
             {children}
           </main>
+          <HelpFab />
         </div>
       </div>
     </TooltipProvider>

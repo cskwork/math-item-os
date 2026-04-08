@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { PageHelp } from "@/components/help/page-help";
 import { cn } from "@/lib/utils";
 
 const PAGE_LIMIT = 20;
@@ -44,7 +45,10 @@ export default function AssignmentsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">학습지 관리</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-slate-900">학습지 관리</h1>
+            <PageHelp pageId="admin-assignments" />
+          </div>
           <p className="text-sm text-slate-500">
             {total}건의 학습지
           </p>

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 
 // --- 상수 ---
 const DEFAULT_PAGE = 1;
@@ -96,9 +97,12 @@ export default function UsersPage() {
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            사용자 관리
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-slate-900">
+              사용자 관리
+            </h1>
+            <PageHelp pageId="admin-users" />
+          </div>
           <p className="text-sm text-slate-500">
             총 {totalUsers}명
           </p>

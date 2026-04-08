@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 
 // --- 타입 ---
 
@@ -66,9 +67,12 @@ export default function AdminDashboardPage() {
     <div className="flex flex-col gap-6 p-4">
       {/* 페이지 헤더 */}
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">
-          품질 지표 대시보드
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-slate-900">
+            품질 지표 대시보드
+          </h1>
+          <PageHelp pageId="admin-dashboard" />
+        </div>
         <p className="text-sm text-slate-500">
           문항 품질 현황 및 최근 활동을 확인합니다
         </p>

@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { PageHelp } from "@/components/help/page-help";
 
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,7 @@ export default function SkillGraphPage() {
               목록
             </Button>
           </Link>
+          <PageHelp pageId="skills-graph" />
 
           <div className="h-6 w-px bg-slate-200" />
 

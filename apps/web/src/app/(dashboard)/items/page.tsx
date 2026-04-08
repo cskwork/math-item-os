@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ItemCard } from "@/components/items/item-card";
+import { PageHelp } from "@/components/help/page-help";
 import { trpc } from "@/lib/trpc";
 import {
   QUALITY_STATUS_OPTIONS,
@@ -274,7 +275,10 @@ export default function ItemListPage() {
     <div className="mx-auto max-w-6xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">문항 목록</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900">문항 목록</h1>
+          <PageHelp pageId="items" />
+        </div>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Link href={"/items/new" as any}>
           <Button>문항 등록</Button>

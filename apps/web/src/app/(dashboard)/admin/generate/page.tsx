@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 
 import { trpc } from "@/lib/trpc";
+import { PageHelp } from "@/components/help/page-help";
 import { TemplateEditor, type TemplateFormData } from "@/components/admin/template-editor";
 
 // --- 상수 ---
@@ -157,9 +158,12 @@ export default function GeneratePage() {
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            변형 문항 생성
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-slate-900">
+              변형 문항 생성
+            </h1>
+            <PageHelp pageId="admin-generate" />
+          </div>
           <p className="text-sm text-slate-500">
             템플릿을 선택하거나 생성한 후 변형 문항을 생성합니다
           </p>

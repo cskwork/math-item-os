@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { MisconceptionSelector } from "@/components/skills/misconception-selector";
 import { RemediationPath } from "@/components/skills/remediation-path";
+import { PageHelp } from "@/components/help/page-help";
 
 // --- 난이도 옵션 ---
 
@@ -47,9 +48,12 @@ export default function MisconceptionsPage() {
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            오개념 탐색
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-slate-900">
+              오개념 탐색
+            </h1>
+            <PageHelp pageId="misconceptions" />
+          </div>
           <p className="text-sm text-slate-500">
             오개념을 선택하면 단계별 교정 학습 경로가 생성됩니다
           </p>

@@ -86,7 +86,7 @@ Turborepo monorepo:
 - [x] T030 [P] [US1] Create item detail page with version history and rendered math in apps/web/src/app/(dashboard)/items/[id]/page.tsx
 - [x] T031 [US1] Implement bulk upload service (CSV/JSON/QTI parsing, BullMQ job, 1만건 제한) in apps/web/src/server/services/upload.service.ts
 - [x] T032 [US1] Add bulkUpload and getBulkUploadStatus to item router in apps/web/src/server/routers/item.router.ts
-- [ ] T033 [US1] Create bulk upload page with progress tracking and error report in apps/web/src/app/(dashboard)/items/upload/page.tsx
+- [x] T033 [US1] Create bulk upload page with progress tracking and error report in apps/web/src/app/(dashboard)/items/upload/page.tsx
 
 **Checkpoint**: 문항 등록/조회/수정/상태관리/일괄업로드 독립 동작 확인
 

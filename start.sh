@@ -78,6 +78,15 @@ if ! pnpm --filter @math-item-os/db exec prisma db push --skip-generate 2>/dev/n
   warn "스키마 동기화 실패 -- 기존 스키마로 계속 진행합니다"
 fi
 
+# ── 6-1. Raw SQL 마이그레이션 (Prisma 스키마 외 pgvector 등) ──
+PERF_SQL="$ROOT_DIR/packages/db/prisma/migrations/20260408_performance_optimization/migration.sql"
+if [ -f "$PERF_SQL" ]; then
+  step "Raw SQL 마이그레이션 실행 (pgvector 인덱스, embedding 컬럼)"
+  if ! docker exec -i mathitem-postgres psql -U postgres -d mathitem < "$PERF_SQL" 2>/dev/null; then
+    warn "Raw SQL 마이그레이션 실패 -- 기존 스키마로 계속 진행합니다"
+  fi
+fi
+
 # ── 7. 개발 서버 기동 ────────────────────────────────
 printf "\n${CYAN}========================================${NC}\n"
 printf "${CYAN}  Math Item OS - 개발 서버 시작${NC}\n"

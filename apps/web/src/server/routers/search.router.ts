@@ -8,6 +8,8 @@ import {
 } from "@math-item-os/shared/validators/index";
 import type { SearchFacets, SearchResultItem } from "@math-item-os/shared/types/index";
 import { searchItems } from "../services/meilisearch.service";
+import { findSimilarItems } from "../services/similarity.service";
+import type { SimilarItemResult } from "../services/similarity.service";
 import { prisma } from "@math-item-os/db";
 import type { Prisma } from "@math-item-os/db";
 
@@ -354,19 +356,70 @@ export const searchRouter = createTRPCRouter({
       );
     }),
 
-  // 유사 문항 검색 (Phase 6 스텁)
+  // 구조적 유사 문항 검색 (6-시그널 랭킹)
   similar: protectedProcedure
     .input(searchSimilarSchema)
-    .query(async () => {
-      // Phase 6에서 구현 예정 (US4)
-      return { items: [] };
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      const results = await findSimilarItems(input.itemId, orgId, input.limit);
+
+      // 각 결과에 대해 문항 전체 데이터를 조회하여 응답 구성
+      if (results.length === 0) {
+        return { items: [] };
+      }
+
+      const itemIds = results.map((r: SimilarItemResult) => r.itemId);
+      const dbItems = await prisma.item.findMany({
+        where: { id: { in: itemIds }, orgId },
+        include: SEARCH_ITEM_INCLUDE,
+      });
+
+      const itemMap = new Map(dbItems.map((item) => [item.id, item]));
+
+      const items = results
+        .map((r: SimilarItemResult) => {
+          const item = itemMap.get(r.itemId);
+          if (item == null) return null;
+          return {
+            item: {
+              ...item,
+              choices: item.choices as SearchResultItem["choices"],
+              answer: item.answer as SearchResultItem["answer"],
+              metadata: item.metadata as SearchResultItem["metadata"],
+            },
+            score: r.score,
+            signals: r.signals,
+            explanation: r.explanation,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x != null);
+
+      return { items };
     }),
 
-  // 유사도 피드백 (Phase 6 스텁)
+  // 유사도 피드백 기록 (RecommendationEvent)
   similarFeedback: protectedProcedure
     .input(similarFeedbackSchema)
-    .mutation(async () => {
-      // Phase 6에서 구현 예정 (US4)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      const userId = ctx.user.id;
+
+      await prisma.recommendationEvent.create({
+        data: {
+          orgId,
+          recType: "practice",
+          itemIds: [input.sourceItemId, input.targetItemId],
+          reasoning: {
+            type: "similarity_feedback",
+            sourceItemId: input.sourceItemId,
+            targetItemId: input.targetItemId,
+            relevant: input.relevant,
+            userId,
+          },
+          accepted: input.relevant,
+        },
+      });
+
       return { success: true };
     }),
 });

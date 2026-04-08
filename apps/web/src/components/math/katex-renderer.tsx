@@ -1,12 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import katex from "katex";
 import "katex/dist/katex.min.css";
-import {
-  shouldTreatAsPlainText,
-  tokenizeKatexContent,
-} from "./katex-content";
+import { renderKatexHtml } from "./render-katex-html";
 
 interface KatexRendererProps {
   latex: string;
@@ -28,64 +24,9 @@ const KatexRenderer = memo(function KatexRenderer({
   className,
   preRenderedHtml,
 }: KatexRendererProps) {
-  if (preRenderedHtml) {
-    return (
-      <span
-        className={className}
-        dangerouslySetInnerHTML={{ __html: preRenderedHtml }}
-      />
-    );
-  }
+  const html = preRenderedHtml ?? renderKatexHtml(latex, displayMode);
 
-  const segments = tokenizeKatexContent(latex);
-  const hasMixedSegments = segments.some((segment) => segment.type === "math");
-
-  if (hasMixedSegments) {
-    return (
-      <span className={className} data-latex={latex}>
-        {segments.map((segment, index) => {
-          if (segment.type === "text") {
-            return <span key={`text-${index}`}>{segment.content}</span>;
-          }
-
-          try {
-            const html = katex.renderToString(segment.content, {
-              displayMode: segment.displayMode,
-              throwOnError: false,
-              output: "htmlAndMathml",
-              strict: false,
-            });
-
-            return (
-              <span
-                key={`math-${index}`}
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            );
-          } catch {
-            return <span key={`math-${index}`}>{segment.content}</span>;
-          }
-        })}
-      </span>
-    );
-  }
-
-  if (shouldTreatAsPlainText(latex)) {
-    return (
-      <span className={className} data-latex={latex}>
-        {latex}
-      </span>
-    );
-  }
-
-  try {
-    const html = katex.renderToString(latex, {
-      displayMode,
-      throwOnError: false,
-      output: "htmlAndMathml",
-      strict: false,
-    });
-
+  if (html) {
     return (
       <span
         className={className}
@@ -93,13 +34,13 @@ const KatexRenderer = memo(function KatexRenderer({
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
-  } catch {
-    return (
-      <span className={className} data-latex={latex}>
-        {latex}
-      </span>
-    );
   }
+
+  return (
+    <span className={className} data-latex={latex}>
+      {latex}
+    </span>
+  );
 });
 
 export { KatexRenderer };

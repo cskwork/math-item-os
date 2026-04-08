@@ -4,6 +4,7 @@ import { useState, useCallback, memo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -64,7 +65,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
 /** LaTeX 본문을 지정 길이로 절단 */
 function truncateLatex(latex: string, maxLength: number): string {
   if (latex.length <= maxLength) return latex;
-  return `${latex.slice(0, maxLength)}...`;
+  return `${latex.slice(0, maxLength)}\\cdots`;
 }
 
 /** 문자열 키 상수에서 라벨 반환 */
@@ -170,9 +171,13 @@ const ItemCard = memo(function ItemCard({
         onItemClick ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/50" : "cursor-default",
       )}
     >
-      <p className="text-sm text-slate-800 font-mono leading-relaxed">
-        {truncateLatex(item.bodyLatex, 80)}
-      </p>
+      <div className="line-clamp-2 min-h-[2.5rem] overflow-hidden">
+        <KatexRenderer
+          latex={truncateLatex(item.bodyLatex, 80)}
+          displayMode={false}
+          className="text-sm leading-relaxed text-slate-800"
+        />
+      </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {difficultyLabel && difficultyColor && (
           <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-medium", difficultyColor)}>

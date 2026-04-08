@@ -1,10 +1,12 @@
 // tRPC v11 서버 설정 - context, middleware, procedure 정의
+// Phase 10: input sanitization 미들웨어 추가
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { auth } from "./auth";
 import { prisma } from "@math-item-os/db";
 import type { UserRole } from "@math-item-os/db";
 import { requireRole } from "./middleware/rbac";
+import { sanitizeInput } from "./middleware/sanitize";
 
 // Context 타입 정의
 export async function createTRPCContext() {
@@ -31,8 +33,16 @@ const t = initTRPC.context<TRPCContext>().create({
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 
-// 공개 프로시저 (인증 불필요)
-export const publicProcedure = t.procedure;
+// 입력 정제 미들웨어 - 모든 문자열 입력에서 제어 문자 제거
+const sanitizeMiddleware = t.middleware(({ rawInput, next }) => {
+  if (rawInput != null && typeof rawInput === "object") {
+    return next({ rawInput: sanitizeInput(rawInput) });
+  }
+  return next();
+});
+
+// 공개 프로시저 (인증 불필요, 입력 정제 적용)
+export const publicProcedure = t.procedure.use(sanitizeMiddleware);
 
 // 인증 미들웨어 - 세션 필수
 const enforceAuth = t.middleware(({ ctx, next }) => {
@@ -50,8 +60,10 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
   });
 });
 
-// 인증된 프로시저
-export const protectedProcedure = t.procedure.use(enforceAuth);
+// 인증된 프로시저 (입력 정제 + 인증)
+export const protectedProcedure = t.procedure
+  .use(sanitizeMiddleware)
+  .use(enforceAuth);
 
 // 역할 기반 프로시저 팩토리
 function withRoles(roles: readonly UserRole[]) {
@@ -72,12 +84,12 @@ function withRoles(roles: readonly UserRole[]) {
   });
 }
 
-// 관리자 전용 프로시저
-export const adminProcedure = t.procedure.use(
-  withRoles(["admin"]),
-);
+// 관리자 전용 프로시저 (입력 정제 + 역할 검증)
+export const adminProcedure = t.procedure
+  .use(sanitizeMiddleware)
+  .use(withRoles(["admin"]));
 
-// 검수자 이상 프로시저
-export const reviewerProcedure = t.procedure.use(
-  withRoles(["admin", "reviewer"]),
-);
+// 검수자 이상 프로시저 (입력 정제 + 역할 검증)
+export const reviewerProcedure = t.procedure
+  .use(sanitizeMiddleware)
+  .use(withRoles(["admin", "reviewer"]));

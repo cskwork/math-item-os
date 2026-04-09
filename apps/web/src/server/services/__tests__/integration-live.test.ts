@@ -83,7 +83,7 @@ describe("SymPy 전략 - math-ai /generate 실제 호출", () => {
         { name: "b", type: "integer", min: -10, max: 10 },
         { name: "c", type: "integer", min: -20, max: 20 },
       ],
-      answer_template: "x = ({{c}} - {{b}}) / {{a}}",
+      answer_template: "({{c}} - {{b}}) / {{a}}",
       constraints: { distinct_answers: true },
       count: 3,
       seed: null,

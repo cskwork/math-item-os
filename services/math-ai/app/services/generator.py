@@ -174,6 +174,14 @@ def generate_parameters(
 _PLACEHOLDER_PATTERN = re.compile(r"\{\{(\w+)\}\}")
 
 
+def _strip_placeholders(template: str) -> str:
+    """{{변수명}} 플레이스홀더의 중괄호를 제거하여 SymPy 호환 수식으로 변환한다.
+
+    예: "({{c}} - {{b}}) / {{a}}" -> "(c - b) / a"
+    """
+    return _PLACEHOLDER_PATTERN.sub(r"\1", template)
+
+
 def substitute_template(
     template: str,
     params: dict[str, int | float],
@@ -233,7 +241,7 @@ def compute_answer(
     answer_template에 매개변수 값을 대입하고 수식을 평가한다.
 
     Args:
-        answer_template: 매개변수를 포함한 수식 문자열 (예: "c/a + b")
+        answer_template: 매개변수를 포함한 수식 문자열 (예: "c/a + b" 또는 "{{c}}/{{a}} + {{b}}")
         params: {매개변수명: 값} 딕셔너리
 
     Returns:
@@ -241,6 +249,9 @@ def compute_answer(
     """
     try:
         import sympy
+
+        # {{변수명}} 플레이스홀더 제거 (SymPy 호환)
+        answer_template = _strip_placeholders(answer_template)
 
         # SymPy 심볼로 매개변수를 정의한다
         symbols = {
@@ -295,6 +306,9 @@ def validate_constraints(
         검증 결과를 담은 ConstraintResult
     """
     failures: list[str] = []
+
+    # {{변수명}} 플레이스홀더 제거 (직접 호출 시에도 안전하도록)
+    answer_template = _strip_placeholders(answer_template)
 
     answer_result = compute_answer(answer_template, params)
 
@@ -464,6 +478,9 @@ def generate_variant(
     """
     # 시드가 지정되지 않으면 현재 시각 기반으로 생성한다
     effective_seed = seed if seed is not None else int(time.time() * 1000) % (2**31)
+
+    # {{변수명}} 플레이스홀더 제거 (SymPy 호환)
+    answer_template = _strip_placeholders(answer_template)
 
     last_failures: list[str] = []
 

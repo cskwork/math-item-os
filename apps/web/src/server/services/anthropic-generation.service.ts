@@ -243,6 +243,7 @@ async function queryWithTimeout(
     });
 
     const queryPromise = (async () => {
+      console.log("[LLM] query() 호출 시작");
       const response = query({
         prompt,
         options: {
@@ -253,8 +254,12 @@ async function queryWithTimeout(
       });
 
       let resultText = "";
+      console.log("[LLM] for-await 루프 진입");
 
       for await (const msg of response) {
+        console.log(`[LLM] 메시지 수신: type=${msg.type}${
+          "subtype" in msg ? `, subtype=${msg.subtype}` : ""
+        }`);
         if (msg.type === "result") {
           if (msg.subtype === "success") {
             resultText = msg.result;
@@ -264,6 +269,7 @@ async function queryWithTimeout(
         }
       }
 
+      console.log(`[LLM] 응답 완료 (${resultText.length}자)`);
       return resultText;
     })();
 

@@ -5,7 +5,7 @@ import type { PrismaClient } from "@prisma/client";
 
 const MATH_AI_URL = process.env.MATH_AI_SERVICE_URL ?? "http://localhost:8000";
 const BATCH_SIZE = 50;
-const TIMEOUT_MS = 30_000;
+const TIMEOUT_MS = 120_000;
 
 interface ItemWithRelations {
   readonly id: string;

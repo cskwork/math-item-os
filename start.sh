@@ -74,7 +74,7 @@ pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
 # ── 6. DB 스키마 동기화 ──────────────────────────────
 step "DB 스키마 동기화"
-if ! pnpm --filter @math-item-os/db exec prisma db push --skip-generate 2>/dev/null; then
+if ! pnpm --filter @math-item-os/db exec prisma db push --skip-generate --accept-data-loss 2>/dev/null; then
   warn "스키마 동기화 실패 -- 기존 스키마로 계속 진행합니다"
 fi
 
@@ -92,27 +92,57 @@ EMBED_COUNT=$(docker exec mathitem-postgres psql -U postgres -d mathitem -tAc \
   "SELECT count(*) FROM items WHERE embedding IS NOT NULL" 2>/dev/null || echo "0")
 if [ "$EMBED_COUNT" -eq 0 ] 2>/dev/null; then
   step "임베딩 벡터 없음 -- math-ai 서비스 기동 후 시딩"
-  # math-ai를 백그라운드로 먼저 기동
+
+  # math-ai를 백그라운드로 기동 (로그 캡처)
+  MATH_AI_LOG="/tmp/math-ai-startup.log"
   "$VENV_DIR/bin/uvicorn" app.main:app --port 8000 \
-    --app-dir "$ROOT_DIR/services/math-ai" &
+    --app-dir "$ROOT_DIR/services/math-ai" > "$MATH_AI_LOG" 2>&1 &
   MATH_AI_PID=$!
 
   # math-ai 준비 대기 (최대 60초)
   step "math-ai 서비스 준비 대기..."
+  HEALTH_OK=false
   for i in $(seq 1 60); do
     if "$VENV_DIR/bin/python" -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" 2>/dev/null; then
+      HEALTH_OK=true
       break
     fi
     sleep 1
   done
 
-  step "임베딩 시드 실행"
-  pnpm --filter @math-item-os/db db:seed 2>&1 | tail -5
+  if [ "$HEALTH_OK" = "false" ]; then
+    warn "math-ai 서비스 기동 실패 -- 임베딩 생성 건너뜀"
+    if [ -f "$MATH_AI_LOG" ]; then
+      tail -10 "$MATH_AI_LOG" | while read -r line; do warn "  $line"; done
+    fi
+    kill "$MATH_AI_PID" 2>/dev/null || true
+    wait "$MATH_AI_PID" 2>/dev/null || true
+  else
+    # 임베딩 모델 사전 로딩 (첫 실행 시 다운로드 포함, 최대 5분)
+    step "임베딩 모델 사전 로딩 (첫 실행 시 다운로드 포함)..."
+    if "$VENV_DIR/bin/python" -c "
+import urllib.request, json
+req = urllib.request.Request(
+    'http://localhost:8000/similarity/embed',
+    data=json.dumps({'text': 'warm up'}).encode(),
+    headers={'Content-Type': 'application/json'}
+)
+urllib.request.urlopen(req, timeout=300)
+" 2>/dev/null; then
+      step "임베딩 시드 실행"
+      pnpm --filter @math-item-os/db db:seed 2>&1 | tail -5
+    else
+      warn "임베딩 모델 로딩 실패 -- 임베딩 생성 건너뜀"
+      if [ -f "$MATH_AI_LOG" ]; then
+        tail -10 "$MATH_AI_LOG" | while read -r line; do warn "  $line"; done
+      fi
+    fi
 
-  # 백그라운드 math-ai 종료 (pnpm dev에서 다시 기동)
-  kill "$MATH_AI_PID" 2>/dev/null || true
-  wait "$MATH_AI_PID" 2>/dev/null || true
-  sleep 1
+    # 백그라운드 math-ai 종료 (pnpm dev에서 다시 기동)
+    kill "$MATH_AI_PID" 2>/dev/null || true
+    wait "$MATH_AI_PID" 2>/dev/null || true
+    sleep 1
+  fi
 else
   step "임베딩 벡터 존재 (${EMBED_COUNT}개) -- 시딩 건너뜀"
 fi

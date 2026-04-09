@@ -248,4 +248,71 @@ describe("generateWithAnthropic", () => {
       "Claude Agent SDK 호출 실패",
     );
   });
+
+  it("count > 5일 때 배치를 분할하여 순차 호출한다", async () => {
+    const makeBatchItems = (start: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        body_latex: `${start + i}x + 1 = ${start + i + 1}`,
+        params: { a: start + i },
+        answer_value: String(start + i),
+        answer_latex: `x = ${start + i}`,
+      }));
+
+    mockQuery
+      .mockReturnValueOnce(
+        mockResultGenerator(JSON.stringify(makeBatchItems(1, 5))),
+      )
+      .mockReturnValueOnce(
+        mockResultGenerator(JSON.stringify(makeBatchItems(6, 3))),
+      );
+
+    const { generateWithAnthropic: generate } = await import(
+      "../anthropic-generation.service"
+    );
+    const result = await generate(sampleTemplate, {
+      ...sampleInput,
+      count: 8,
+    });
+
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(8);
+  });
+
+  it("배치 분할 시 각 배치의 count가 올바르다", async () => {
+    const makeBatchItems = (count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        body_latex: `${i}x = ${i}`,
+        params: { a: i },
+        answer_value: String(i),
+        answer_latex: `x = ${i}`,
+      }));
+
+    mockQuery
+      .mockReturnValueOnce(
+        mockResultGenerator(JSON.stringify(makeBatchItems(5))),
+      )
+      .mockReturnValueOnce(
+        mockResultGenerator(JSON.stringify(makeBatchItems(5))),
+      )
+      .mockReturnValueOnce(
+        mockResultGenerator(JSON.stringify(makeBatchItems(2))),
+      );
+
+    const { generateWithAnthropic: generate } = await import(
+      "../anthropic-generation.service"
+    );
+    const result = await generate(sampleTemplate, {
+      ...sampleInput,
+      count: 12,
+    });
+
+    expect(mockQuery).toHaveBeenCalledTimes(3);
+    expect(result).toHaveLength(12);
+
+    // 각 배치의 프롬프트에 올바른 count가 포함되는지 확인
+    const calls = mockQuery.mock.calls;
+    expect(calls[0]![0].prompt).toContain("5개");
+    expect(calls[1]![0].prompt).toContain("5개");
+    expect(calls[2]![0].prompt).toContain("2개");
+  });
 });

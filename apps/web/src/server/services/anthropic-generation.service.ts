@@ -43,7 +43,8 @@ export interface GenerateApiVariant {
 // 설정
 // ─────────────────────────────────────────────
 
-const GENERATE_TIMEOUT_MS = 60_000;
+const GENERATE_TIMEOUT_MS = 120_000;
+const BATCH_SIZE = 5;
 
 // ─────────────────────────────────────────────
 // 프롬프트 빌더
@@ -208,6 +209,40 @@ export function parseGenerationResponse(text: string): {
  * Claude Code CLI의 ~/.config/claude-code/auth.json 토큰 사용.
  */
 export async function generateWithAnthropic(
+  template: TemplateSnapshot,
+  input: StartGenerationInput,
+): Promise<GenerateApiVariant[]> {
+  if (input.count <= BATCH_SIZE) {
+    return _generateBatch(template, input);
+  }
+
+  // count > BATCH_SIZE: 배치 분할 순차 호출
+  const allVariants: GenerateApiVariant[] = [];
+  let remaining = input.count;
+  let batchIndex = 0;
+
+  while (remaining > 0) {
+    const batchCount = Math.min(remaining, BATCH_SIZE);
+    batchIndex++;
+    console.log(`[LLM] 배치 ${batchIndex} 시작 (${batchCount}개)`);
+
+    const batchVariants = await _generateBatch(template, {
+      ...input,
+      count: batchCount,
+    });
+    allVariants.push(...batchVariants);
+    remaining -= batchCount;
+
+    console.log(
+      `[LLM] 배치 ${batchIndex} 완료 (${batchVariants.length}개 생성, 잔여 ${remaining}개)`,
+    );
+  }
+
+  return allVariants;
+}
+
+/** 단일 배치 생성 (BATCH_SIZE 이하) */
+async function _generateBatch(
   template: TemplateSnapshot,
   input: StartGenerationInput,
 ): Promise<GenerateApiVariant[]> {

@@ -1,6 +1,5 @@
-// Claude Agent SDK (OAuth) 기반 수학 문항 생성 서비스
-// API 키 불필요 - Claude Code CLI의 OAuth 인증 사용
-import { query } from "@anthropic-ai/claude-agent-sdk";
+// Z.ai Coding API 기반 수학 문항 생성 서비스
+// OpenAI-compatible chat completions (non-streaming)
 
 // ─────────────────────────────────────────────
 // 공개 타입 (generation.service.ts와 공유)
@@ -43,7 +42,11 @@ export interface GenerateApiVariant {
 // 설정
 // ─────────────────────────────────────────────
 
-const GENERATE_TIMEOUT_MS = 120_000;
+const ZAI_API_URL =
+  process.env.ZAI_API_URL ??
+  "https://api.z.ai/api/coding/paas/v4/chat/completions";
+const ZAI_MODEL = process.env.ZAI_MODEL ?? "glm-4.7";
+const GENERATE_TIMEOUT_MS = 180_000;
 const BATCH_SIZE = 5;
 
 // ─────────────────────────────────────────────
@@ -159,7 +162,7 @@ function toAnswerString(value: unknown): string {
 }
 
 /**
- * Claude Agent SDK 응답 텍스트를 파싱하여 GenerateApiVariant 배열로 변환한다.
+ * LLM 응답 텍스트를 파싱하여 GenerateApiVariant 배열로 변환한다.
  * - markdown code fence 제거
  * - 필수 필드 검증, 누락 항목 필터링
  * - seed는 null로 고정 (LLM 생성이므로)
@@ -200,15 +203,14 @@ export function parseGenerationResponse(text: string): {
 }
 
 // ─────────────────────────────────────────────
-// Claude Agent SDK 호출 (OAuth 인증)
+// Z.ai Coding API 호출
 // ─────────────────────────────────────────────
 
 /**
- * Claude Agent SDK (query)로 문항을 생성한다.
- * OAuth 인증 사용 - ANTHROPIC_API_KEY 불필요.
- * Claude Code CLI의 ~/.config/claude-code/auth.json 토큰 사용.
+ * Z.ai Coding API로 문항을 생성한다.
+ * count > BATCH_SIZE(5)일 경우 배치 분할 순차 호출.
  */
-export async function generateWithAnthropic(
+export async function generateWithLLM(
   template: TemplateSnapshot,
   input: StartGenerationInput,
 ): Promise<GenerateApiVariant[]> {
@@ -249,67 +251,84 @@ async function _generateBatch(
   const systemPrompt = buildSystemPrompt(template);
   const userPrompt = buildUserPrompt(template, input);
 
-  // 시스템 프롬프트를 user 프롬프트에 포함 (query()는 system 파라미터 미지원)
-  const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-
-  const text = await queryWithTimeout(fullPrompt, GENERATE_TIMEOUT_MS);
+  const text = await callZaiApi(systemPrompt, userPrompt, GENERATE_TIMEOUT_MS);
 
   const { variants, error } = parseGenerationResponse(text);
 
   if (error != null) {
-    throw new Error(`Claude Agent SDK 응답 파싱 실패: ${error}`);
+    throw new Error(`Z.ai API 응답 파싱 실패: ${error}`);
   }
 
   return variants;
 }
 
-/** query() 호출 + 타임아웃 (타이머 정리 보장) */
-async function queryWithTimeout(
-  prompt: string,
+/**
+ * Z.ai Coding API non-streaming 호출.
+ * system/user 메시지를 분리하여 전달.
+ */
+async function callZaiApi(
+  systemPrompt: string,
+  userPrompt: string,
   timeoutMs: number,
 ): Promise<string> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const apiKey = process.env.ZAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("ZAI_API_KEY 환경변수가 설정되지 않았습니다");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error(`Claude Agent SDK 타임아웃 (${timeoutMs}ms)`));
-      }, timeoutMs);
+    console.log("[LLM] Z.ai API 호출 시작");
+
+    const response = await fetch(ZAI_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: ZAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        stream: false,
+      }),
+      signal: controller.signal,
     });
 
-    const queryPromise = (async () => {
-      console.log("[LLM] query() 호출 시작");
-      const response = query({
-        prompt,
-        options: {
-          maxTurns: 1,
-          allowedTools: [],
-          model: "sonnet",
-        },
-      });
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(
+        `Z.ai API HTTP 오류: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ""}`,
+      );
+    }
 
-      let resultText = "";
-      console.log("[LLM] for-await 루프 진입");
+    const data = (await response.json()) as Record<string, unknown>;
+    const choices = data.choices as
+      | Array<Record<string, unknown>>
+      | undefined;
+    const firstChoice = choices?.[0];
 
-      for await (const msg of response) {
-        console.log(`[LLM] 메시지 수신: type=${msg.type}${
-          "subtype" in msg ? `, subtype=${msg.subtype}` : ""
-        }`);
-        if (msg.type === "result") {
-          if (msg.subtype === "success") {
-            resultText = msg.result;
-          } else {
-            throw new Error(`Claude Agent SDK 호출 실패: ${msg.subtype}`);
-          }
-        }
-      }
+    // Z.ai는 non-streaming에서도 "delta"를 사용, "message"도 호환 처리
+    const delta = firstChoice?.delta as Record<string, string> | undefined;
+    const message = firstChoice?.message as Record<string, string> | undefined;
+    const content = delta?.content ?? message?.content;
 
-      console.log(`[LLM] 응답 완료 (${resultText.length}자)`);
-      return resultText;
-    })();
+    if (!content) {
+      throw new Error("Z.ai API 응답에 content가 없습니다");
+    }
 
-    return await Promise.race([queryPromise, timeoutPromise]);
+    console.log(`[LLM] Z.ai API 응답 완료 (${content.length}자)`);
+    return content;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Z.ai API 타임아웃 (${timeoutMs}ms)`);
+    }
+    throw error;
   } finally {
-    if (timeoutId != null) clearTimeout(timeoutId);
+    clearTimeout(timeoutId);
   }
 }

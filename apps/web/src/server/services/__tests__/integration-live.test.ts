@@ -146,20 +146,20 @@ describe("SymPy 전략 - math-ai /generate 실제 호출", () => {
 });
 
 // ─────────────────────────────────────────────
-// 3. Claude Agent SDK 실제 호출 (LLM 전략)
+// 3. Z.ai Coding API 실제 호출 (LLM 전략)
 // ─────────────────────────────────────────────
 
-describe("LLM 전략 - Claude Agent SDK 실제 호출", () => {
-  it("Sonnet으로 수학 문항 2개를 생성한다", async () => {
-    // Agent SDK import 가능 여부 확인
-    let queryFn: typeof import("@anthropic-ai/claude-agent-sdk").query;
-    try {
-      const mod = await import("@anthropic-ai/claude-agent-sdk");
-      queryFn = mod.query;
-    } catch {
-      console.warn("SKIP: @anthropic-ai/claude-agent-sdk import 실패");
+describe("LLM 전략 - Z.ai API 실제 호출", () => {
+  it("Z.ai glm-4.7로 수학 문항 2개를 생성한다", async () => {
+    const apiKey = process.env.ZAI_API_KEY;
+    if (!apiKey) {
+      console.warn("SKIP: ZAI_API_KEY 환경변수 미설정");
       return;
     }
+
+    const { generateWithLLM } = await import(
+      "../anthropic-generation.service"
+    );
 
     const template: TemplateSnapshot = {
       id: "live-llm",
@@ -171,69 +171,30 @@ describe("LLM 전략 - Claude Agent SDK 실제 호출", () => {
       constraints: {},
     };
 
-    const systemPrompt = buildSystemPrompt(template);
-    const userPrompt = buildUserPrompt(template, {
-      templateId: "live-llm",
-      count: 2,
-      params: {
-        coefficientRange: [1, 5],
-        includeNegatives: true,
-      },
-    });
+    console.log("[LLM] Z.ai API 호출 시작...");
 
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-
-    console.log("[LLM] Claude Agent SDK 호출 시작...");
-
-    let resultText = "";
     try {
-      const response = queryFn({
-        prompt: fullPrompt,
-        options: {
-          maxTurns: 1,
-          allowedTools: [],
-          model: "sonnet",
+      const variants = await generateWithLLM(template, {
+        templateId: "live-llm",
+        count: 2,
+        params: {
+          coefficientRange: [1, 5],
+          includeNegatives: true,
         },
       });
 
-      for await (const msg of response) {
-        if (msg.type === "system" && msg.subtype === "init") {
-          console.log("[LLM] Session ID:", msg.session_id);
-        }
-        if (msg.type === "result") {
-          if (msg.subtype === "success") {
-            resultText = msg.result;
-            console.log("[LLM] Cost: $" + (msg.total_cost_usd?.toFixed(4) ?? "N/A"));
-          } else {
-            console.error("[LLM] 실패:", msg.subtype);
-            return;
-          }
-        }
+      console.log(`[LLM] 생성된 문항: ${variants.length}개`);
+      expect(variants.length).toBeGreaterThanOrEqual(1);
+
+      for (const v of variants) {
+        expect(typeof v.body_latex).toBe("string");
+        expect(typeof v.answer_value).toBe("string");
+        expect(v.seed).toBeNull();
+        console.log(`  [LLM] 문항: ${v.body_latex} -> 정답: ${v.answer_value}`);
       }
     } catch (error) {
-      console.warn("[LLM] SKIP: Agent SDK 호출 실패 -", (error as Error).message);
+      console.warn("[LLM] SKIP: Z.ai API 호출 실패 -", (error as Error).message);
       return;
     }
-
-    console.log("[LLM] 원본 응답:", resultText.slice(0, 500));
-
-    // 응답 파싱
-    const { variants, error } = parseGenerationResponse(resultText);
-
-    if (error) {
-      console.warn("[LLM] 파싱 실패:", error);
-      // LLM 응답이 JSON이 아닐 수 있음 - 테스트 실패가 아닌 경고
-      return;
-    }
-
-    console.log(`[LLM] 파싱된 문항: ${variants.length}개`);
-    expect(variants.length).toBeGreaterThanOrEqual(1);
-
-    for (const v of variants) {
-      expect(typeof v.body_latex).toBe("string");
-      expect(typeof v.answer_value).toBe("string");
-      expect(v.seed).toBeNull();
-      console.log(`  [LLM] 문항: ${v.body_latex} -> 정답: ${v.answer_value}`);
-    }
-  }, 90_000); // 90초 타임아웃 (LLM 호출)
+  }, 90_000);
 });

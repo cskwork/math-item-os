@@ -101,10 +101,10 @@ vi.mock("@math-item-os/db", () => ({
 }));
 
 // ─────────────────────────────────────────────
-// Mock: Anthropic 생성 서비스
+// Mock: LLM 생성 서비스
 // ─────────────────────────────────────────────
 vi.mock("../anthropic-generation.service", () => ({
-  generateWithAnthropic: vi.fn(),
+  generateWithLLM: vi.fn(),
 }));
 
 // ─────────────────────────────────────────────
@@ -202,7 +202,7 @@ describe("generation.service (Anthropic 통합)", () => {
 
   it("LLM 전략 - 생성 성공 시 이벤트가 올바른 순서로 발행된다", async () => {
     const { prisma } = await import("@math-item-os/db");
-    const { generateWithAnthropic } = await import(
+    const { generateWithLLM } = await import(
       "../anthropic-generation.service"
     );
 
@@ -217,8 +217,8 @@ describe("generation.service (Anthropic 통합)", () => {
       constraints: {},
     });
 
-    // Anthropic 생성 mock (LLM 경로)
-    (generateWithAnthropic as ReturnType<typeof vi.fn>).mockResolvedValue([
+    // LLM 생성 mock
+    (generateWithLLM as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         body_latex: "2x = 4",
         params: { a: 2, b: 4 },
@@ -293,9 +293,9 @@ describe("generation.service (Anthropic 통합)", () => {
     expect(eventTypes[eventTypes.length - 1]).toBe("job_completed");
   });
 
-  it("Anthropic 실패 시 job_failed 이벤트가 발행된다", async () => {
+  it("LLM 실패 시 job_failed 이벤트가 발행된다", async () => {
     const { prisma } = await import("@math-item-os/db");
-    const { generateWithAnthropic } = await import(
+    const { generateWithLLM } = await import(
       "../anthropic-generation.service"
     );
 
@@ -309,8 +309,8 @@ describe("generation.service (Anthropic 통합)", () => {
       constraints: {},
     });
 
-    (generateWithAnthropic as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error("Anthropic API rate limit"),
+    (generateWithLLM as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Z.ai API rate limit"),
     );
 
     const events: GenerationEvent[] = [];
@@ -341,13 +341,13 @@ describe("generation.service (Anthropic 통합)", () => {
     );
     expect(failEvent).toBeDefined();
     expect((failEvent!.data as { error: string }).error).toContain(
-      "Anthropic API rate limit",
+      "Z.ai API rate limit",
     );
   });
 
   it("strategyOverride가 있으면 자동 감지 대신 오버라이드 전략을 사용한다", async () => {
     const { prisma } = await import("@math-item-os/db");
-    const { generateWithAnthropic } = await import(
+    const { generateWithLLM } = await import(
       "../anthropic-generation.service"
     );
 
@@ -365,8 +365,8 @@ describe("generation.service (Anthropic 통합)", () => {
       constraints: {},
     });
 
-    // LLM으로 오버라이드 -> generateWithAnthropic이 호출되어야 함
-    (generateWithAnthropic as ReturnType<typeof vi.fn>).mockResolvedValue([
+    // LLM으로 오버라이드 -> generateWithLLM이 호출되어야 함
+    (generateWithLLM as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         body_latex: "3x + 5 = 0",
         params: { a: 3, b: 5 },
@@ -424,8 +424,8 @@ describe("generation.service (Anthropic 통합)", () => {
       { timeout: 5000 },
     );
 
-    // LLM 오버라이드로 generateWithAnthropic이 호출되었는지 확인
-    expect(generateWithAnthropic).toHaveBeenCalled();
+    // LLM 오버라이드로 generateWithLLM이 호출되었는지 확인
+    expect(generateWithLLM).toHaveBeenCalled();
 
     // job_started 이벤트에 strategy가 포함되어 있는지 확인
     const startEvent = events.find(

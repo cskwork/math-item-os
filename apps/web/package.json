@@ -13,8 +13,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.96",
-    "@auth/prisma-adapter": "^2.11.1",
+"@auth/prisma-adapter": "^2.11.1",
     "@math-item-os/db": "workspace:*",
     "@math-item-os/math-parser": "workspace:*",
     "@math-item-os/shared": "workspace:*",

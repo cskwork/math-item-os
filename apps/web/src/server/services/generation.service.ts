@@ -9,7 +9,7 @@ import { convertLatex } from "./conversion.service";
 import { incrementVariantCount } from "./template.service";
 import { createAuditLog } from "./audit.service";
 import {
-  generateWithAnthropic,
+  generateWithLLM,
   type GenerateApiVariant,
   type TemplateSnapshot,
   type StartGenerationInput,
@@ -416,7 +416,7 @@ async function _processGeneration(
     const apiVariants =
       strategy === "sympy"
         ? await _callMathAiGenerate(template, input)
-        : await generateWithAnthropic(template, input);
+        : await generateWithLLM(template, input);
 
     console.log(`[GEN] ${jobId} LLM/SymPy 완료: ${apiVariants.length}개 변이 생성 (전략: ${strategy})`);
 

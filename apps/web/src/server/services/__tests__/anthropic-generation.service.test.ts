@@ -1,12 +1,10 @@
-// Anthropic SDK 문항 생성 서비스 단위 테스트
-import { describe, it, expect, vi, beforeEach } from "vitest";
+// Z.ai Coding API 문항 생성 서비스 단위 테스트
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   buildSystemPrompt,
   buildUserPrompt,
   parseGenerationResponse,
-  generateWithAnthropic,
   type TemplateSnapshot,
-  type GenerateApiVariant,
 } from "../anthropic-generation.service";
 
 // ─────────────────────────────────────────────
@@ -176,76 +174,106 @@ describe("parseGenerationResponse", () => {
 });
 
 // ─────────────────────────────────────────────
-// generateWithAnthropic (Claude Agent SDK - OAuth)
+// generateWithLLM (Z.ai Coding API)
 // ─────────────────────────────────────────────
 
-// query() mock - async generator 패턴
-const mockQuery = vi.fn();
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: (...args: unknown[]) => mockQuery(...args),
-}));
-
-/** async generator 헬퍼: result 메시지를 yield */
-async function* mockResultGenerator(resultText: string) {
-  yield { type: "system", subtype: "init", session_id: "mock-session" };
-  yield {
-    type: "result",
-    subtype: "success",
-    result: resultText,
-    total_cost_usd: 0.001,
+/** Z.ai API non-streaming 응답 mock 헬퍼 */
+function mockZaiResponse(content: string) {
+  return {
+    ok: true,
+    json: async () => ({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          delta: { role: "assistant", content },
+          finish_reason: "stop",
+        },
+      ],
+    }),
+    text: async () => content,
   };
 }
 
-describe("generateWithAnthropic", () => {
+describe("generateWithLLM", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    process.env.ZAI_API_KEY = "test-api-key";
   });
 
-  it("Claude Agent SDK query()를 올바른 파라미터로 호출한다", async () => {
-    mockQuery.mockReturnValue(mockResultGenerator(validJsonResponse));
+  afterEach(() => {
+    delete process.env.ZAI_API_KEY;
+  });
 
-    const { generateWithAnthropic: generate } = await import(
+  it("Z.ai API를 올바른 파라미터로 호출한다", async () => {
+    mockFetch.mockResolvedValue(mockZaiResponse(validJsonResponse));
+
+    const { generateWithLLM: generate } = await import(
       "../anthropic-generation.service"
     );
     const result = await generate(sampleTemplate, sampleInput);
 
-    expect(mockQuery).toHaveBeenCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://api.z.ai/api/coding/paas/v4/chat/completions",
       expect.objectContaining({
-        prompt: expect.stringContaining("3개의 고유한 변형 문항"),
-        options: expect.objectContaining({
-          maxTurns: 1,
-          allowedTools: [],
-          model: "sonnet",
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-api-key",
+          "Content-Type": "application/json",
         }),
       }),
     );
+
+    // body에 system/user 메시지가 분리되어 포함
+    const callBody = JSON.parse(mockFetch.mock.calls[0]![1].body);
+    expect(callBody.model).toBe("glm-4.7");
+    expect(callBody.messages).toHaveLength(2);
+    expect(callBody.messages[0].role).toBe("system");
+    expect(callBody.messages[1].role).toBe("user");
+    expect(callBody.messages[1].content).toContain("3개");
+    expect(callBody.stream).toBe(false);
 
     expect(result).toHaveLength(2);
   });
 
   it("빈 응답 시 빈 배열을 반환한다", async () => {
-    mockQuery.mockReturnValue(mockResultGenerator("[]"));
+    mockFetch.mockResolvedValue(mockZaiResponse("[]"));
 
-    const { generateWithAnthropic: generate } = await import(
+    const { generateWithLLM: generate } = await import(
       "../anthropic-generation.service"
     );
     const result = await generate(sampleTemplate, sampleInput);
     expect(result).toHaveLength(0);
   });
 
-  it("query() 실패 시 에러를 던진다", async () => {
-    async function* failGenerator() {
-      yield { type: "result", subtype: "error" };
-    }
-    mockQuery.mockReturnValue(failGenerator());
+  it("HTTP 오류 시 에러를 던진다", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Invalid API key",
+    });
 
-    const { generateWithAnthropic: generate } = await import(
+    const { generateWithLLM: generate } = await import(
       "../anthropic-generation.service"
     );
     await expect(generate(sampleTemplate, sampleInput)).rejects.toThrow(
-      "Claude Agent SDK 호출 실패",
+      "Z.ai API HTTP 오류: 401",
+    );
+  });
+
+  it("ZAI_API_KEY 미설정 시 에러를 던진다", async () => {
+    delete process.env.ZAI_API_KEY;
+
+    const { generateWithLLM: generate } = await import(
+      "../anthropic-generation.service"
+    );
+    await expect(generate(sampleTemplate, sampleInput)).rejects.toThrow(
+      "ZAI_API_KEY",
     );
   });
 
@@ -258,15 +286,15 @@ describe("generateWithAnthropic", () => {
         answer_latex: `x = ${start + i}`,
       }));
 
-    mockQuery
-      .mockReturnValueOnce(
-        mockResultGenerator(JSON.stringify(makeBatchItems(1, 5))),
+    mockFetch
+      .mockResolvedValueOnce(
+        mockZaiResponse(JSON.stringify(makeBatchItems(1, 5))),
       )
-      .mockReturnValueOnce(
-        mockResultGenerator(JSON.stringify(makeBatchItems(6, 3))),
+      .mockResolvedValueOnce(
+        mockZaiResponse(JSON.stringify(makeBatchItems(6, 3))),
       );
 
-    const { generateWithAnthropic: generate } = await import(
+    const { generateWithLLM: generate } = await import(
       "../anthropic-generation.service"
     );
     const result = await generate(sampleTemplate, {
@@ -274,7 +302,7 @@ describe("generateWithAnthropic", () => {
       count: 8,
     });
 
-    expect(mockQuery).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result).toHaveLength(8);
   });
 
@@ -287,18 +315,18 @@ describe("generateWithAnthropic", () => {
         answer_latex: `x = ${i}`,
       }));
 
-    mockQuery
-      .mockReturnValueOnce(
-        mockResultGenerator(JSON.stringify(makeBatchItems(5))),
+    mockFetch
+      .mockResolvedValueOnce(
+        mockZaiResponse(JSON.stringify(makeBatchItems(5))),
       )
-      .mockReturnValueOnce(
-        mockResultGenerator(JSON.stringify(makeBatchItems(5))),
+      .mockResolvedValueOnce(
+        mockZaiResponse(JSON.stringify(makeBatchItems(5))),
       )
-      .mockReturnValueOnce(
-        mockResultGenerator(JSON.stringify(makeBatchItems(2))),
+      .mockResolvedValueOnce(
+        mockZaiResponse(JSON.stringify(makeBatchItems(2))),
       );
 
-    const { generateWithAnthropic: generate } = await import(
+    const { generateWithLLM: generate } = await import(
       "../anthropic-generation.service"
     );
     const result = await generate(sampleTemplate, {
@@ -306,13 +334,13 @@ describe("generateWithAnthropic", () => {
       count: 12,
     });
 
-    expect(mockQuery).toHaveBeenCalledTimes(3);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(result).toHaveLength(12);
 
-    // 각 배치의 프롬프트에 올바른 count가 포함되는지 확인
-    const calls = mockQuery.mock.calls;
-    expect(calls[0]![0].prompt).toContain("5개");
-    expect(calls[1]![0].prompt).toContain("5개");
-    expect(calls[2]![0].prompt).toContain("2개");
+    // 각 배치의 body에 올바른 count가 포함되는지 확인
+    const calls = mockFetch.mock.calls;
+    expect(JSON.parse(calls[0]![1].body).messages[1].content).toContain("5개");
+    expect(JSON.parse(calls[1]![1].body).messages[1].content).toContain("5개");
+    expect(JSON.parse(calls[2]![1].body).messages[1].content).toContain("2개");
   });
 });

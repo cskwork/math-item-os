@@ -418,6 +418,8 @@ async function _processGeneration(
         ? await _callMathAiGenerate(template, input)
         : await generateWithAnthropic(template, input);
 
+    console.log(`[GEN] ${jobId} LLM/SymPy 완료: ${apiVariants.length}개 변이 생성 (전략: ${strategy})`);
+
     if (apiVariants.length === 0) {
       job.status = "completed";
       job.passRate = 0;
@@ -435,11 +437,13 @@ async function _processGeneration(
     }
 
     // (c) 각 변이별 CAS 검증 (병렬)
+    console.log(`[GEN] ${jobId} CAS 검증 시작 (${apiVariants.length}건 병렬)`);
     const verificationResults = await Promise.allSettled(
       apiVariants.map((v) =>
         _callMathAiVerify(v.body_latex, v.answer_latex),
       ),
     );
+    console.log(`[GEN] ${jobId} CAS 검증 완료`);
 
     // (d) 검증 결과를 CasVerificationResult로 매핑 + 이벤트 발행
     const casResults: CasVerificationResult[] = verificationResults.map(
@@ -495,9 +499,12 @@ async function _processGeneration(
       }
 
       // 3중 변환 실행 (트랜잭션 외부 - 외부 서비스 호출 포함)
+      console.log(`[GEN] ${jobId} 변이 ${i + 1}/${apiVariants.length} 변환 시작`);
       const conversion = await convertLatex(apiVariant.body_latex);
+      console.log(`[GEN] ${jobId} 변이 ${i + 1} 변환 완료 (errors: ${conversion.errors.length})`);
 
       // 트랜잭션: Item + Variant 원자적 생성
+      console.log(`[GEN] ${jobId} 변이 ${i + 1} DB 트랜잭션 시작`);
       const { itemId } = await prisma.$transaction(async (tx: TxClient) => {
         // Constitution III: AI 생성 문항은 is_generated=true, status=draft
         const item = await tx.item.create({
@@ -566,6 +573,8 @@ async function _processGeneration(
         return { itemId: item.id };
       });
 
+      console.log(`[GEN] ${jobId} 변이 ${i + 1} DB 트랜잭션 완료 (itemId: ${itemId})`);
+
       // 감사 로그 기록 (트랜잭션 외부 - 독립적 기록)
       await createAuditLog({
         orgId,
@@ -613,6 +622,11 @@ async function _processGeneration(
       error instanceof Error
         ? error.message
         : "알 수 없는 오류가 발생했습니다";
+
+    console.error(`[GEN] ${jobId} 생성 실패:`, errorMessage);
+    if (error instanceof Error && error.stack) {
+      console.error(`[GEN] ${jobId} 스택:`, error.stack);
+    }
 
     job.status = "failed";
     job.error = errorMessage;

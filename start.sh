@@ -87,7 +87,15 @@ if [ -f "$PERF_SQL" ]; then
   fi
 fi
 
-# ── 6-2. 임베딩 시딩 (없으면 자동 생성) ────────────────
+# ── 6-2. 기본 시드 데이터 확인 (조직/문항 없으면 자동 시딩) ──
+ITEM_COUNT=$(docker exec mathitem-postgres psql -U postgres -d mathitem -tAc \
+  "SELECT count(*) FROM items WHERE \"orgId\" = 'default-org'" 2>/dev/null || echo "0")
+if [ "$ITEM_COUNT" -eq 0 ] 2>/dev/null; then
+  step "시드 데이터 없음 -- 기본 시드 실행 (임베딩 제외)"
+  pnpm --filter @math-item-os/db db:seed 2>&1 | tail -10
+fi
+
+# ── 6-3. 임베딩 시딩 (없으면 자동 생성) ────────────────
 EMBED_COUNT=$(docker exec mathitem-postgres psql -U postgres -d mathitem -tAc \
   "SELECT count(*) FROM items WHERE embedding IS NOT NULL" 2>/dev/null || echo "0")
 if [ "$EMBED_COUNT" -eq 0 ] 2>/dev/null; then
@@ -130,7 +138,7 @@ req = urllib.request.Request(
 urllib.request.urlopen(req, timeout=300)
 " 2>/dev/null; then
       step "임베딩 시드 실행"
-      pnpm --filter @math-item-os/db db:seed 2>&1 | tail -5
+      MATH_AI_SERVICE_URL=http://localhost:8000 pnpm --filter @math-item-os/db db:seed 2>&1 | tail -5
     else
       warn "임베딩 모델 로딩 실패 -- 임베딩 생성 건너뜀"
       if [ -f "$MATH_AI_LOG" ]; then

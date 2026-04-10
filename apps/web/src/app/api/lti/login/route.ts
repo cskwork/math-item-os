@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     return NextResponse.redirect(redirectUrl, 302);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "LTI 로그인 실패";
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error("LTI login failed:", err);
+    return NextResponse.json({ error: "Login initiation failed" }, { status: 400 });
   }
 }

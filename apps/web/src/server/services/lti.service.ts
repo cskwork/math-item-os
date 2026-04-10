@@ -33,7 +33,7 @@ export interface LaunchCallbackParams {
 // OIDC 상태 저장소 (인메모리, MVP)
 // -------------------------------------------------
 
-const oidcStateStore = new Map<string, { nonce: string; createdAt: number }>();
+const oidcStateStore = new Map<string, { nonce: string; platformId: string; createdAt: number }>();
 
 // 만료된 상태 정리 (5분 TTL)
 function cleanExpiredStates() {
@@ -88,6 +88,11 @@ function verifyJwtSignature(
 ): boolean {
   const parts = token.split(".");
   if (parts.length !== 3) return false;
+
+  const header = decodeJwtHeader(token);
+  if (header.alg !== "RS256") {
+    throw new Error(`지원하지 않는 JWT 알고리즘: ${header.alg}. RS256만 지원합니다.`);
+  }
 
   const signedData = `${parts[0]}.${parts[1]}`;
   const signature = base64UrlDecode(parts[2]!);
@@ -215,7 +220,7 @@ export async function handleOidcLogin(params: OidcLoginParams) {
   const state = crypto.randomUUID();
   const nonce = crypto.randomUUID();
 
-  oidcStateStore.set(state, { nonce, createdAt: Date.now() });
+  oidcStateStore.set(state, { nonce, platformId: platform.id, createdAt: Date.now() });
 
   // 리다이렉트 URL 구성
   const redirectUrl = new URL(platform.authEndpoint);
@@ -263,6 +268,15 @@ export async function handleLaunchCallback(params: LaunchCallbackParams) {
     });
   }
 
+  // iat 클레임 검증
+  const iat = payload.iat as number | undefined;
+  if (!iat || Math.abs(now - iat) > 300) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "JWT iat 클레임이 유효하지 않습니다",
+    });
+  }
+
   // nonce 검증
   if (payload.nonce !== stateEntry.nonce) {
     throw new TRPCError({
@@ -281,6 +295,14 @@ export async function handleLaunchCallback(params: LaunchCallbackParams) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: `등록되지 않은 LTI 플랫폼: ${issuer}`,
+    });
+  }
+
+  // state에 저장된 platformId와 실제 플랫폼 일치 여부 검증
+  if (stateEntry.platformId !== platform.id) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "state의 플랫폼과 issuer의 플랫폼이 일치하지 않습니다",
     });
   }
 

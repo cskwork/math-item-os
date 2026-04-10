@@ -84,7 +84,7 @@ function parseAnswer(raw: unknown): QtiAnswer {
 
 function buildBodyContent(item: QtiItem): string {
   if (item.bodyMathml) {
-    return `    <p>${item.bodyMathml}</p>`;
+    return `    <p><![CDATA[${item.bodyMathml}]]></p>`;
   }
   return `    <p><pre>${escapeXml(item.bodyLatex)}</pre></p>`;
 }

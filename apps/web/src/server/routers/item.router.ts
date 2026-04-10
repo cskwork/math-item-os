@@ -122,7 +122,7 @@ export const itemRouter = createTRPCRouter({
   // QTI 3.0 단건 내보내기 (인증된 사용자)
   exportQti: protectedProcedure
     .input(exportQtiSchema)
-    .query(async ({ input }) => {
+    .mutation(async ({ input }) => {
       const orgId = getOrgId();
       return exportItemToQti(input.itemId, orgId);
     }),

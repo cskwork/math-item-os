@@ -336,7 +336,7 @@ export const adminRouter = createTRPCRouter({
   // 학습지 QTI 패키지 내보내기 (검수자 이상)
   exportAssignmentQti: reviewerProcedure
     .input(exportAssignmentQtiSchema)
-    .query(async ({ input }) => {
+    .mutation(async ({ input }) => {
       const orgId = getOrgId();
       return exportAssignmentToQtiPackage(input.assignmentId, orgId);
     }),

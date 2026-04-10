@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const redirectUrl = new URL(targetUri, request.url);
     return NextResponse.redirect(redirectUrl.toString(), 302);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "LTI 런치 실패";
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error("LTI launch callback failed:", err);
+    return NextResponse.json({ error: "Launch callback failed" }, { status: 400 });
   }
 }

@@ -192,6 +192,15 @@ function ItemForm() {
     setDifficultyAuthor(vals.difficultyAuthor);
     setSolutionSteps(vals.solutionSteps);
     setUsagePurposes(vals.usagePurposes);
+    if (existingItem.skills) {
+      setSelectedSkillIds(existingItem.skills.map((s: any) => s.skillId));
+    }
+    if (existingItem.standards) {
+      setSelectedStandardIds(existingItem.standards.map((s: any) => s.standardId));
+    }
+    if (existingItem.misconceptions) {
+      setSelectedMisconceptionIds(existingItem.misconceptions.map((m: any) => m.misconceptionId));
+    }
     setInitialized(true);
   }, [existingItem, initialized]);
 

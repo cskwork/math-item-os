@@ -49,6 +49,13 @@ export interface SuggestMetadataResult {
 }
 
 // -------------------------------------------------
+// 스킬 임베딩 인-메모리 캐시 (5분 TTL)
+// -------------------------------------------------
+
+const skillEmbeddingCache = new Map<string, { embeddings: Map<string, number[]>; expiry: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// -------------------------------------------------
 // 코사인 유사도
 // -------------------------------------------------
 
@@ -142,38 +149,68 @@ async function suggestSkills(
   bodyLatex: string,
   orgId: string,
 ): Promise<SuggestedSkill[]> {
-  // 조직의 모든 스킬 조회
-  const skills = await prisma.skill.findMany({
-    where: { orgId },
-    select: { id: true, code: true, title: true, description: true },
-  });
-
-  if (skills.length === 0) return [];
-
   // 문항 본문 임베딩 생성
   const bodyEmbedding = await generateEmbedding(bodyLatex);
   if (bodyEmbedding == null) return [];
 
-  // 스킬 텍스트 배치 임베딩
-  const skillTexts = skills.map(
-    (s) => `${s.title}${s.description ? " " + s.description : ""}`,
-  );
-  const skillEmbeddings = await generateEmbeddingBatch(skillTexts);
+  // 캐시 확인
+  const now = Date.now();
+  const cached = skillEmbeddingCache.get(orgId);
+  let embeddingsBySkillId: Map<string, number[]>;
 
-  // 유사도 계산 및 정렬
+  if (cached && cached.expiry > now) {
+    // 캐시 히트: 기존 임베딩 재사용
+    embeddingsBySkillId = cached.embeddings;
+  } else {
+    // 캐시 미스: 스킬 조회 및 임베딩 생성
+    const skills = await prisma.skill.findMany({
+      where: { orgId },
+      select: { id: true, code: true, title: true, description: true },
+    });
+
+    if (skills.length === 0) return [];
+
+    const skillTexts = skills.map(
+      (s) => `${s.title}${s.description ? " " + s.description : ""}`,
+    );
+    const skillEmbeddings = await generateEmbeddingBatch(skillTexts);
+
+    embeddingsBySkillId = new Map<string, number[]>();
+    for (let i = 0; i < skills.length; i++) {
+      const emb = skillEmbeddings[i];
+      if (emb != null) {
+        embeddingsBySkillId.set(skills[i].id, emb);
+      }
+    }
+
+    skillEmbeddingCache.set(orgId, {
+      embeddings: embeddingsBySkillId,
+      expiry: now + CACHE_TTL_MS,
+    });
+  }
+
+  // 캐시된 임베딩으로 스킬 메타데이터 조회 및 유사도 계산
+  const skillIds = Array.from(embeddingsBySkillId.keys());
+  if (skillIds.length === 0) return [];
+
+  const skills = await prisma.skill.findMany({
+    where: { id: { in: skillIds } },
+    select: { id: true, code: true, title: true, description: true },
+  });
+
   const scored: SuggestedSkill[] = [];
 
-  for (let i = 0; i < skills.length; i++) {
-    const emb = skillEmbeddings[i];
+  for (const skill of skills) {
+    const emb = embeddingsBySkillId.get(skill.id);
     if (emb == null) continue;
 
     const similarity = cosineSimilarity(bodyEmbedding, emb);
     if (similarity >= SIMILARITY_THRESHOLD) {
       scored.push({
-        id: skills[i].id,
-        code: skills[i].code,
-        title: skills[i].title,
-        description: skills[i].description,
+        id: skill.id,
+        code: skill.code,
+        title: skill.title,
+        description: skill.description,
         similarity: Math.round(similarity * 1000) / 1000,
       });
     }

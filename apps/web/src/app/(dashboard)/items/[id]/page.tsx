@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,18 @@ import {
   type UsagePurposeKey,
   type SolutionMethodKey,
 } from "@math-item-os/shared/constants/index";
+
+// ─── XML 다운로드 유틸 ───
+
+function downloadXml(xml: string, filename: string) {
+  const blob = new Blob([xml], { type: "application/xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ─── 상태 전이 맵 (quality-status.service.ts VALID_TRANSITIONS 미러) ───
 
@@ -235,6 +247,9 @@ export default function ItemDetailPage({
   const [selectedVersionLatex, setSelectedVersionLatex] = useState<string | null>(null);
   const [selectedVersionNum, setSelectedVersionNum] = useState<number | null>(null);
 
+  // QTI 내보내기 상태
+  const [qtiExportEnabled, setQtiExportEnabled] = useState(false);
+
   // tRPC 쿼리
   const {
     data: item,
@@ -242,6 +257,32 @@ export default function ItemDetailPage({
     error,
     refetch,
   } = trpc.item.getById.useQuery({ id });
+
+  // QTI 내보내기 쿼리
+  const qtiExport = trpc.item.exportQti.useQuery(
+    { itemId: id },
+    {
+      enabled: qtiExportEnabled,
+      retry: false,
+    },
+  );
+
+  // QTI 다운로드 핸들러
+  const handleExportQti = useCallback(() => {
+    if (qtiExport.data) {
+      downloadXml(qtiExport.data.xml, `item-${id}.xml`);
+    } else {
+      setQtiExportEnabled(true);
+    }
+  }, [qtiExport.data, id]);
+
+  // 쿼리 결과가 오면 자동 다운로드
+  useEffect(() => {
+    if (qtiExportEnabled && qtiExport.data) {
+      downloadXml(qtiExport.data.xml, `item-${id}.xml`);
+      setQtiExportEnabled(false);
+    }
+  }, [qtiExportEnabled, qtiExport.data, id]);
 
   // 상태 전이 뮤테이션
   const updateStatus = trpc.item.updateStatus.useMutation({
@@ -392,6 +433,15 @@ export default function ItemDetailPage({
               </Button>
             );
           })}
+          {/* QTI 내보내기 버튼 */}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={qtiExport.isLoading}
+            onClick={handleExportQti}
+          >
+            {qtiExport.isLoading ? "내보내기 중..." : "QTI 내보내기"}
+          </Button>
           {/* 수정 버튼 */}
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Link href={`/items/new?edit=${item.id}` as any}>

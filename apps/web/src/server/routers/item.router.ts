@@ -15,6 +15,7 @@ import {
   getBulkUploadStatusSchema,
   suggestMetadataSchema,
   getReviewSuggestionsSchema,
+  exportQtiSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   createItem,
@@ -29,6 +30,7 @@ import {
 } from "../services/upload.service";
 import { suggestMetadata } from "../services/metadata-suggest.service";
 import { getReviewSuggestions } from "../services/auto-review.service";
+import { exportItemToQti } from "../services/qti-export.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -115,5 +117,13 @@ export const itemRouter = createTRPCRouter({
     .input(getBulkUploadStatusSchema)
     .query(async ({ input }) => {
       return getBulkUploadJobStatus(input.jobId);
+    }),
+
+  // QTI 3.0 단건 내보내기 (인증된 사용자)
+  exportQti: protectedProcedure
+    .input(exportQtiSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return exportItemToQti(input.itemId, orgId);
     }),
 });

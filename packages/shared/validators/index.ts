@@ -453,3 +453,27 @@ export const studentProfileSchema = z.object({
 export const trendsSchema = z.object({
   assignmentIds: z.array(z.string()).min(1),
 });
+
+// ---------------------------------------------------------------------------
+// 10. QTI 3.0 내보내기 / LTI 1.3 연동 스키마
+// ---------------------------------------------------------------------------
+
+/** QTI 단건 내보내기 */
+export const exportQtiSchema = z.object({ itemId: z.string() });
+
+/** QTI 과제 패키지 내보내기 */
+export const exportAssignmentQtiSchema = z.object({ assignmentId: z.string() });
+
+/** LTI 플랫폼 등록 */
+export const registerLtiPlatformSchema = z.object({
+  name: z.string().min(1),
+  issuer: z.string().url(),
+  clientId: z.string().min(1),
+  authEndpoint: z.string().url(),
+  tokenEndpoint: z.string().url(),
+  jwksEndpoint: z.string().url(),
+  deploymentId: z.string().optional(),
+});
+
+/** LTI 플랫폼 ID 조회 */
+export const ltiPlatformIdSchema = z.object({ platformId: z.string() });

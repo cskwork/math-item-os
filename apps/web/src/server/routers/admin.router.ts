@@ -22,6 +22,9 @@ import {
   updateReviewTaskSchema,
   listUsersSchema,
   updateUserRoleSchema,
+  exportAssignmentQtiSchema,
+  registerLtiPlatformSchema,
+  ltiPlatformIdSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   listTemplates,
@@ -49,6 +52,12 @@ import {
 } from "../services/review.service";
 import { listUsers, updateUserRole } from "../services/user.service";
 import { listAuditLogs } from "../services/audit.service";
+import { exportAssignmentToQtiPackage } from "../services/qti-export.service";
+import {
+  registerPlatform,
+  listPlatforms,
+  deactivatePlatform,
+} from "../services/lti.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -320,5 +329,37 @@ export const adminRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const orgId = getOrgId();
       return listAuditLogs({ ...input, orgId });
+    }),
+
+  // ── QTI 3.0 / LTI 1.3 ──
+
+  // 학습지 QTI 패키지 내보내기 (검수자 이상)
+  exportAssignmentQti: reviewerProcedure
+    .input(exportAssignmentQtiSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return exportAssignmentToQtiPackage(input.assignmentId, orgId);
+    }),
+
+  // LTI 플랫폼 등록 (관리자 전용)
+  registerLtiPlatform: adminProcedure
+    .input(registerLtiPlatformSchema)
+    .mutation(async ({ input }) => {
+      const orgId = getOrgId();
+      return registerPlatform(input, orgId);
+    }),
+
+  // LTI 플랫폼 목록 (관리자 전용)
+  listLtiPlatforms: adminProcedure.query(async () => {
+    const orgId = getOrgId();
+    return listPlatforms(orgId);
+  }),
+
+  // LTI 플랫폼 활성/비활성 토글 (관리자 전용)
+  toggleLtiPlatform: adminProcedure
+    .input(ltiPlatformIdSchema)
+    .mutation(async ({ input }) => {
+      const orgId = getOrgId();
+      return deactivatePlatform(input.platformId, orgId);
     }),
 });

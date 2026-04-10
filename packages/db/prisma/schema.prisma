@@ -225,6 +225,7 @@ model Organization {
   assignments          Assignment[]
   recommendationEvents RecommendationEvent[]
   auditLogs            AuditLog[]
+  ltiPlatforms         LtiPlatform[]
 
   @@map("organizations")
 }
@@ -681,4 +682,27 @@ model StudentResponse {
   @@unique([sessionId, assignmentItemId])
   @@index([sessionId, result])
   @@map("student_responses")
+}
+
+/// LTI 1.3 플랫폼 등록 정보.
+model LtiPlatform {
+  id            String  @id @default(cuid())
+  orgId         String
+  name          String
+  issuer        String  // Platform issuer URL
+  clientId      String
+  authEndpoint  String  // OIDC auth endpoint
+  tokenEndpoint String  // Token endpoint
+  jwksEndpoint  String  // Platform JWKS endpoint
+  deploymentId  String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, issuer, clientId])
+  @@map("lti_platforms")
 }

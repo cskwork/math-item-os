@@ -426,12 +426,12 @@ export default function GeneratePage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-slate-900">
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               변형 문항 생성
             </h1>
             <PageHelp pageId="admin-generate" />
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             템플릿을 선택하거나 생성한 후 변형 문항을 생성합니다
           </p>
         </div>
@@ -440,16 +440,16 @@ export default function GeneratePage() {
       {/* 2-column 레이아웃 */}
       <div className="flex flex-1 gap-4 overflow-hidden">
         {/* 왼쪽 패널: 템플릿 관리 */}
-        <div className="w-[420px] shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="w-[420px] shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           {/* 탭 헤더 */}
-          <div className="flex border-b border-slate-200">
+          <div className="flex border-b border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => setActiveTab("list")}
               className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === "list"
-                  ? "border-b-2 border-slate-900 text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "border-b-2 border-slate-900 text-slate-900 dark:border-slate-100 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               }`}
             >
               템플릿 목록
@@ -459,8 +459,8 @@ export default function GeneratePage() {
               onClick={() => setActiveTab("new")}
               className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === "new"
-                  ? "border-b-2 border-slate-900 text-slate-900"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "border-b-2 border-slate-900 text-slate-900 dark:border-slate-100 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               }`}
             >
               새 템플릿
@@ -499,7 +499,7 @@ export default function GeneratePage() {
         </div>
 
         {/* 오른쪽 패널: 생성 제어 및 결과 */}
-        <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4">
+        <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           {selectedTemplateId === null ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-sm text-slate-400">
@@ -643,14 +643,14 @@ function TemplateListPanel({
                 onClick={() => onSelect(tpl.id)}
                 className={`w-full rounded-md border px-3 py-2.5 text-left transition-colors ${
                   isSelected
-                    ? "border-slate-900 bg-slate-50"
-                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    ? "border-slate-900 bg-slate-50 dark:border-slate-100 dark:bg-slate-800"
+                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                 }`}
               >
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   {tpl.title}
                 </p>
-                <div className="mt-1 flex gap-3 text-xs text-slate-500">
+                <div className="mt-1 flex gap-3 text-xs text-slate-500 dark:text-slate-400">
                   <span>매개변수 {paramCount}개</span>
                   <span>변형 {variantCount}건</span>
                 </div>
@@ -731,7 +731,7 @@ function GenerationControls({
   return (
     <section>
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-slate-900">생성 설정</h2>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">생성 설정</h2>
         <StrategyBadge strategy={detectedStrategy} isLoading={isDetecting} />
       </div>
 
@@ -740,7 +740,7 @@ function GenerationControls({
         <div className="flex items-center gap-3">
           <label
             htmlFor="gen-count"
-            className="w-24 text-xs font-medium text-slate-600"
+            className="w-24 text-xs font-medium text-slate-600 dark:text-slate-400"
           >
             생성 개수
           </label>
@@ -751,7 +751,7 @@ function GenerationControls({
             max={MAX_COUNT}
             value={count}
             onChange={onCountChange}
-            className="h-9 w-24 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+            className="h-9 w-24 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           />
           <span className="text-xs text-slate-400">({MIN_COUNT}-{MAX_COUNT})</span>
         </div>
@@ -771,7 +771,7 @@ function GenerationControls({
                   overrideParams.coefficientRange[1],
                 ])
               }
-              className="h-9 w-20 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="h-9 w-20 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             <span className="text-xs text-slate-400">~</span>
             <input
@@ -783,7 +783,7 @@ function GenerationControls({
                   Number(e.target.value),
                 ])
               }
-              className="h-9 w-20 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="h-9 w-20 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
         </div>
@@ -830,11 +830,11 @@ function GenerationControls({
 
         {/* 고급 설정 펼침 영역 */}
         {showAdvanced && (
-          <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+          <div className="rounded-md border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center gap-3">
               <label
                 htmlFor="strategy-override"
-                className="w-24 text-xs font-medium text-slate-600"
+                className="w-24 text-xs font-medium text-slate-600 dark:text-slate-400"
               >
                 전략 선택
               </label>
@@ -848,7 +848,7 @@ function GenerationControls({
                       : (e.target.value as "sympy" | "llm"),
                   )
                 }
-                className="h-9 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                className="h-9 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="">자동 감지</option>
                 <option value="sympy">SymPy (파라미터 치환)</option>
@@ -939,10 +939,10 @@ function GenerationProgress({
   const label = status === "pending" ? "대기 중" : "처리 중";
 
   return (
-    <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
+    <section className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-        <p className="text-sm font-medium text-slate-700">{label}</p>
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
         <StrategyBadge strategy={strategy} />
       </div>
       <p className="mt-1 text-xs text-slate-500">{message}</p>
@@ -1012,7 +1012,7 @@ function GenerationResults({ variants, passRate }: GenerationResultsProps) {
     <section className="flex flex-col gap-4">
       {/* 통과율 표시 */}
       <div className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold text-slate-900">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           CAS 검증 통과율
         </h2>
         <span
@@ -1041,7 +1041,7 @@ function GenerationResults({ variants, passRate }: GenerationResultsProps) {
 
       {/* 변형 문항 목록 */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-xs font-semibold text-slate-700">
+        <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
           생성된 변형 ({variants.length}건)
         </h3>
 
@@ -1059,7 +1059,7 @@ function GenerationResults({ variants, passRate }: GenerationResultsProps) {
             return (
               <li
                 key={id}
-                className="rounded-md border border-slate-200 p-3"
+                className="rounded-md border border-slate-200 p-3 dark:border-slate-700"
               >
                 <div className="flex items-start justify-between gap-3">
                   {/* 본문 및 정답 */}

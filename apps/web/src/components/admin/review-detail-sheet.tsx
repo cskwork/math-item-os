@@ -185,21 +185,21 @@ function SheetBody({ item, itemId, onApprove, onReject }: SheetBodyProps) {
       <div className="overflow-y-auto flex-1 p-6 flex flex-col gap-6">
         {/* 1. 수식 표시 */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700">
+          <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
             수식 표시
           </h3>
-          <div className="flex min-h-[60px] items-center justify-center rounded-md border border-slate-100 bg-slate-50 p-6">
+          <div className="flex min-h-[60px] items-center justify-center rounded-md border border-slate-100 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
             <KatexRenderer
               latex={item.bodyLatex}
               displayMode={true}
-              className="text-lg text-slate-900"
+              className="text-lg text-slate-900 dark:text-slate-100"
             />
           </div>
         </section>
 
         {/* 2. 기본 정보 */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700">
+          <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
             기본 정보
           </h3>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -226,7 +226,7 @@ function SheetBody({ item, itemId, onApprove, onReject }: SheetBodyProps) {
         {/* 3. 생성 정보 (conditional) */}
         {item.isGenerated && (
           <section>
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">
+            <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
               생성 정보
             </h3>
             <GenerationInfo
@@ -284,8 +284,8 @@ function InfoRow({
 }) {
   return (
     <>
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-slate-900">{children}</dd>
+      <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className="text-slate-900 dark:text-slate-100">{children}</dd>
     </>
   );
 }

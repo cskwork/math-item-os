@@ -281,11 +281,11 @@ function AssignmentHeader({
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Link
           href={"/admin/assignments" as any}
-          className="text-sm text-slate-500 hover:text-slate-700"
+          className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
         >
           &larr; 학습지 목록
         </Link>
-        <h1 className="text-lg font-semibold text-slate-900">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           학습지: {title}
         </h1>
       </div>
@@ -313,8 +313,8 @@ function AssignmentHeader({
 
 function ErrorBanner({ message }: { readonly message: string }) {
   return (
-    <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
-      <p className="text-sm text-red-700">{message}</p>
+    <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
+      <p className="text-sm text-red-700 dark:text-red-400">{message}</p>
     </div>
   );
 }
@@ -337,32 +337,32 @@ function MetaSection({
   createdAt,
 }: MetaSectionProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+    <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
         <div className="flex items-center gap-1.5">
-          <span className="font-medium text-slate-500">목적:</span>
-          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+          <span className="font-medium text-slate-500 dark:text-slate-400">목적:</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {purposeLabel}
           </span>
         </div>
         <span className="text-slate-300">|</span>
         <div>
-          <span className="font-medium text-slate-500">문항 수:</span>{" "}
+          <span className="font-medium text-slate-500 dark:text-slate-400">문항 수:</span>{" "}
           {itemCount}
         </div>
         <span className="text-slate-300">|</span>
         <div>
-          <span className="font-medium text-slate-500">총 배점:</span>{" "}
+          <span className="font-medium text-slate-500 dark:text-slate-400">총 배점:</span>{" "}
           {totalPoints}
         </div>
         <span className="text-slate-300">|</span>
         <div>
-          <span className="font-medium text-slate-500">상태:</span>{" "}
+          <span className="font-medium text-slate-500 dark:text-slate-400">상태:</span>{" "}
           {isPublished ? "공개" : "비공개"}
         </div>
         <span className="text-slate-300">|</span>
         <div>
-          <span className="font-medium text-slate-500">생성일:</span>{" "}
+          <span className="font-medium text-slate-500 dark:text-slate-400">생성일:</span>{" "}
           {formatDate(createdAt)}
         </div>
       </div>
@@ -394,8 +394,8 @@ interface ItemsSectionProps {
 
 function ItemsSection({ items }: ItemsSectionProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="mb-4 text-sm font-semibold text-slate-700">
+    <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
         문항 목록 ({items.length})
       </h2>
 
@@ -438,7 +438,7 @@ function AssignmentItemRow({ position, item, points }: AssignmentItemRowProps) {
   const pointsDisplay = points != null ? Number(points) : null;
 
   return (
-    <li className="flex items-center gap-3 rounded-md border border-slate-100 px-4 py-3">
+    <li className="flex items-center gap-3 rounded-md border border-slate-100 px-4 py-3 dark:border-slate-700">
       {/* 번호 */}
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
         {position + 1}
@@ -450,7 +450,7 @@ function AssignmentItemRow({ position, item, points }: AssignmentItemRowProps) {
       </p>
 
       {/* 문항 유형 배지 */}
-      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
         {item.itemType}
       </span>
 
@@ -468,7 +468,7 @@ function AssignmentItemRow({ position, item, points }: AssignmentItemRowProps) {
 
       {/* 배점 */}
       {pointsDisplay != null && (
-        <span className="shrink-0 text-xs font-medium text-slate-500">
+        <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
           {pointsDisplay}점
         </span>
       )}
@@ -496,8 +496,8 @@ function ExportSection({
   onCopyShareUrl,
 }: ExportSectionProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="mb-4 text-sm font-semibold text-slate-700">내보내기</h2>
+    <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">내보내기</h2>
 
       <div className="flex flex-col gap-4">
         {/* 버튼 행 */}
@@ -522,11 +522,11 @@ function ExportSection({
 
         {/* 공유 링크 표시 */}
         {shareUrl && (
-          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="text-xs font-medium text-slate-500">
+          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               공유 링크:
             </span>
-            <code className="min-w-0 flex-1 truncate text-xs text-slate-700">
+            <code className="min-w-0 flex-1 truncate text-xs text-slate-700 dark:text-slate-300">
               {shareUrl}
             </code>
             <Button

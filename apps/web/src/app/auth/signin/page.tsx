@@ -34,20 +34,20 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="w-full max-w-sm space-y-6 rounded-lg border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
             Math Item OS
           </h1>
-          <p className="mt-1 text-sm text-slate-500">로그인</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">로그인</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
             >
               Email
             </label>
@@ -56,7 +56,7 @@ export default function SignInPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400 dark:focus:ring-slate-400"
               required
             />
           </div>
@@ -64,7 +64,7 @@ export default function SignInPage() {
           <div className="space-y-1.5">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-slate-700"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
             >
               Password
             </label>
@@ -73,7 +73,7 @@ export default function SignInPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-400 dark:focus:ring-slate-400"
               required
             />
           </div>
@@ -87,13 +87,13 @@ export default function SignInPage() {
           </Button>
         </form>
 
-        <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500">
-          <p className="font-medium text-slate-600">개발용 계정</p>
+        <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+          <p className="font-medium text-slate-600 dark:text-slate-300">개발용 계정</p>
           <p className="mt-1">
-            Email: <code className="text-slate-700">{DEV_EMAIL}</code>
+            Email: <code className="text-slate-700 dark:text-slate-300">{DEV_EMAIL}</code>
           </p>
           <p>
-            Password: <code className="text-slate-700">{DEV_PASSWORD}</code>
+            Password: <code className="text-slate-700 dark:text-slate-300">{DEV_PASSWORD}</code>
           </p>
         </div>
       </div>

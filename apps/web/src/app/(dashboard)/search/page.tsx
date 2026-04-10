@@ -95,7 +95,7 @@ export default function SearchPage() {
     <div className="mx-auto max-w-6xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-slate-900">문항 검색</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">문항 검색</h1>
         <PageHelp pageId="search" />
       </div>
 
@@ -120,7 +120,7 @@ export default function SearchPage() {
 
         {/* 정렬 옵션 */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">정렬:</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">정렬:</span>
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -128,8 +128,8 @@ export default function SearchPage() {
               aria-pressed={sort === opt.value}
               className={`rounded-full px-3 py-1 text-xs ${
                 sort === opt.value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
               {opt.label}

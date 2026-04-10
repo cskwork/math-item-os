@@ -121,7 +121,7 @@ function MetaBadge({
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        "bg-slate-100 text-slate-700",
+        "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
         className,
       )}
     >
@@ -144,11 +144,11 @@ function Section({
   return (
     <section
       className={cn(
-        "rounded-lg border border-slate-200 bg-white p-5",
+        "rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900",
         className,
       )}
     >
-      <h2 className="mb-4 text-sm font-semibold text-slate-700">{title}</h2>
+      <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">{title}</h2>
       {children}
     </section>
   );
@@ -168,16 +168,16 @@ function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white">
+    <section className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex w-full items-center justify-between p-5 text-left"
       >
-        <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{title}</h2>
         <span className="text-xs text-slate-400">{isOpen ? "접기" : "펼치기"}</span>
       </button>
-      {isOpen && <div className="border-t border-slate-100 p-5 pt-4">{children}</div>}
+      {isOpen && <div className="border-t border-slate-100 p-5 pt-4 dark:border-slate-700">{children}</div>}
     </section>
   );
 }
@@ -193,8 +193,8 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3 py-1.5">
-      <dt className="w-28 shrink-0 text-sm text-slate-500">{label}</dt>
-      <dd className="text-sm text-slate-900">{children}</dd>
+      <dt className="w-28 shrink-0 text-sm text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className="text-sm text-slate-900 dark:text-slate-100">{children}</dd>
     </div>
   );
 }
@@ -211,9 +211,9 @@ function CodeBlock({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <span className="text-xs font-medium text-slate-500">{label}</span>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</span>
       )}
-      <pre className="overflow-x-auto rounded-md bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
+      <pre className="overflow-x-auto rounded-md bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:bg-slate-800 dark:text-slate-300">
         <code>{content}</code>
       </pre>
     </div>
@@ -277,7 +277,7 @@ export default function ItemDetailPage({
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-sm text-slate-400">문항 데이터를 불러오는 중...</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">문항 데이터를 불러오는 중...</p>
       </div>
     );
   }
@@ -355,7 +355,7 @@ export default function ItemDetailPage({
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Link
             href={"/items" as any}
-            className="text-sm text-slate-500 hover:text-slate-700"
+            className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
           >
             &larr; 목록
           </Link>
@@ -403,8 +403,8 @@ export default function ItemDetailPage({
 
       {/* 상태 전이 에러 표시 */}
       {updateStatus.error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{updateStatus.error.message}</p>
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
+          <p className="text-sm text-red-700 dark:text-red-400">{updateStatus.error.message}</p>
         </div>
       )}
 
@@ -427,16 +427,16 @@ export default function ItemDetailPage({
             </p>
           )}
           {/* 렌더링된 수식 */}
-          <div className="flex min-h-[80px] items-center justify-center rounded-md border border-slate-100 bg-slate-50 p-6">
+          <div className="flex min-h-[80px] items-center justify-center rounded-md border border-slate-100 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
             <KatexRenderer
               latex={displayLatex}
               displayMode={true}
-              className="text-lg text-slate-900"
+              className="text-lg text-slate-900 dark:text-slate-100"
             />
           </div>
           {/* LaTeX 원본 코드 (접기/펼치기) */}
           <details className="mt-3">
-            <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
+            <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300">
               LaTeX 원본 코드
             </summary>
             <div className="mt-2">
@@ -481,8 +481,8 @@ export default function ItemDetailPage({
 
           {/* 난이도 프로필 상세 (존재 시) */}
           {difficultyProfile && (
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <h3 className="mb-2 text-xs font-medium text-slate-500">
+            <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-700">
+              <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                 난이도 프로필 상세
               </h3>
               <dl className="grid grid-cols-2 gap-x-8 sm:grid-cols-3">
@@ -518,7 +518,7 @@ export default function ItemDetailPage({
         <Section title="관련 메타데이터">
           {/* 스킬 */}
           <div className="mb-4">
-            <h3 className="mb-2 text-xs font-medium text-slate-500">
+            <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               스킬 ({skills.length})
             </h3>
             {skills.length > 0 ? (
@@ -536,7 +536,7 @@ export default function ItemDetailPage({
 
           {/* 성취기준 */}
           <div className="mb-4">
-            <h3 className="mb-2 text-xs font-medium text-slate-500">
+            <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               성취기준 ({standards.length})
             </h3>
             {standards.length > 0 ? (
@@ -554,7 +554,7 @@ export default function ItemDetailPage({
 
           {/* 오개념 */}
           <div>
-            <h3 className="mb-2 text-xs font-medium text-slate-500">
+            <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               오개념 ({misconceptions.length})
             </h3>
             {misconceptions.length > 0 ? (
@@ -583,7 +583,7 @@ export default function ItemDetailPage({
                   return (
                     <div
                       key={sol.id}
-                      className="rounded-md border border-slate-100 bg-slate-50 p-4"
+                      className="rounded-md border border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
                     >
                       <div className="mb-2 flex items-center gap-2">
                         <MetaBadge className="bg-violet-50 text-violet-700">
@@ -640,7 +640,7 @@ export default function ItemDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                  <tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
                     <th className="pb-2 pr-4 font-medium">버전</th>
                     <th className="pb-2 pr-4 font-medium">변경 사유</th>
                     <th className="pb-2 pr-4 font-medium">일자</th>

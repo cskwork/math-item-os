@@ -68,32 +68,32 @@ export function ReviewTaskTable({
   return (
     <div className="h-full overflow-y-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 border-b border-slate-200 bg-slate-50">
+        <thead className="sticky top-0 border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
           <tr>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               우선순위
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               문항 제목
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               유형
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               상태
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               학교급/학년
             </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
               등록일
             </th>
-            <th className="px-4 py-2.5 text-right text-xs font-medium text-slate-500">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400">
               작업
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
           {tasks.map((task) => (
             <ReviewTaskRow
               key={task.id}
@@ -146,14 +146,14 @@ function ReviewTaskRow({
 
   return (
     <tr
-      className="cursor-pointer transition-colors hover:bg-slate-50"
+      className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
       onClick={() => onRowClick(task.itemId)}
     >
       {/* 우선순위 */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${priorityDotColor}`} />
-          <span className="text-xs font-medium text-slate-700">
+          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
             {task.priority}
           </span>
         </div>
@@ -175,7 +175,7 @@ function ReviewTaskRow({
 
       {/* 유형 */}
       <td className="px-4 py-3">
-        <span className="text-xs text-slate-600">{taskTypeLabel}</span>
+        <span className="text-xs text-slate-600 dark:text-slate-400">{taskTypeLabel}</span>
       </td>
 
       {/* 상태 */}
@@ -189,14 +189,14 @@ function ReviewTaskRow({
 
       {/* 학교급/학년 */}
       <td className="px-4 py-3">
-        <span className="text-xs text-slate-600">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
           {task.schoolLevel} {task.grade}학년
         </span>
       </td>
 
       {/* 등록일 */}
       <td className="px-4 py-3">
-        <span className="text-xs text-slate-500">{formattedDate}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{formattedDate}</span>
       </td>
 
       {/* 작업 */}

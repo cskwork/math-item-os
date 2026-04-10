@@ -58,11 +58,11 @@ function FilterSelect({
 }>) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-slate-500">{label}</label>
+      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+        className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (
@@ -81,7 +81,7 @@ function TableSkeleton() {
   return (
     <div className="space-y-2">
       {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} className="flex animate-pulse gap-4 rounded-md border border-slate-200 bg-white p-3">
+        <div key={i} className="flex animate-pulse gap-4 rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
           <div className="h-4 w-20 rounded bg-slate-200" />
           <div className="h-4 w-32 rounded bg-slate-200" />
           <div className="h-4 w-40 rounded bg-slate-200" />
@@ -97,8 +97,8 @@ function TableSkeleton() {
 
 function EmptyState({ onCreateClick }: Readonly<{ onCreateClick: () => void }>) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16">
-      <p className="text-sm text-slate-500">등록된 스킬이 없습니다</p>
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-900">
+      <p className="text-sm text-slate-500 dark:text-slate-400">등록된 스킬이 없습니다</p>
       <Button variant="outline" size="sm" className="mt-3" onClick={onCreateClick}>
         새 스킬 추가
       </Button>
@@ -139,7 +139,7 @@ function Pagination({
       >
         이전
       </Button>
-      <span className="text-sm text-slate-600">
+      <span className="text-sm text-slate-600 dark:text-slate-400">
         {page} / {totalPages} 페이지
       </span>
       <Button
@@ -335,7 +335,7 @@ export default function SkillListPage() {
     <div className="mx-auto max-w-6xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">스킬 관리</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">스킬 관리</h1>
         <div className="flex gap-2">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Link href={"/skills/graph" as any}>
@@ -346,17 +346,17 @@ export default function SkillListPage() {
       </div>
 
       {/* 필터 바 */}
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {/* 분류 경로 필터 (텍스트 입력) */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">분류 경로</label>
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">분류 경로</label>
             <input
               type="text"
               value={filters.topicPath}
               onChange={(e) => handleFilterChange("topicPath", e.target.value)}
               placeholder="예: math.algebra"
-              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
@@ -399,38 +399,38 @@ export default function SkillListPage() {
       {!isLoading && !isError && data && data.skills.length > 0 && (
         <>
           {/* 결과 건수 */}
-          <p className="mb-3 text-sm text-slate-500">총 {data.total}건</p>
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">총 {data.total}건</p>
 
           {/* 스킬 테이블 */}
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-slate-600">코드</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">스킬명</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">분류 경로</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">Bloom 수준</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">문제 유형</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">문항 수</th>
-                  <th className="px-4 py-3 font-medium text-slate-600">작업</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">코드</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">스킬명</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">분류 경로</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Bloom 수준</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">문제 유형</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">문항 수</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">작업</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {data.skills.map((skill: any) => (
-                  <tr key={skill.id} className="hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">
+                  <tr key={skill.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-300">
                       {skill.code}
                     </td>
-                    <td className="px-4 py-3 text-slate-900">{skill.title}</td>
-                    <td className="px-4 py-3 text-slate-600">{skill.topicPath}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{skill.title}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{skill.topicPath}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {getBloomLabel(skill.bloomLevel)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {getTypeLevelLabel(skill.typeLevel)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {skill._count?.items ?? 0}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">

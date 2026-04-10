@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
+import React, { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormulaEditor } from "@/components/math/formula-editor";
@@ -96,8 +96,6 @@ function FormSection({
   );
 }
 
-let selectFieldCounter = 0;
-
 function SelectField({
   label,
   value,
@@ -115,7 +113,8 @@ function SelectField({
   error?: string;
   disabled?: boolean;
 }>) {
-  const [fieldId] = useState(() => `select-field-${++selectFieldCounter}`);
+  const id = React.useId();
+  const fieldId = `select-${id}`;
   const errorId = error ? `${fieldId}-error` : undefined;
 
   return (

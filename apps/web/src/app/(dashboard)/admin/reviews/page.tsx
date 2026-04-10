@@ -158,10 +158,10 @@ export default function ReviewQueuePage() {
       {/* 페이지 헤더 */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-slate-900">검수 대기열</h1>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">검수 대기열</h1>
           <PageHelp pageId="admin-reviews" />
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           검수가 필요한 문항을 확인하고 승인 또는 반려합니다
         </p>
       </div>
@@ -179,7 +179,7 @@ export default function ReviewQueuePage() {
       />
 
       {/* 콘텐츠 영역 */}
-      <div className="flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         {tasksQuery.isLoading ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-slate-400">검수 태스크 불러오는 중...</p>
@@ -227,18 +227,18 @@ export default function ReviewQueuePage() {
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             이전
           </button>
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-slate-500 dark:text-slate-400">
             {page} / {totalPages} (총 {total}건)
           </span>
           <button
             type="button"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             다음
           </button>
@@ -302,12 +302,12 @@ function FilterBar({
   onReset,
 }: FilterBarProps) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
       {/* 태스크 유형 */}
       <div className="flex items-center gap-1.5">
         <label
           htmlFor="filter-task-type"
-          className="text-xs font-medium text-slate-600"
+          className="text-xs font-medium text-slate-600 dark:text-slate-400"
         >
           유형
         </label>
@@ -315,7 +315,7 @@ function FilterBar({
           id="filter-task-type"
           value={taskType}
           onChange={onTaskTypeChange}
-          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {TASK_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -329,7 +329,7 @@ function FilterBar({
       <div className="flex items-center gap-1.5">
         <label
           htmlFor="filter-status"
-          className="text-xs font-medium text-slate-600"
+          className="text-xs font-medium text-slate-600 dark:text-slate-400"
         >
           상태
         </label>
@@ -337,7 +337,7 @@ function FilterBar({
           id="filter-status"
           value={status}
           onChange={onStatusChange}
-          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -351,7 +351,7 @@ function FilterBar({
       <div className="flex items-center gap-1.5">
         <label
           htmlFor="filter-priority"
-          className="text-xs font-medium text-slate-600"
+          className="text-xs font-medium text-slate-600 dark:text-slate-400"
         >
           우선순위
         </label>
@@ -359,7 +359,7 @@ function FilterBar({
           id="filter-priority"
           value={priority}
           onChange={onPriorityChange}
-          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+          className="h-8 rounded-md border border-slate-200 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           {PRIORITY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -374,7 +374,7 @@ function FilterBar({
         <button
           type="button"
           onClick={onReset}
-          className="ml-auto text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
+          className="ml-auto text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
         >
           필터 초기화
         </button>

@@ -240,6 +240,7 @@ model Item {
   bodyMathml String? @db.Text
   bodySympy  String? @db.Text
   bodyHtml   String? @db.Text
+  bodyBlocks Json?   // Tiptap JSON document (structured block storage)
 
   // 선택지/정답
   choices Json? // [{label, latex, mathml, is_correct}]

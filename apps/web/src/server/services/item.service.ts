@@ -29,6 +29,7 @@ type TxClient = Omit<
 
 export interface CreateItemInput {
   readonly bodyLatex: string;
+  readonly bodyBlocks?: unknown;
   readonly choices?: ReadonlyArray<Record<string, unknown>>;
   readonly answer: Record<string, unknown>;
   readonly schoolLevel: SchoolLevel;
@@ -49,6 +50,7 @@ export interface CreateItemInput {
 export interface UpdateItemInput {
   readonly id: string;
   readonly bodyLatex?: string;
+  readonly bodyBlocks?: unknown;
   readonly choices?: ReadonlyArray<Record<string, unknown>>;
   readonly answer?: Record<string, unknown>;
   readonly schoolLevel?: SchoolLevel;
@@ -151,6 +153,7 @@ export async function createItem(
         bodyMathml: conversionResult.mathml,
         bodySympy: conversionResult.sympy,
         bodyHtml: conversionResult.html,
+        bodyBlocks: input.bodyBlocks as Prisma.InputJsonValue ?? undefined,
         choices: input.choices as Prisma.InputJsonValue ?? undefined,
         answer: input.answer as Prisma.InputJsonValue,
         schoolLevel: input.schoolLevel,
@@ -322,6 +325,7 @@ export async function updateItem(
       ...conversionFields,
       currentVersion: nextVersion,
       ...(input.bodyLatex != null && { bodyLatex: input.bodyLatex }),
+      ...(input.bodyBlocks !== undefined && { bodyBlocks: input.bodyBlocks as Prisma.InputJsonValue }),
       ...(input.choices !== undefined && { choices: input.choices as Prisma.InputJsonValue }),
       ...(input.answer !== undefined && { answer: input.answer as Prisma.InputJsonValue }),
       ...(input.schoolLevel != null && { schoolLevel: input.schoolLevel }),

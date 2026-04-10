@@ -97,6 +97,7 @@ export const answerSchema = z.object({
 /** 문항 생성 입력 */
 export const createItemSchema = z.object({
   bodyLatex: z.string().min(1),
+  bodyBlocks: z.any().optional(),
   choices: z.array(choiceSchema).optional(),
   answer: answerSchema,
   schoolLevel: schoolLevelSchema,

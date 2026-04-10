@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormulaEditor } from "@/components/math/formula-editor";
+import { BlockEditor } from "@/components/math/block-editor";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import {
@@ -161,6 +161,7 @@ function ItemForm() {
 
   // -- 폼 상태 --
   const [bodyLatex, setBodyLatex] = useState("");
+  const [bodyBlocks, setBodyBlocks] = useState<any>(null);
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("middle");
   const [grade, setGrade] = useState<number>(1);
   const [semester, setSemester] = useState<Semester>(undefined);
@@ -289,6 +290,7 @@ function ItemForm() {
 
       const payload = {
         bodyLatex,
+        bodyBlocks: bodyBlocks ?? undefined,
         schoolLevel,
         grade,
         semester,
@@ -343,6 +345,7 @@ function ItemForm() {
     },
     [
       bodyLatex,
+      bodyBlocks,
       schoolLevel,
       grade,
       semester,
@@ -395,9 +398,11 @@ function ItemForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* 수식 영역 */}
         <FormSection title="수식 영역">
-          <FormulaEditor
-            value={bodyLatex}
-            onChange={setBodyLatex}
+          <BlockEditor
+            value={bodyBlocks}
+            onChange={setBodyBlocks}
+            onLatexChange={setBodyLatex}
+            initialLatex={isEditMode && existingItem?.bodyLatex && !bodyBlocks ? existingItem.bodyLatex : undefined}
             label="수식"
             error={errors.bodyLatex}
           />

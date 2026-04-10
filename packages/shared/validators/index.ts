@@ -152,6 +152,9 @@ export const suggestMetadataSchema = z.object({
   solutionSteps: z.number().int().min(1).optional(),
 });
 
+/** 검토 제안 조회 */
+export const getReviewSuggestionsSchema = z.object({ itemId: z.string() });
+
 /** 대량 업로드 요청 */
 export const bulkUploadSchema = z.object({
   format: z.enum(["csv", "json", "qti"]),

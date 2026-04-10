@@ -14,6 +14,7 @@ import {
   bulkUploadSchema,
   getBulkUploadStatusSchema,
   suggestMetadataSchema,
+  getReviewSuggestionsSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   createItem,
@@ -27,6 +28,7 @@ import {
   getBulkUploadJobStatus,
 } from "../services/upload.service";
 import { suggestMetadata } from "../services/metadata-suggest.service";
+import { getReviewSuggestions } from "../services/auto-review.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -90,6 +92,14 @@ export const itemRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const orgId = getOrgId();
       return suggestMetadata(input, orgId);
+    }),
+
+  // 검토 제안 조회 (인증된 사용자)
+  getReviewSuggestions: protectedProcedure
+    .input(getReviewSuggestionsSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return getReviewSuggestions(input.itemId, orgId);
     }),
 
   // 대량 업로드 시작 (검수자 이상)

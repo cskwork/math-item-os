@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { SimilarItemsPanel } from "@/components/search/similar-items-panel";
+import { ReviewSuggestions } from "@/components/items/review-suggestions";
 import {
   QUALITY_STATUS,
   ITEM_TYPE,
@@ -444,6 +445,9 @@ export default function ItemDetailPage({
             </div>
           </details>
         </Section>
+
+        {/* ─── AI 자동 검토 ─── */}
+        <ReviewSuggestions itemId={id} />
 
         {/* ─── 2. 기본 정보 패널 ─── */}
         <Section title="기본 정보">

@@ -284,7 +284,8 @@ model Item {
   variants          Variant[]
   similaritiesA     ItemSimilarity[]   @relation("SimilarityA")
   similaritiesB     ItemSimilarity[]   @relation("SimilarityB")
-  assignmentItems   AssignmentItem[]
+  assignmentItems     AssignmentItem[]
+  reviewSuggestions   ReviewSuggestion[]
 
   @@index([orgId, status, schoolLevel, grade])
   @@index([orgId, itemType])
@@ -529,6 +530,23 @@ model AuditLog {
   @@index([orgId, recordId])
   @@index([orgId, createdAt])
   @@map("audit_logs")
+}
+
+/// AI 자동 검토 제안. 문항 생성 시 자동으로 생성된다.
+model ReviewSuggestion {
+  id              String   @id @default(cuid())
+  itemId          String
+  checkType       String   // 'auto_review' | 'difficulty_estimate'
+  result          Json     // AutoReviewResult or DifficultyEstimate
+  overallScore    Float?
+  suggestedAction String?  // 'approve' | 'review' | 'flag'
+
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, checkType])
+  @@map("review_suggestions")
 }
 
 // ─────────────────────────────────────────────────

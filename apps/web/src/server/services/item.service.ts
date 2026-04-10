@@ -15,6 +15,7 @@ import type {
 import { convertLatex } from "./conversion.service";
 import type { FullConversionResult } from "./conversion.service";
 import { indexItem } from "./meilisearch.service";
+import { runAutoReview } from "./auto-review.service";
 
 /** 인터랙티브 트랜잭션 클라이언트 타입 */
 type TxClient = Omit<
@@ -247,6 +248,7 @@ export async function createItem(
   // Meilisearch 인덱스 동기화 (비동기, 실패해도 문항 생성은 성공)
   if (item) {
     void indexItem(item);
+    void runAutoReview(item.id, orgId);
   }
 
   return { item, conversionResult };

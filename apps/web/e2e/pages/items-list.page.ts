@@ -28,13 +28,14 @@ export class ItemsListPage extends BasePage {
   }
 
   /**
-   * 라벨 텍스트의 직접 부모에서 combobox를 찾아 반환
+   * 라벨 텍스트의 직접 부모에서 select 요소를 찾아 반환
+   * FilterSelect는 htmlFor/id 연결이 없으므로 부모 탐색 방식 사용
    */
   private selectByLabel(labelText: string): Locator {
     return this.page
       .getByText(labelText, { exact: true })
       .locator("..")
-      .getByRole("combobox");
+      .locator("select");
   }
 
   /** /items 페이지로 이동 */

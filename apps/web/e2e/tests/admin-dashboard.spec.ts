@@ -33,12 +33,16 @@ test.describe("관리자 대시보드", () => {
     const dashboardPage = new AdminDashboardPage(page);
 
     // teacher에게는 에러가 표시되거나 KPI 데이터가 로드되지 않아야 함
+    // 페이지 렌더링 대기: 에러 상태 또는 KPI 데이터 중 하나가 나타날 때까지 대기
+    const errorOrKpi = dashboardPage.errorState.or(page.getByText("전체 문항 수"));
+    await errorOrKpi.first().waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
+
     const hasError = await dashboardPage.errorState
       .isVisible()
       .catch(() => false);
     const kpiVisible = await page
       .getByText("전체 문항 수")
-      .isVisible({ timeout: 5_000 })
+      .isVisible()
       .catch(() => false);
 
     expect(hasError || !kpiVisible).toBeTruthy();

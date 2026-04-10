@@ -29,21 +29,23 @@ export class ItemCreatePage extends BasePage {
   }
 
   /**
-   * 라벨 텍스트 옆의 combobox를 찾아 선택
-   * 이 페이지의 select들은 <label>이 아닌 div 텍스트를 사용
+   * 라벨 텍스트로 연결된 select 요소를 반환
+   * SelectField 컴포넌트가 htmlFor/id로 label-select를 연결하므로 getByLabel 사용
    */
   private selectByLabel(labelText: string): Locator {
-    return this.page
-      .getByText(labelText, { exact: true })
-      .locator("..")
-      .getByRole("combobox");
+    return this.page.getByLabel(labelText, { exact: true });
   }
 
-  /** 수식 LaTeX 입력 (FormulaEditor textarea) */
+  /** 수식 LaTeX 입력 (BlockEditor 소스 모드 textarea) */
   async fillLatex(latex: string): Promise<void> {
-    await this.page
-      .getByPlaceholder("LaTeX 수식을 입력하세요")
-      .fill(latex);
+    // 소스 모드 토글 버튼 클릭
+    const sourceBtn = this.page.getByRole("button", { name: "소스 모드" });
+    if (await sourceBtn.isVisible()) {
+      await sourceBtn.click();
+    }
+    // 소스 모드 textarea에 입력
+    const textarea = this.page.getByPlaceholder("LaTeX 소스를 직접 입력하세요");
+    await textarea.fill(latex);
   }
 
   /** 학교급 선택 */

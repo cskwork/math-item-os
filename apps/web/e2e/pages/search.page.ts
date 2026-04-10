@@ -59,7 +59,11 @@ export class SearchPage extends BasePage {
 
   /** 학교급 필터 선택 */
   async filterBySchoolLevel(level: string): Promise<void> {
-    await this.page.getByLabel("학교급").selectOption(level);
+    await this.page
+      .getByText("학교급", { exact: true })
+      .locator("..")
+      .locator("select")
+      .selectOption(level);
   }
 
   /** 필터 초기화 */

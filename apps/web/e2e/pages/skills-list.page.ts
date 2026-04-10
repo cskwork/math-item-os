@@ -72,14 +72,14 @@ export class SkillsListPage extends BasePage {
 
   /** 분류 경로 필터 입력 */
   async filterByTopicPath(path: string): Promise<void> {
-    await this.page.getByLabel("분류 경로").fill(path);
+    await this.page.getByPlaceholder("예: math.algebra").fill(path);
   }
 
   /** Bloom 수준 필터 선택 */
   async filterByBloomLevel(level: string): Promise<void> {
-    // "Bloom 수준" 라벨의 부모 div에서 combobox 선택
+    // "Bloom 수준" 라벨의 부모 div에서 select 요소 선택
     const bloomLabel = this.page.getByText("Bloom 수준", { exact: true }).first();
-    await bloomLabel.locator("..").getByRole("combobox").selectOption(level);
+    await bloomLabel.locator("..").locator("select").selectOption(level);
   }
 
   /** 다음 페이지로 이동 */

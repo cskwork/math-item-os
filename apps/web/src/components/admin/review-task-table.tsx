@@ -55,6 +55,7 @@ interface ReviewTaskTableProps {
   readonly mutatingTaskId: string | null;
   readonly onApprove: (taskId: string) => void;
   readonly onReject: (taskId: string) => void;
+  readonly onRowClick: (itemId: string) => void;
 }
 
 export function ReviewTaskTable({
@@ -62,6 +63,7 @@ export function ReviewTaskTable({
   mutatingTaskId,
   onApprove,
   onReject,
+  onRowClick,
 }: ReviewTaskTableProps) {
   return (
     <div className="h-full overflow-y-auto">
@@ -99,6 +101,7 @@ export function ReviewTaskTable({
               isMutating={mutatingTaskId === task.id}
               onApprove={onApprove}
               onReject={onReject}
+              onRowClick={onRowClick}
             />
           ))}
         </tbody>
@@ -114,6 +117,7 @@ interface ReviewTaskRowProps {
   readonly isMutating: boolean;
   readonly onApprove: (taskId: string) => void;
   readonly onReject: (taskId: string) => void;
+  readonly onRowClick: (itemId: string) => void;
 }
 
 function ReviewTaskRow({
@@ -121,6 +125,7 @@ function ReviewTaskRow({
   isMutating,
   onApprove,
   onReject,
+  onRowClick,
 }: ReviewTaskRowProps) {
   const statusConfig = STATUS_CONFIG[task.status] ?? {
     label: task.status,
@@ -140,7 +145,10 @@ function ReviewTaskRow({
     task.status === "pending" || task.status === "in_progress";
 
   return (
-    <tr className="transition-colors hover:bg-slate-50">
+    <tr
+      className="cursor-pointer transition-colors hover:bg-slate-50"
+      onClick={() => onRowClick(task.itemId)}
+    >
       {/* 우선순위 */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -199,7 +207,7 @@ function ReviewTaskRow({
               <button
                 type="button"
                 disabled={isMutating}
-                onClick={() => onApprove(task.id)}
+                onClick={(e) => { e.stopPropagation(); onApprove(task.id); }}
                 className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isMutating ? "처리중..." : "검수 완료"}
@@ -207,7 +215,7 @@ function ReviewTaskRow({
               <button
                 type="button"
                 disabled={isMutating}
-                onClick={() => onReject(task.id)}
+                onClick={(e) => { e.stopPropagation(); onReject(task.id); }}
                 className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 반려

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { PageHelp } from "@/components/help/page-help";
 import { ReviewTaskTable } from "@/components/admin/review-task-table";
+import { ReviewDetailSheet } from "@/components/admin/review-detail-sheet";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // --- 상수 ---
@@ -49,6 +50,9 @@ export default function ReviewQueuePage() {
   const [taskTypeFilter, setTaskTypeFilter] = useState<TaskTypeFilter>("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [priorityFilter, setPriorityFilter] = useState(0);
+
+  // 시트 상태
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // 확인 다이얼로그 상태
   const [pendingAction, setPendingAction] = useState<{
@@ -122,6 +126,17 @@ export default function ReviewQueuePage() {
     setPendingAction({ taskId, action: "reject" });
   }, []);
 
+  // ReviewTask는 Item에서 파생되므로 taskId === itemId (review.service.ts 참고)
+  const handleSheetApprove = useCallback((itemId: string) => {
+    setPendingAction({ taskId: itemId, action: "approve" });
+    setSelectedItemId(null);
+  }, []);
+
+  const handleSheetReject = useCallback((itemId: string) => {
+    setPendingAction({ taskId: itemId, action: "reject" });
+    setSelectedItemId(null);
+  }, []);
+
   const handleConfirmAction = useCallback(() => {
     if (pendingAction === null) return;
     const status = pendingAction.action === "approve" ? "completed" : "rejected";
@@ -193,6 +208,7 @@ export default function ReviewQueuePage() {
             }
             onApprove={handleApprove}
             onReject={handleReject}
+            onRowClick={setSelectedItemId}
           />
         )}
       </div>
@@ -228,6 +244,13 @@ export default function ReviewQueuePage() {
           </button>
         </div>
       )}
+
+      <ReviewDetailSheet
+        itemId={selectedItemId}
+        onClose={() => setSelectedItemId(null)}
+        onApprove={handleSheetApprove}
+        onReject={handleSheetReject}
+      />
 
       <ConfirmDialog
         open={pendingAction !== null}

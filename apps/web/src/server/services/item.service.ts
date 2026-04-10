@@ -114,6 +114,10 @@ const ITEM_FULL_INCLUDE = {
     orderBy: { version: "desc" as const },
     take: 10,
   },
+  variants: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+  },
 } satisfies Prisma.ItemInclude;
 
 // -------------------------------------------------

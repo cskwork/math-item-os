@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, type FormEvent } from "react";
+import { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormulaEditor } from "@/components/math/formula-editor";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -16,6 +16,7 @@ import {
   GRADE_BY_LEVEL,
   type SchoolLevelKey,
 } from "@math-item-os/shared/constants/index";
+import { extractFormValues } from "./item-form-utils";
 
 // --- 타입 정의 ---
 
@@ -137,7 +138,18 @@ function SelectField({
 // --- 메인 페이지 컴포넌트 ---
 
 export default function ItemCreatePage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center"><p className="text-sm text-slate-400">로딩 중...</p></div>}>
+      <ItemForm />
+    </Suspense>
+  );
+}
+
+function ItemForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const isEditMode = editId !== null;
 
   // -- 폼 상태 --
   const [bodyLatex, setBodyLatex] = useState("");
@@ -152,6 +164,32 @@ export default function ItemCreatePage() {
   const [solutionSteps, setSolutionSteps] = useState<string>("");
   const [usagePurposes, setUsagePurposes] = useState<string[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [changeSummary, setChangeSummary] = useState("");
+  const [initialized, setInitialized] = useState(false);
+
+  // -- 편집 모드: 기존 문항 로드 --
+  const { data: existingItem, isLoading: isLoadingItem } = trpc.item.getById.useQuery(
+    { id: editId! },
+    { enabled: isEditMode },
+  );
+
+  useEffect(() => {
+    if (!existingItem || initialized) return;
+    const vals = extractFormValues(existingItem);
+    if (!vals) return;
+    setBodyLatex(vals.bodyLatex);
+    setSchoolLevel(vals.schoolLevel as SchoolLevel);
+    setGrade(vals.grade);
+    setSemester(vals.semester as Semester);
+    setItemType(vals.itemType);
+    setFormulaType(vals.formulaType);
+    setAnswerFormat(vals.answerFormat);
+    setAnswerValue(vals.answerValue);
+    setDifficultyAuthor(vals.difficultyAuthor);
+    setSolutionSteps(vals.solutionSteps);
+    setUsagePurposes(vals.usagePurposes);
+    setInitialized(true);
+  }, [existingItem, initialized]);
 
   // -- tRPC mutation --
   const createItem = trpc.item.create.useMutation({
@@ -162,6 +200,13 @@ export default function ItemCreatePage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(`/items/${itemId}` as any);
       }
+    },
+  });
+
+  const updateItem = trpc.item.update.useMutation({
+    onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(`/items/${editId}` as any);
     },
   });
 
@@ -203,7 +248,7 @@ export default function ItemCreatePage() {
 
       setErrors({});
 
-      createItem.mutate({
+      const payload = {
         bodyLatex,
         schoolLevel,
         grade,
@@ -242,7 +287,17 @@ export default function ItemCreatePage() {
                 | "review"
               )[])
             : undefined,
-      });
+      };
+
+      if (isEditMode) {
+        updateItem.mutate({
+          id: editId!,
+          ...payload,
+          ...(changeSummary.trim() && { changeSummary: changeSummary.trim() }),
+        });
+      } else {
+        createItem.mutate(payload);
+      }
     },
     [
       bodyLatex,
@@ -256,20 +311,36 @@ export default function ItemCreatePage() {
       difficultyAuthor,
       solutionSteps,
       usagePurposes,
+      changeSummary,
+      isEditMode,
+      editId,
       createItem,
+      updateItem,
     ],
   );
 
   const gradeOptions = getGradeOptions(schoolLevel);
+  const isPending = isEditMode ? updateItem.isPending : createItem.isPending;
+  const mutationError = isEditMode ? updateItem.error : createItem.error;
+
+  if (isEditMode && isLoadingItem) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <p className="text-sm text-slate-400">문항 데이터 불러오는 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">문항 등록</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {isEditMode ? "문항 수정" : "문항 등록"}
+        </h1>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Link
-          href={"/items" as any}
+          href={(isEditMode ? `/items/${editId}` : "/items") as any}
           className="text-sm text-slate-500 hover:text-slate-700"
         >
           취소
@@ -452,11 +523,25 @@ export default function ItemCreatePage() {
           </div>
         </FormSection>
 
+        {/* 변경 사유 (편집 모드에서만 표시) */}
+        {isEditMode && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700">변경 사유</label>
+            <input
+              type="text"
+              value={changeSummary}
+              onChange={(e) => setChangeSummary(e.target.value)}
+              placeholder="변경 사유를 입력해 주세요 (선택)"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+            />
+          </div>
+        )}
+
         {/* tRPC 에러 표시 */}
-        {createItem.error && (
+        {mutationError && (
           <div className="rounded-md border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-700">
-              {createItem.error.message}
+              {mutationError.message}
             </p>
           </div>
         )}
@@ -464,13 +549,15 @@ export default function ItemCreatePage() {
         {/* 제출 버튼 */}
         <div className="flex justify-end gap-3">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Link href={"/items" as any}>
+          <Link href={(isEditMode ? `/items/${editId}` : "/items") as any}>
             <Button type="button" variant="outline">
               취소
             </Button>
           </Link>
-          <Button type="submit" disabled={createItem.isPending}>
-            {createItem.isPending ? "등록 중..." : "등록"}
+          <Button type="submit" disabled={isPending}>
+            {isPending
+              ? (isEditMode ? "저장 중..." : "등록 중...")
+              : (isEditMode ? "저장" : "등록")}
           </Button>
         </div>
       </form>

@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark *));
+
+/* Dark mode: ensure KaTeX formulas are visible */
+@layer base {
+  .dark .katex,
+  .dark .katex .base,
+  .dark .katex .strut,
+  .dark .katex .mord,
+  .dark .katex .mbin,
+  .dark .katex .mrel,
+  .dark .katex .mopen,
+  .dark .katex .mclose,
+  .dark .katex .mpunct,
+  .dark .katex .minner {
+    color: inherit;
+  }
+}

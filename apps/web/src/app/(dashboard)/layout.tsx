@@ -27,7 +27,7 @@ export default function DashboardLayout({
         {/* 메인 콘텐츠 영역 */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main id="main-content" className="flex-1 overflow-y-auto bg-slate-50 p-6">
+          <main id="main-content" className="flex-1 overflow-y-auto bg-slate-50 p-6 dark:bg-slate-950">
             {children}
           </main>
           <HelpFab />

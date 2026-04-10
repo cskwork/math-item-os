@@ -31,13 +31,14 @@ const KatexRenderer = memo(function KatexRenderer({
       <span
         className={className}
         data-latex={latex}
+        aria-label={latex}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
   }
 
   return (
-    <span className={className} data-latex={latex}>
+    <span className={className} data-latex={latex} aria-label={latex}>
       {latex}
     </span>
   );

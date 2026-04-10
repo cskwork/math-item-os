@@ -69,12 +69,12 @@ export default function AdminDashboardPage() {
       {/* 페이지 헤더 */}
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-slate-900">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             품질 지표 대시보드
           </h1>
           <PageHelp pageId="admin-dashboard" />
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           문항 품질 현황 및 최근 활동을 확인합니다
         </p>
       </div>
@@ -133,8 +133,8 @@ function LoadingState() {
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
       <div className="flex flex-col items-center gap-2">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-        <p className="text-sm text-slate-500">대시보드 불러오는 중...</p>
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900 dark:border-slate-600 dark:border-t-slate-100" />
+        <p className="text-sm text-slate-500 dark:text-slate-400">대시보드 불러오는 중...</p>
       </div>
     </div>
   );
@@ -149,11 +149,11 @@ interface ErrorStateProps {
 function ErrorState({ message }: ErrorStateProps) {
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-      <div className="rounded-md border border-red-200 bg-red-50 p-6">
-        <p className="text-sm font-medium text-red-800">
+      <div className="rounded-md border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950">
+        <p className="text-sm font-medium text-red-800 dark:text-red-400">
           데이터 로드 실패
         </p>
-        <p className="mt-1 text-sm text-red-600">{message}</p>
+        <p className="mt-1 text-sm text-red-600 dark:text-red-500">{message}</p>
       </div>
     </div>
   );
@@ -170,17 +170,17 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, unit, highlight = false }: KpiCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs font-medium text-slate-500">{title}</p>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{title}</p>
       <div className="mt-2 flex items-baseline gap-1">
         <span
           className={`text-2xl font-bold ${
-            highlight ? "text-amber-600" : "text-slate-900"
+            highlight ? "text-amber-600" : "text-slate-900 dark:text-slate-100"
           }`}
         >
           {value}
         </span>
-        <span className="text-sm text-slate-500">{unit}</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">{unit}</span>
       </div>
     </div>
   );
@@ -197,12 +197,12 @@ function StatusDistribution({ byStatus, totalItems }: StatusDistributionProps) {
   const statusKeys = ["draft", "reviewed", "approved", "retired"] as const;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900">상태별 분포</h2>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">상태별 분포</h2>
 
       {/* 상태 바 */}
       {totalItems > 0 && (
-        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           {statusKeys.map((key) => {
             const count = byStatus[key] ?? 0;
             const percentage = (count / totalItems) * 100;
@@ -241,10 +241,10 @@ function StatusDistribution({ byStatus, totalItems }: StatusDistributionProps) {
               >
                 {STATUS_LABELS[key]}
               </span>
-              <span className="text-lg font-bold text-slate-900">
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {count.toLocaleString()}
               </span>
-              <span className="text-xs text-slate-500">{percentage}%</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{percentage}%</span>
             </div>
           );
         })}
@@ -265,25 +265,25 @@ function DifficultyCard({ avgDifficulty }: DifficultyCardProps) {
   const fillPercentage = (avgDifficulty / maxDifficulty) * 100;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900">평균 난이도</h2>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">평균 난이도</h2>
 
       <div className="mt-4 flex flex-col items-center gap-3">
-        <span className="text-3xl font-bold text-slate-900">
+        <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
           {roundedDifficulty}
         </span>
-        <span className="text-xs text-slate-500">/ {maxDifficulty}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">/ {maxDifficulty}</span>
 
         {/* 난이도 바 */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div
-            className="h-full rounded-full bg-slate-700 transition-all"
+            className="h-full rounded-full bg-slate-700 transition-all dark:bg-slate-400"
             style={{ width: `${fillPercentage}%` }}
           />
         </div>
 
         {/* 난이도 레벨 레이블 */}
-        <div className="flex w-full justify-between text-xs text-slate-400">
+        <div className="flex w-full justify-between text-xs text-slate-400 dark:text-slate-500">
           <span>쉬움</span>
           <span>보통</span>
           <span>어려움</span>
@@ -301,28 +301,28 @@ interface RecentActivityTableProps {
 
 function RecentActivityTable({ activities }: RecentActivityTableProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900">최근 활동</h2>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">최근 활동</h2>
 
       {activities.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-400">
+        <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
           최근 활동 내역이 없습니다.
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="pb-2 pr-4 text-xs font-medium text-slate-500">
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th className="pb-2 pr-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                   테이블
                 </th>
-                <th className="pb-2 pr-4 text-xs font-medium text-slate-500">
+                <th className="pb-2 pr-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                   작업
                 </th>
-                <th className="pb-2 pr-4 text-xs font-medium text-slate-500">
+                <th className="pb-2 pr-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                   수행자
                 </th>
-                <th className="pb-2 text-xs font-medium text-slate-500">
+                <th className="pb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                   일시
                 </th>
               </tr>
@@ -331,10 +331,10 @@ function RecentActivityTable({ activities }: RecentActivityTableProps) {
               {activities.map((activity) => (
                 <tr
                   key={activity.id}
-                  className="border-b border-slate-100 last:border-b-0"
+                  className="border-b border-slate-100 last:border-b-0 dark:border-slate-800"
                 >
                   <td className="py-2.5 pr-4">
-                    <span className="text-sm text-slate-700">
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
                       {activity.tableName}
                     </span>
                   </td>
@@ -342,12 +342,12 @@ function RecentActivityTable({ activities }: RecentActivityTableProps) {
                     <ActionBadge action={activity.action} />
                   </td>
                   <td className="py-2.5 pr-4">
-                    <span className="text-sm text-slate-700">
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
                       {activity.performedBy}
                     </span>
                   </td>
                   <td className="py-2.5">
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
                       {formatDate(activity.createdAt)}
                     </span>
                   </td>

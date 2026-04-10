@@ -126,10 +126,10 @@ const PreviewPanel = memo(function PreviewPanel({
       <div
         ref={containerRef}
         className={cn(
-          "flex min-h-[120px] flex-1 items-center justify-center rounded-md border bg-white p-4",
+          "flex min-h-[120px] flex-1 items-center justify-center rounded-md border bg-white p-4 dark:bg-slate-900",
           parseError
-            ? "border-amber-300 bg-amber-50"
-            : "border-slate-200",
+            ? "border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-950"
+            : "border-slate-200 dark:border-slate-700",
         )}
       >
         {latex.trim() ? (
@@ -237,7 +237,7 @@ function FormulaEditor({
     <div className={cn("flex flex-col gap-2", className)}>
       {/* 라벨 */}
       {label && (
-        <label className="text-sm font-medium text-slate-700">{label}</label>
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       )}
 
       {/* 기호 툴바 */}
@@ -254,12 +254,12 @@ function FormulaEditor({
             placeholder={placeholder}
             spellCheck={false}
             className={cn(
-              "min-h-[120px] flex-1 resize-y rounded-md border bg-white p-3 font-mono text-sm",
-              "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1",
-              "placeholder:text-slate-400",
+              "min-h-[120px] flex-1 resize-y rounded-md border bg-white p-3 font-mono text-sm dark:bg-slate-900 dark:text-slate-100",
+              "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:focus:ring-slate-500",
+              "placeholder:text-slate-400 dark:placeholder:text-slate-500",
               error
                 ? "border-red-400 focus:ring-red-400"
-                : "border-slate-200",
+                : "border-slate-200 dark:border-slate-700",
             )}
           />
         </div>

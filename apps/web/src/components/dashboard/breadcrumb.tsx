@@ -65,13 +65,13 @@ export function Breadcrumb() {
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
               )}
               {isLast ? (
-                <span className="font-medium text-slate-900">
+                <span className="font-medium text-slate-900 dark:text-slate-100">
                   {segment.label}
                 </span>
               ) : (
                 <Link
                   href={segment.href as any}
-                  className="text-slate-500 hover:text-slate-700"
+                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
                 >
                   {segment.label}
                 </Link>

@@ -99,7 +99,7 @@ function MetaBadge({
     <span
       className={cn(
         "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
-        "bg-slate-100 text-slate-600",
+        "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
         className,
       )}
     >
@@ -156,10 +156,10 @@ const ItemCard = memo(function ItemCard({
       onClick={onClick ? handleClick : undefined}
       onKeyDown={onClick ? handleKeyDown : undefined}
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4",
+        "flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900",
         "transition-shadow duration-150",
-        onClick && "cursor-pointer hover:border-slate-300 hover:shadow-md",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+        onClick && "cursor-pointer hover:border-slate-300 hover:shadow-md dark:hover:border-slate-600",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950",
         className,
       )}
     >

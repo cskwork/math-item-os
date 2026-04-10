@@ -87,14 +87,16 @@ function FormSection({
   children,
 }: Readonly<{ title: string; children: React.ReactNode }>) {
   return (
-    <fieldset className="rounded-lg border border-slate-200 bg-white p-5">
-      <legend className="px-2 text-sm font-semibold text-slate-700">
+    <fieldset className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <legend className="px-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
         {title}
       </legend>
       <div className="mt-2 flex flex-col gap-4">{children}</div>
     </fieldset>
   );
 }
+
+let selectFieldCounter = 0;
 
 function SelectField({
   label,
@@ -113,15 +115,21 @@ function SelectField({
   error?: string;
   disabled?: boolean;
 }>) {
+  const [fieldId] = useState(() => `select-field-${++selectFieldCounter}`);
+  const errorId = error ? `${fieldId}-error` : undefined;
+
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-slate-700">{label}</label>
+      <label htmlFor={fieldId} className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <select
+        id={fieldId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className={`h-9 rounded-md border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
-          error ? "border-red-400" : "border-slate-200"
+        aria-describedby={errorId}
+        aria-invalid={error ? true : undefined}
+        className={`h-9 rounded-md border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-slate-500 ${
+          error ? "border-red-400" : "border-slate-200 dark:border-slate-700"
         }`}
       >
         {placeholder && <option value="">{placeholder}</option>}
@@ -131,7 +139,7 @@ function SelectField({
           </option>
         ))}
       </select>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p id={errorId} className="text-sm text-red-500" role="alert">{error}</p>}
     </div>
   );
 }
@@ -140,7 +148,7 @@ function SelectField({
 
 export default function ItemCreatePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center"><p className="text-sm text-slate-400">로딩 중...</p></div>}>
+    <Suspense fallback={<div className="flex min-h-[200px] items-center justify-center"><p className="text-sm text-slate-400 dark:text-slate-500">로딩 중...</p></div>}>
       <ItemForm />
     </Suspense>
   );
@@ -364,7 +372,7 @@ function ItemForm() {
   if (isEditMode && isLoadingItem) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-sm text-slate-400">문항 데이터 불러오는 중...</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">문항 데이터 불러오는 중...</p>
       </div>
     );
   }
@@ -373,13 +381,13 @@ function ItemForm() {
     <div className="mx-auto max-w-3xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {isEditMode ? "문항 수정" : "문항 등록"}
         </h1>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <Link
           href={(isEditMode ? `/items/${editId}` : "/items") as any}
-          className="text-sm text-slate-500 hover:text-slate-700"
+          className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
         >
           취소
         </Link>
@@ -474,27 +482,31 @@ function ItemForm() {
         <FormSection title="정답">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-slate-700">
+              <label htmlFor="answer-value" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 정답 값
               </label>
               <input
+                id="answer-value"
                 type="text"
                 value={answerValue}
                 onChange={(e) => setAnswerValue(e.target.value)}
                 placeholder="정답을 입력하세요"
-                className={`h-9 rounded-md border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
-                  errors.answerValue ? "border-red-400" : "border-slate-200"
+                aria-describedby={errors.answerValue ? "answer-value-error" : undefined}
+                aria-invalid={errors.answerValue ? true : undefined}
+                className={`h-9 rounded-md border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-slate-500 ${
+                  errors.answerValue ? "border-red-400" : "border-slate-200 dark:border-slate-700"
                 }`}
               />
               {errors.answerValue && (
-                <p className="text-sm text-red-500">{errors.answerValue}</p>
+                <p id="answer-value-error" className="text-sm text-red-500" role="alert">{errors.answerValue}</p>
               )}
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-slate-700">
+              <label htmlFor="answer-format-display" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 정답 형식
               </label>
               <input
+                id="answer-format-display"
                 type="text"
                 value={
                   ANSWER_FORMAT_OPTIONS.find(
@@ -503,7 +515,7 @@ function ItemForm() {
                   )?.label ?? answerFormat
                 }
                 readOnly
-                className="h-9 cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500"
+                className="h-9 cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
               />
             </div>
           </div>
@@ -512,7 +524,7 @@ function ItemForm() {
         {/* 난이도 */}
         <FormSection title="난이도">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               출제자 난이도
             </label>
             <div className="flex gap-3">
@@ -527,9 +539,9 @@ function ItemForm() {
                     value={opt.value}
                     checked={difficultyAuthor === opt.value}
                     onChange={() => setDifficultyAuthor(opt.value)}
-                    className="h-4 w-4 accent-slate-900"
+                    className="h-4 w-4 accent-slate-900 dark:accent-slate-300"
                   />
-                  <span className="text-sm text-slate-600">{opt.label}</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{opt.label}</span>
                 </label>
               ))}
             </div>
@@ -540,22 +552,23 @@ function ItemForm() {
         <FormSection title="추가 설정">
           {/* 풀이 단계 수 */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">
+            <label htmlFor="solution-steps" className="text-sm font-medium text-slate-700 dark:text-slate-300">
               풀이 단계 수 (선택)
             </label>
             <input
+              id="solution-steps"
               type="number"
               min={1}
               value={solutionSteps}
               onChange={(e) => setSolutionSteps(e.target.value)}
               placeholder="예: 3"
-              className="h-9 w-32 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="h-9 w-32 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-slate-500"
             />
           </div>
 
           {/* 활용 목적 */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               활용 목적 (선택, 복수 가능)
             </label>
             <div className="flex flex-wrap gap-3">
@@ -568,9 +581,9 @@ function ItemForm() {
                     type="checkbox"
                     checked={usagePurposes.includes(opt.value)}
                     onChange={() => handleUsagePurposeToggle(opt.value)}
-                    className="h-4 w-4 accent-slate-900"
+                    className="h-4 w-4 accent-slate-900 dark:accent-slate-300"
                   />
-                  <span className="text-sm text-slate-600">{opt.label}</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{opt.label}</span>
                 </label>
               ))}
             </div>
@@ -580,21 +593,22 @@ function ItemForm() {
         {/* 변경 사유 (편집 모드에서만 표시) */}
         {isEditMode && (
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">변경 사유</label>
+            <label htmlFor="change-summary" className="text-sm font-medium text-slate-700 dark:text-slate-300">변경 사유</label>
             <input
+              id="change-summary"
               type="text"
               value={changeSummary}
               onChange={(e) => setChangeSummary(e.target.value)}
               placeholder="변경 사유를 입력해 주세요 (선택)"
-              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-slate-500"
             />
           </div>
         )}
 
         {/* tRPC 에러 표시 */}
         {mutationError && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4">
-            <p className="text-sm text-red-700">
+          <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950" role="alert">
+            <p className="text-sm text-red-700 dark:text-red-400">
               {mutationError.message}
             </p>
           </div>

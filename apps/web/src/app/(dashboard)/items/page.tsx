@@ -74,11 +74,11 @@ function FilterSelect({
 }>) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-slate-500">{label}</label>
+      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+        className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-slate-500"
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (
@@ -95,19 +95,19 @@ function FilterSelect({
 
 function ItemCardSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="flex animate-pulse flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
       <div className="flex items-center gap-2">
-        <div className="h-5 w-12 rounded-full bg-slate-200" />
-        <div className="h-4 w-8 rounded bg-slate-200" />
+        <div className="h-5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+        <div className="h-4 w-8 rounded bg-slate-200 dark:bg-slate-700" />
       </div>
       <div className="space-y-2">
-        <div className="h-4 w-full rounded bg-slate-200" />
-        <div className="h-4 w-3/4 rounded bg-slate-200" />
+        <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
       </div>
       <div className="flex gap-1.5">
-        <div className="h-5 w-10 rounded bg-slate-200" />
-        <div className="h-5 w-14 rounded bg-slate-200" />
-        <div className="h-5 w-16 rounded bg-slate-200" />
+        <div className="h-5 w-10 rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-5 w-14 rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-5 w-16 rounded bg-slate-200 dark:bg-slate-700" />
       </div>
     </div>
   );
@@ -127,8 +127,8 @@ function LoadingGrid() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16">
-      <p className="text-sm text-slate-500">등록된 문항이 없습니다</p>
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-900">
+      <p className="text-sm text-slate-500 dark:text-slate-400">등록된 문항이 없습니다</p>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <Link href={"/items/new" as any} className="mt-3">
         <Button variant="outline" size="sm">
@@ -143,8 +143,8 @@ function EmptyState() {
 
 function ErrorState({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="rounded-md border border-red-200 bg-red-50 p-4">
-      <p className="text-sm text-red-700">{message}</p>
+    <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+      <p className="text-sm text-red-700 dark:text-red-400">{message}</p>
     </div>
   );
 }
@@ -172,7 +172,7 @@ function Pagination({
       >
         이전
       </Button>
-      <span className="text-sm text-slate-600">
+      <span className="text-sm text-slate-600 dark:text-slate-400">
         {page} / {totalPages} 페이지
       </span>
       <Button
@@ -276,7 +276,7 @@ export default function ItemListPage() {
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">문항 목록</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">문항 목록</h1>
           <PageHelp pageId="items" />
         </div>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -286,7 +286,7 @@ export default function ItemListPage() {
       </div>
 
       {/* 필터 바 */}
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           <FilterSelect
             label="상태"
@@ -360,7 +360,7 @@ export default function ItemListPage() {
       {!isLoading && !isError && data && data.items.length > 0 && (
         <>
           {/* 결과 건수 */}
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             총 {data.total}건
           </p>
 

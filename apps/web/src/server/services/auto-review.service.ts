@@ -206,34 +206,27 @@ async function checkCasSolvable(
 // 5. 자동 리뷰 실행
 // -------------------------------------------------
 
+type ItemForReview = {
+  id: string;
+  bodyLatex: string;
+  schoolLevel: string;
+  grade: number;
+  itemType: string;
+  answerFormat: string;
+  answer: Prisma.JsonValue;
+  semester: string | null;
+  solutionSteps: number | null;
+  usagePurposes: string[];
+  difficultyAuthor: number | null;
+  skills: { id: string }[];
+  standards: { id: string }[];
+};
+
 export async function performAutoReview(
-  itemId: string,
+  item: ItemForReview,
   orgId: string,
 ): Promise<AutoReviewResult> {
-  const item = await prisma.item.findUnique({
-    where: { id: itemId },
-    include: {
-      skills: true,
-      standards: true,
-    },
-  });
-
-  if (!item) {
-    return {
-      overallScore: 0,
-      checks: {
-        latexValid: { passed: false, message: "문항을 찾을 수 없습니다" },
-        metadataComplete: { passed: false, score: 0, missing: [] },
-        duplicateDetected: {
-          passed: true,
-          similarItemIds: [],
-          bestDistance: null,
-        },
-        casSolvable: { passed: false, message: "문항을 찾을 수 없습니다" },
-      },
-      suggestedAction: "flag",
-    };
-  }
+  const itemId = item.id;
 
   const answerValue =
     typeof item.answer === "object" && item.answer !== null
@@ -388,12 +381,9 @@ export async function runAutoReview(
   try {
     const item = await prisma.item.findUnique({
       where: { id: itemId },
-      select: {
-        bodyLatex: true,
-        itemType: true,
-        solutionSteps: true,
-        schoolLevel: true,
-        grade: true,
+      include: {
+        skills: true,
+        standards: true,
         difficultyProfile: { select: { behavioralDifficulty: true } },
       },
     });
@@ -402,7 +392,7 @@ export async function runAutoReview(
 
     // 자동 리뷰 + 난이도 추정 병렬 실행
     const [reviewResult, difficultyResult] = await Promise.all([
-      performAutoReview(itemId, orgId),
+      performAutoReview(item, orgId),
       Promise.resolve(
         estimateDifficulty(
           item.bodyLatex,
@@ -443,8 +433,8 @@ export async function runAutoReview(
         data: { behavioralDifficulty: behavioral },
       });
     }
-  } catch {
-    // fire-and-forget: 오류를 조용히 무시한다
+  } catch (error) {
+    console.error('Auto-review failed for item', itemId, error);
   }
 }
 

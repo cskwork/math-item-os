@@ -142,6 +142,16 @@ export const listItemsSchema = paginationSchema.extend({
   sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
+/** 메타데이터 자동 태깅 요청 */
+export const suggestMetadataSchema = z.object({
+  bodyLatex: z.string().min(1),
+  schoolLevel: schoolLevelSchema,
+  grade: z.number().int().min(1).max(12),
+  itemType: itemTypeSchema.optional(),
+  formulaType: formulaTypeSchema.optional(),
+  solutionSteps: z.number().int().min(1).optional(),
+});
+
 /** 대량 업로드 요청 */
 export const bulkUploadSchema = z.object({
   format: z.enum(["csv", "json", "qti"]),

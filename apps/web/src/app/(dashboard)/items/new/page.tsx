@@ -17,6 +17,7 @@ import {
   type SchoolLevelKey,
 } from "@math-item-os/shared/constants/index";
 import { extractFormValues } from "./item-form-utils";
+import { AutoTagSuggestions } from "@/components/items/auto-tag-suggestions";
 
 // --- 타입 정의 ---
 
@@ -163,6 +164,9 @@ function ItemForm() {
   const [difficultyAuthor, setDifficultyAuthor] = useState<number>(3);
   const [solutionSteps, setSolutionSteps] = useState<string>("");
   const [usagePurposes, setUsagePurposes] = useState<string[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+  const [selectedStandardIds, setSelectedStandardIds] = useState<string[]>([]);
+  const [selectedMisconceptionIds, setSelectedMisconceptionIds] = useState<string[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [changeSummary, setChangeSummary] = useState("");
   const [initialized, setInitialized] = useState(false);
@@ -215,6 +219,25 @@ function ItemForm() {
     const level = value as SchoolLevel;
     setSchoolLevel(level);
     setGrade(1);
+  }, []);
+
+  // -- 메타데이터 태그 토글 --
+  const handleSkillToggle = useCallback((id: string) => {
+    setSelectedSkillIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
+
+  const handleStandardToggle = useCallback((id: string) => {
+    setSelectedStandardIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
+
+  const handleMisconceptionToggle = useCallback((id: string) => {
+    setSelectedMisconceptionIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   }, []);
 
   // -- 활용 목적 토글 --
@@ -287,6 +310,9 @@ function ItemForm() {
                 | "review"
               )[])
             : undefined,
+        skillIds: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
+        standardIds: selectedStandardIds.length > 0 ? selectedStandardIds : undefined,
+        misconceptionIds: selectedMisconceptionIds.length > 0 ? selectedMisconceptionIds : undefined,
       };
 
       if (isEditMode) {
@@ -311,6 +337,9 @@ function ItemForm() {
       difficultyAuthor,
       solutionSteps,
       usagePurposes,
+      selectedSkillIds,
+      selectedStandardIds,
+      selectedMisconceptionIds,
       changeSummary,
       isEditMode,
       editId,
@@ -396,6 +425,22 @@ function ItemForm() {
             />
           </div>
         </FormSection>
+
+        {/* 메타데이터 자동 추천 */}
+        <AutoTagSuggestions
+          bodyLatex={bodyLatex}
+          schoolLevel={schoolLevel}
+          grade={grade}
+          itemType={itemType}
+          formulaType={formulaType}
+          solutionSteps={solutionSteps ? Number(solutionSteps) : undefined}
+          selectedSkillIds={selectedSkillIds}
+          selectedStandardIds={selectedStandardIds}
+          selectedMisconceptionIds={selectedMisconceptionIds}
+          onSkillSelect={handleSkillToggle}
+          onStandardSelect={handleStandardToggle}
+          onMisconceptionSelect={handleMisconceptionToggle}
+        />
 
         {/* 수식 설정 */}
         <FormSection title="수식 설정">

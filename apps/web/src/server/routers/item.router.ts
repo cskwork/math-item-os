@@ -13,6 +13,7 @@ import {
   listItemsSchema,
   bulkUploadSchema,
   getBulkUploadStatusSchema,
+  suggestMetadataSchema,
 } from "@math-item-os/shared/validators/index";
 import {
   createItem,
@@ -25,6 +26,7 @@ import {
   startBulkUpload,
   getBulkUploadJobStatus,
 } from "../services/upload.service";
+import { suggestMetadata } from "../services/metadata-suggest.service";
 
 // MVP 단계에서 사용할 기본 조직 ID
 const DEFAULT_ORG_ID = "default-org";
@@ -80,6 +82,14 @@ export const itemRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const orgId = getOrgId();
       return listItems(input, orgId);
+    }),
+
+  // 메타데이터 자동 태깅 추천 (인증된 사용자)
+  suggestMetadata: protectedProcedure
+    .input(suggestMetadataSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return suggestMetadata(input, orgId);
     }),
 
   // 대량 업로드 시작 (검수자 이상)

@@ -180,20 +180,26 @@ describe("parseGenerationResponse", () => {
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-/** Z.ai API non-streaming 응답 mock 헬퍼 */
+/** Z.ai API SSE streaming 응답 mock 헬퍼 */
 function mockZaiResponse(content: string) {
+  // SSE 형식으로 청크 생성
+  const sseData = [
+    `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`,
+    `data: ${JSON.stringify({ choices: [{ finish_reason: "stop" }] })}\n\n`,
+    "data: [DONE]\n\n",
+  ].join("");
+  const encoded = new TextEncoder().encode(sseData);
+
+  // AsyncIterable body mock
+  const body = {
+    async *[Symbol.asyncIterator]() {
+      yield encoded;
+    },
+  };
+
   return {
     ok: true,
-    json: async () => ({
-      id: "chatcmpl-test",
-      choices: [
-        {
-          index: 0,
-          delta: { role: "assistant", content },
-          finish_reason: "stop",
-        },
-      ],
-    }),
+    body,
     text: async () => content,
   };
 }
@@ -235,7 +241,7 @@ describe("generateWithLLM", () => {
     expect(callBody.messages[0].role).toBe("system");
     expect(callBody.messages[1].role).toBe("user");
     expect(callBody.messages[1].content).toContain("3개");
-    expect(callBody.stream).toBe(false);
+    expect(callBody.stream).toBe(true);
 
     expect(result).toHaveLength(2);
   });

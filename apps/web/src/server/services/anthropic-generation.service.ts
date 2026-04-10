@@ -263,8 +263,9 @@ async function _generateBatch(
 }
 
 /**
- * Z.ai Coding API non-streaming 호출.
- * system/user 메시지를 분리하여 전달.
+ * Z.ai Coding API streaming 호출 (SSE).
+ * 청크를 점진적으로 수신하여 타임아웃 없이 긴 응답을 처리한다.
+ * 초기 연결에만 타임아웃 적용, 스트리밍 중에는 청크 간 유휴 타임아웃 적용.
  */
 async function callZaiApi(
   systemPrompt: string,
@@ -276,11 +277,12 @@ async function callZaiApi(
     throw new Error("ZAI_API_KEY 환경변수가 설정되지 않았습니다");
   }
 
+  // 초기 연결 타임아웃
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const connectTimeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    console.log("[LLM] Z.ai API 호출 시작");
+    console.log("[LLM] Z.ai API 스트리밍 호출 시작");
 
     const response = await fetch(ZAI_API_URL, {
       method: "POST",
@@ -294,10 +296,13 @@ async function callZaiApi(
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        stream: false,
+        stream: true,
       }),
       signal: controller.signal,
     });
+
+    // 연결 성공 -> 연결 타임아웃 해제
+    clearTimeout(connectTimeoutId);
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "");
@@ -306,22 +311,62 @@ async function callZaiApi(
       );
     }
 
-    const data = (await response.json()) as Record<string, unknown>;
-    const choices = data.choices as
-      | Array<Record<string, unknown>>
-      | undefined;
-    const firstChoice = choices?.[0];
-
-    // Z.ai는 non-streaming에서도 "delta"를 사용, "message"도 호환 처리
-    const delta = firstChoice?.delta as Record<string, string> | undefined;
-    const message = firstChoice?.message as Record<string, string> | undefined;
-    const content = delta?.content ?? message?.content;
-
-    if (!content) {
-      throw new Error("Z.ai API 응답에 content가 없습니다");
+    if (!response.body) {
+      throw new Error("Z.ai API 응답에 body 스트림이 없습니다");
     }
 
-    console.log(`[LLM] Z.ai API 응답 완료 (${content.length}자)`);
+    // SSE 청크 파싱 + 청크 간 유휴 타임아웃 (60초)
+    const IDLE_TIMEOUT_MS = 60_000;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const resetIdleTimer = () => {
+      if (idleTimer != null) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => controller.abort(), IDLE_TIMEOUT_MS);
+    };
+
+    resetIdleTimer();
+
+    let content = "";
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+      resetIdleTimer();
+      buffer += decoder.decode(chunk, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+
+        const data = trimmed.slice(6);
+        if (data === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          const choices = parsed.choices as
+            | Array<Record<string, unknown>>
+            | undefined;
+          const delta = choices?.[0]?.delta as
+            | Record<string, string>
+            | undefined;
+          if (delta?.content) {
+            content += delta.content;
+          }
+        } catch {
+          // 불완전한 JSON 건너뜀
+        }
+      }
+    }
+
+    if (idleTimer != null) clearTimeout(idleTimer);
+
+    if (!content) {
+      throw new Error("Z.ai API 스트리밍 응답에 content가 없습니다");
+    }
+
+    console.log(`[LLM] Z.ai API 스트리밍 완료 (${content.length}자)`);
     return content;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -329,6 +374,6 @@ async function callZaiApi(
     }
     throw error;
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(connectTimeoutId);
   }
 }

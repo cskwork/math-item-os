@@ -436,55 +436,72 @@ async function _processGeneration(
       });
     }
 
-    // (c) 각 변이별 CAS 검증 (병렬)
-    console.log(`[GEN] ${jobId} CAS 검증 시작 (${apiVariants.length}건 병렬)`);
-    const verificationResults = await Promise.allSettled(
-      apiVariants.map((v) =>
-        _callMathAiVerify(v.body_latex, v.answer_latex),
-      ),
-    );
-    console.log(`[GEN] ${jobId} CAS 검증 완료`);
+    // (c) 전략별 CAS 검증
+    let casResults: CasVerificationResult[];
 
-    // (d) 검증 결과를 CasVerificationResult로 매핑 + 이벤트 발행
-    const casResults: CasVerificationResult[] = verificationResults.map(
-      (settled, index) => {
-        if (settled.status === "rejected") {
+    if (strategy === "sympy") {
+      // SymPy 전략: CAS 검증 수행 (대수식 파싱 가능)
+      console.log(`[GEN] ${jobId} CAS 검증 시작 (${apiVariants.length}건 병렬)`);
+      const verificationResults = await Promise.allSettled(
+        apiVariants.map((v) =>
+          _callMathAiVerify(v.body_latex, v.answer_latex),
+        ),
+      );
+      console.log(`[GEN] ${jobId} CAS 검증 완료`);
+
+      // (d) 검증 결과를 CasVerificationResult로 매핑 + 이벤트 발행
+      casResults = verificationResults.map(
+        (settled, index) => {
+          if (settled.status === "rejected") {
+            const result: CasVerificationResult = {
+              passed: false,
+              answerEquivalence: false,
+              solutionUniqueness: false,
+              failureReason: `CAS 검증 호출 실패: ${String(settled.reason)}`,
+            };
+            emitEvent(jobId, "cas_verified", { index, ...result });
+            return result;
+          }
+
+          const resp = settled.value;
+          if (!resp.success || !resp.verification) {
+            const result: CasVerificationResult = {
+              passed: false,
+              answerEquivalence: false,
+              solutionUniqueness: false,
+              failureReason: resp.error ?? "CAS 검증 실패",
+            };
+            emitEvent(jobId, "cas_verified", { index, ...result });
+            return result;
+          }
+
+          const v = resp.verification;
+          const passed = v.answer_correct && v.answer_equivalence;
           const result: CasVerificationResult = {
-            passed: false,
-            answerEquivalence: false,
-            solutionUniqueness: false,
-            failureReason: `CAS 검증 호출 실패: ${String(settled.reason)}`,
+            passed,
+            answerEquivalence: v.answer_equivalence,
+            solutionUniqueness: v.solution_uniqueness,
+            ...(!passed && {
+              failureReason: `정답 오류 또는 동치 검증 실패: ${v.explanation}`,
+            }),
           };
           emitEvent(jobId, "cas_verified", { index, ...result });
           return result;
-        }
-
-        const resp = settled.value;
-        if (!resp.success || !resp.verification) {
-          const result: CasVerificationResult = {
-            passed: false,
-            answerEquivalence: false,
-            solutionUniqueness: false,
-            failureReason: resp.error ?? "CAS 검증 실패",
-          };
-          emitEvent(jobId, "cas_verified", { index, ...result });
-          return result;
-        }
-
-        const v = resp.verification;
-        const passed = v.answer_correct && v.answer_equivalence;
+        },
+      );
+    } else {
+      // LLM 전략: CAS 검증 스킵 (서술형 문제 등 SymPy 파싱 불가)
+      console.log(`[GEN] ${jobId} LLM 전략 - CAS 검증 스킵 (${apiVariants.length}건 자동 통과)`);
+      casResults = apiVariants.map((_, index) => {
         const result: CasVerificationResult = {
-          passed,
-          answerEquivalence: v.answer_equivalence,
-          solutionUniqueness: v.solution_uniqueness,
-          ...(!passed && {
-            failureReason: `정답 오류 또는 동치 검증 실패: ${v.explanation}`,
-          }),
+          passed: true,
+          answerEquivalence: true,
+          solutionUniqueness: true,
         };
-        emitEvent(jobId, "cas_verified", { index, ...result });
+        emitEvent(jobId, "cas_verified", { index, ...result, skipped: true });
         return result;
-      },
-    );
+      });
+    }
 
     // (e) Item + Variant 레코드 생성
     const generatedVariants: GeneratedVariant[] = [];

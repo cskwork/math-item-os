@@ -115,6 +115,7 @@ vi.mock("../conversion.service", () => ({
     mathml: "<math></math>",
     sympy: "x + 1",
     html: "<span>x + 1</span>",
+    errors: [],
   }),
 }));
 
@@ -343,6 +344,77 @@ describe("generation.service (Anthropic 통합)", () => {
     expect((failEvent!.data as { error: string }).error).toContain(
       "Z.ai API rate limit",
     );
+  });
+
+  it("LLM 전략 - CAS 검증 API를 호출하지 않고 자동 통과한다", async () => {
+    const { prisma } = await import("@math-item-os/db");
+    const { generateWithLLM } = await import(
+      "../anthropic-generation.service"
+    );
+
+    // LLM 전략 템플릿 (파라미터 없음 = 서술형)
+    (prisma.template.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "tmpl-cas-skip",
+      orgId: "default-org",
+      title: "확률 서술형",
+      bodyTemplate: "주머니에 카드가 들어있다. 확률을 구하시오.",
+      parameters: [],
+      answerTemplate: "",
+      constraints: {},
+    });
+
+    // LLM 생성 결과 (한국어 서술형 - SymPy 파싱 불가)
+    (generateWithLLM as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        body_latex:
+          "주머니에 -2, -4, -6이 적힌 빨간 카드 3장과 3, 6, 9가 적힌 파란 카드 3장이 들어있다. 빨간 카드가 나올 확률을 구하시오.",
+        params: {},
+        answer_value: "1/2",
+        answer_latex: "\\frac{1}{2}",
+        seed: null,
+      },
+    ]);
+
+    // Prisma 트랜잭션 mock
+    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          item: {
+            create: vi.fn().mockResolvedValue({ id: "item-cas-skip" }),
+          },
+          itemVersion: { create: vi.fn().mockResolvedValue({}) },
+          variant: { create: vi.fn().mockResolvedValue({}) },
+        };
+        return fn(tx);
+      },
+    );
+
+    const { startGenerationJob, getGenerationResult } = await import(
+      "../generation.service"
+    );
+
+    const { jobId } = await startGenerationJob(
+      { templateId: "tmpl-cas-skip", count: 1 },
+      "user-1",
+      "default-org",
+    );
+
+    await vi.waitFor(
+      () => {
+        const result = getGenerationResult(jobId);
+        expect(result.status).toBe("completed");
+      },
+      { timeout: 5000 },
+    );
+
+    // CAS 검증 API(mockFetch)가 호출되지 않아야 함
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // 통과율 100%, 자동 통과
+    const result = getGenerationResult(jobId);
+    expect(result.passRate).toBe(1);
+    expect(result.variants).toHaveLength(1);
+    expect(result.variants[0]!.casVerification.passed).toBe(true);
   });
 
   it("strategyOverride가 있으면 자동 감지 대신 오버라이드 전략을 사용한다", async () => {

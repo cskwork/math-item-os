@@ -3,16 +3,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ─────────────────────────────────────────────
 // math-parser 모킹 (vi.hoisted로 호이스팅 안전하게 선언)
+// KaTeX 의존 함수만 mock, 순수 문자열 파서는 실제 구현 사용
 // ─────────────────────────────────────────────
 const { mockLatexToMathml, mockRenderLatex } = vi.hoisted(() => ({
   mockLatexToMathml: vi.fn(),
   mockRenderLatex: vi.fn(),
 }));
 
-vi.mock("@math-item-os/math-parser", () => ({
-  latexToMathml: mockLatexToMathml,
-  renderLatex: mockRenderLatex,
-}));
+vi.mock("@math-item-os/math-parser", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@math-item-os/math-parser")>();
+  return {
+    ...actual,
+    latexToMathml: mockLatexToMathml,
+    renderLatex: mockRenderLatex,
+  };
+});
 
 import { convertLatex, convertLatexBatch } from "../conversion.service";
 
@@ -148,6 +153,65 @@ describe("convertLatex", () => {
 
     expect(result.html).toContain("error");
     expect(result.errors).toContain("[HTML] render warning");
+  });
+});
+
+// ─────────────────────────────────────────────
+// convertLatex — 혼합 형식 (한국어 + $...$ 수식)
+// ─────────────────────────────────────────────
+
+describe("convertLatex — 혼합 형식", () => {
+  it("$...$로 감싼 수식을 추출하여 변환한다", async () => {
+    const result = await convertLatex("$(-3) + 7$의 값을 구하시오.");
+
+    // 순수 LaTeX "(-3) + 7"만 KaTeX/SymPy에 전달되어야 한다
+    expect(mockLatexToMathml).toHaveBeenCalledWith("(-3) + 7", { displayMode: false });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/convert/latex-to-sympy"),
+      expect.objectContaining({
+        body: JSON.stringify({ latex: "(-3) + 7" }),
+      }),
+    );
+    expect(result.mathml).toBe("<math>x</math>");
+    expect(result.sympy).toBe("Symbol('x')");
+    expect(result.errors).toEqual([]);
+  });
+
+  it("여러 $...$ 수식이 있으면 결합하여 변환한다", async () => {
+    const result = await convertLatex("$\\sqrt{5}$와 $\\sqrt{8}$ 사이에 있는 자연수");
+
+    // 두 수식이 공백으로 결합됨
+    expect(mockLatexToMathml).toHaveBeenCalledWith(
+      "\\sqrt{5} \\sqrt{8}",
+      { displayMode: false },
+    );
+    expect(result.mathml).toBe("<math>x</math>");
+  });
+
+  it("$$...$$는 displayMode: true로 처리한다", async () => {
+    const result = await convertLatex("$$x^2 + 1$$을 풀어라");
+
+    expect(mockLatexToMathml).toHaveBeenCalledWith("x^2 + 1", { displayMode: true });
+    expect(result.mathml).toBe("<math>x</math>");
+  });
+
+  it("수식 없는 순수 한국어는 null을 반환한다", async () => {
+    const result = await convertLatex("60을 소인수분해하시오.");
+
+    expect(result.mathml).toBeNull();
+    expect(result.sympy).toBeNull();
+    expect(result.html).toBe("");
+    expect(result.errors).toEqual([]);
+    expect(mockLatexToMathml).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("혼합 형식 HTML 렌더링은 텍스트와 수식을 별도로 처리한다", async () => {
+    const result = await convertLatex("$x^2$의 값");
+
+    // HTML은 혼합 렌더링 경로를 거침
+    expect(result.html).toContain("의 값");
+    expect(result.html).toContain("<span>x</span>");
   });
 });
 

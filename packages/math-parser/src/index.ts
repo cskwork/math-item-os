@@ -4,3 +4,5 @@ export { renderLatex, renderLatexBatch } from "./renderer";
 export type { RenderOptions, RenderResult } from "./renderer";
 export { latexToMathml, latexToMathmlBatch, extractMathmlFromKatex } from "./latex-to-mathml";
 export type { MathmlConversionResult, MathmlConversionInput } from "./latex-to-mathml";
+export { tokenizeKatexContent, hasDelimitedMath, shouldTreatAsPlainText } from "./katex-content";
+export type { KatexSegment, KatexTextSegment, KatexMathSegment } from "./katex-content";

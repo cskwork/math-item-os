@@ -6,7 +6,9 @@ export type AuthoringBlockType =
   | "choices"     // 선택지 (객관식)
   | "image"       // 이미지
   | "table"       // 표
-  | "solution";   // 풀이 과정
+  | "solution"    // 풀이 과정
+  | "code"        // 코드 블록 (IT 자격증)
+  | "output";     // 실행 결과 (IT 자격증)
 
 /** 선택지 하나 */
 export interface ChoiceItem {
@@ -45,6 +47,13 @@ export interface AuthoringBlock {
 
   // solution
   readonly solutionLatex?: string;
+
+  // code (IT 자격증)
+  readonly code?: string;
+  readonly codeLanguage?: "C" | "JAVA" | "PYTHON" | "SQL";
+
+  // output (IT 자격증)
+  readonly expectedOutput?: string;
 }
 
 /** 저작 상태 */
@@ -59,6 +68,11 @@ export interface AuthoringOutput {
   readonly bodyLatex: string;       // 블록에서 추출한 전체 LaTeX
   readonly choices?: ReadonlyArray<ChoiceItem>;
   readonly imageUrls: readonly string[];
+  // IT 자격증 전용
+  readonly bodyCode?: string;
+  readonly codeLanguage?: "C" | "JAVA" | "PYTHON" | "SQL";
+  readonly expectedOutput?: string;
+  readonly bodyText?: string;
 }
 
 // MathLive 글로벌 타입은 math-field.d.ts 참조

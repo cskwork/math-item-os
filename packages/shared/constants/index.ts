@@ -2,6 +2,27 @@
  * 디스플레이/라벨 상수 — Prisma enum과 병행하여 한글 라벨, 정렬, 그룹핑 제공
  */
 
+// ─── 과목 ───
+export const SUBJECT = {
+  MATH: { value: "MATH" as const, label: "수학", order: 1 },
+  IT_CERT: { value: "IT_CERT" as const, label: "정보처리", order: 2 },
+  ENGLISH: { value: "ENGLISH" as const, label: "영어", order: 3 },
+} as const;
+
+export type SubjectKey = keyof typeof SUBJECT;
+export const SUBJECT_OPTIONS = Object.values(SUBJECT).sort((a, b) => a.order - b.order);
+
+// ─── 코드 언어 ───
+export const CODE_LANGUAGE = {
+  C: { value: "C" as const, label: "C", order: 1 },
+  JAVA: { value: "JAVA" as const, label: "Java", order: 2 },
+  PYTHON: { value: "PYTHON" as const, label: "Python", order: 3 },
+  SQL: { value: "SQL" as const, label: "SQL", order: 4 },
+} as const;
+
+export type CodeLanguageKey = keyof typeof CODE_LANGUAGE;
+export const CODE_LANGUAGE_OPTIONS = Object.values(CODE_LANGUAGE).sort((a, b) => a.order - b.order);
+
 // ─── 학교급 ───
 export const SCHOOL_LEVEL = {
   elementary: { value: "elementary" as const, label: "초등", order: 1 },

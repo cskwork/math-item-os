@@ -41,6 +41,7 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
   const [composerValue, setComposerValue] = useState("");
   const composerContainerRef = useRef<HTMLDivElement>(null);
   const composerMfRef = useRef<any>(null);
+  const initialComposerValueRef = useRef("");
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -78,10 +79,18 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
   // --- 수식 조립기 (MathLive 팝업) ---
 
   const openComposer = useCallback(() => {
-    setComposerValue("");
+    const ta = textareaRef.current;
+    let initial = "";
+    if (ta) {
+      const selected = content.slice(ta.selectionStart, ta.selectionEnd);
+      const match = selected.match(/^\$(.+)\$$/);
+      if (match) initial = match[1];
+    }
+    setComposerValue(initial);
+    initialComposerValueRef.current = initial;
     setShowComposer(true);
     ensureMathLive().then(() => setMlReady(true));
-  }, []);
+  }, [content]);
 
   useEffect(() => {
     if (!showComposer || !mlReady || !composerContainerRef.current) return;
@@ -104,6 +113,9 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
 
     composerContainerRef.current.appendChild(mf);
     composerMfRef.current = mf;
+    if (initialComposerValueRef.current) {
+      mf.value = initialComposerValueRef.current;
+    }
     requestAnimationFrame(() => mf.focus());
 
     return () => {

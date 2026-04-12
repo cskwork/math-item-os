@@ -14,6 +14,8 @@ export const paginationSchema = z.object({
 // 2. 열거형 스키마
 // ---------------------------------------------------------------------------
 
+export const subjectSchema = z.enum(["MATH", "IT_CERT", "ENGLISH"]);
+export const codeLangSchema = z.enum(["C", "JAVA", "PYTHON", "SQL"]);
 export const schoolLevelSchema = z.enum(["elementary", "middle", "high"]);
 export const semesterTypeSchema = z.enum(["first", "second"]);
 export const itemTypeSchema = z.enum([
@@ -94,9 +96,10 @@ export const answerSchema = z.object({
   alternatives: z.array(z.string()).optional(),
 });
 
-/** 문항 생성 입력 */
-export const createItemSchema = z.object({
-  bodyLatex: z.string().min(1),
+/** 문항 생성 입력 (base — refinement 전) */
+const createItemBaseSchema = z.object({
+  subject: subjectSchema.default("MATH"),
+  bodyLatex: z.string().default(""),
   choices: z.array(choiceSchema).optional(),
   answer: answerSchema,
   schoolLevel: schoolLevelSchema,
@@ -112,10 +115,26 @@ export const createItemSchema = z.object({
   standardIds: z.array(z.string()).optional(),
   misconceptionIds: z.array(z.string()).optional(),
   passageId: z.string().optional(),
+  // IT 자격증 전용
+  bodyCode: z.string().optional(),
+  codeLanguage: codeLangSchema.optional(),
+  expectedOutput: z.string().optional(),
+  bodyText: z.string().optional(),
 });
 
+/** 문항 생성 입력 (refinement 포함) */
+export const createItemSchema = createItemBaseSchema.refine(
+  (data) => {
+    if (data.subject === "MATH") return data.bodyLatex.length > 0;
+    if (data.subject === "IT_CERT")
+      return (data.bodyText ?? "").length > 0 || (data.bodyCode ?? "").length > 0;
+    return true;
+  },
+  { message: "MATH는 bodyLatex 필수, IT_CERT는 bodyText 또는 bodyCode 필수" },
+);
+
 /** 문항 수정 입력 (전체 필드 선택적 + id 필수) */
-export const updateItemSchema = createItemSchema.partial().extend({
+export const updateItemSchema = createItemBaseSchema.partial().extend({
   id: z.string(),
   changeSummary: z.string().optional(),
 });
@@ -131,11 +150,13 @@ export const getByIdSchema = z.object({ id: z.string() });
 
 /** 문항 목록 조회 (필터 + 페이지네이션) */
 export const listItemsSchema = paginationSchema.extend({
+  subject: subjectSchema.optional(),
   status: z.array(qualityStatusSchema).optional(),
   schoolLevel: schoolLevelSchema.optional(),
   grade: z.number().int().min(1).max(12).optional(),
   skillId: z.string().optional(),
   itemType: itemTypeSchema.optional(),
+  codeLanguage: codeLangSchema.optional(),
   difficultyMin: z.number().int().min(1).max(5).optional(),
   difficultyMax: z.number().int().min(1).max(5).optional(),
   sortBy: z.enum(["createdAt", "difficulty", "updatedAt"]).optional(),
@@ -170,12 +191,14 @@ export const searchItemsSchema = z.object({
   query: z.string().optional(),
   filters: z
     .object({
+      subject: subjectSchema.optional(),
       schoolLevel: schoolLevelSchema.optional(),
       grade: z.number().int().min(1).max(12).optional(),
       semester: semesterTypeSchema.optional(),
       skillIds: z.array(z.string()).optional(),
       standardIds: z.array(z.string()).optional(),
       itemType: itemTypeSchema.optional(),
+      codeLanguage: codeLangSchema.optional(),
       difficultyMin: z.number().int().min(1).max(5).optional(),
       difficultyMax: z.number().int().min(1).max(5).optional(),
       usagePurposes: z.array(usagePurposeSchema).optional(),
@@ -208,6 +231,7 @@ export const similarFeedbackSchema = z.object({
 
 /** 스킬 생성 */
 export const createSkillSchema = z.object({
+  subject: subjectSchema.default("MATH"),
   code: z.string().min(1).max(100),
   title: z.string().min(1),
   description: z.string().optional(),
@@ -234,6 +258,7 @@ export const getPrerequisiteGraphSchema = z.object({
 
 /** 스킬 목록 조회 */
 export const listSkillsSchema = paginationSchema.extend({
+  subject: subjectSchema.optional(),
   topicPath: z.string().optional(),
   bloomLevel: z.number().int().min(1).max(6).optional(),
   typeLevel: z.number().int().min(1).max(6).optional(),

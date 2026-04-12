@@ -11,6 +11,7 @@ import { seedItems } from "./seed/items.js";
 import { seedEmbeddings } from "./seed/embeddings.js";
 import { seedTemplates } from "./seed/templates.js";
 import { seedAssignments } from "./seed/assignments.js";
+import { seedITCertSkills } from "./seed/it-cert-skills.js";
 
 const prisma = new PrismaClient({
   log: ["error", "warn"],
@@ -54,6 +55,10 @@ async function main() {
   // 9단계: 학습지 (POC 데모용)
   console.log("\n[9/9] 학습지 생성 (5개)...");
   await seedAssignments(prisma, org.id);
+
+  // 10단계: IT 자격증 스킬 트리 (30개)
+  console.log("\n[10/10] IT 자격증 스킬 생성 (30개)...");
+  await seedITCertSkills(prisma, org.id);
 
   console.log("\n=== 시드 데이터 생성 완료 ===");
 }

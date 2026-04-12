@@ -1,7 +1,7 @@
 // 스킬 CRUD 서비스 - ltree 경로 관리 및 감사 로그 연동
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
-import type { Prisma } from "@math-item-os/db";
+import type { Subject, Prisma } from "@math-item-os/db";
 
 /** 인터랙티브 트랜잭션 클라이언트 타입 */
 type TxClient = Omit<
@@ -12,6 +12,7 @@ type TxClient = Omit<
 // -- 입력 타입 정의 --
 
 export interface CreateSkillInput {
+  readonly subject?: Subject;
   readonly code: string;
   readonly title: string;
   readonly description?: string;
@@ -32,6 +33,7 @@ export interface UpdateSkillInput {
 }
 
 export interface ListSkillsParams {
+  readonly subject?: Subject;
   readonly topicPath?: string;
   readonly bloomLevel?: number;
   readonly typeLevel?: number;
@@ -86,6 +88,7 @@ export async function createSkill(
     const created = await tx.skill.create({
       data: {
         orgId,
+        subject: input.subject ?? "MATH",
         code: input.code,
         title: input.title,
         description: input.description,
@@ -292,11 +295,12 @@ export async function getSkillById(id: string, orgId: string) {
 
 /** 필터 + 페이지네이션으로 스킬 목록을 조회한다. ltree 접두사 매칭 지원. */
 export async function listSkills(params: ListSkillsParams, orgId: string) {
-  const { topicPath, bloomLevel, typeLevel, page, limit } = params;
+  const { subject, topicPath, bloomLevel, typeLevel, page, limit } = params;
 
   // 동적 where 절 구성
   const where: Prisma.SkillWhereInput = {
     orgId,
+    ...(subject != null && { subject }),
     ...(topicPath != null && { topicPath: { startsWith: topicPath } }),
     ...(bloomLevel != null && { bloomLevel }),
     ...(typeLevel !== undefined && { typeLevel }),

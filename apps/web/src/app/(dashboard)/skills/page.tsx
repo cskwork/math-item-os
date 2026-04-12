@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { trpc } from "@/lib/trpc";
-import { BLOOM_LEVEL, BLOOM_LEVEL_OPTIONS, TYPE_LEVEL, TYPE_LEVEL_OPTIONS } from "@math-item-os/shared/constants/index";
+import { BLOOM_LEVEL, BLOOM_LEVEL_OPTIONS, TYPE_LEVEL, TYPE_LEVEL_OPTIONS, SUBJECT_OPTIONS } from "@math-item-os/shared/constants/index";
 import { SkillFormModal, INITIAL_FORM } from "./_components/skill-form-modal";
 import type { SkillFormData } from "./_components/skill-form-modal";
 
@@ -18,12 +18,13 @@ const DEFAULT_LIMIT = 20;
 // --- 필터 상태 타입 ---
 
 interface Filters {
+  readonly subject: string;
   readonly topicPath: string;
   readonly bloomLevel: string;
   readonly typeLevel: string;
 }
 
-const INITIAL_FILTERS: Filters = { topicPath: "", bloomLevel: "", typeLevel: "" };
+const INITIAL_FILTERS: Filters = { subject: "", topicPath: "", bloomLevel: "", typeLevel: "" };
 
 // --- Bloom 수준 라벨 조회 ---
 
@@ -188,6 +189,7 @@ export default function SkillListPage() {
   // -- tRPC 쿼리 입력값 구성 --
   const queryInput = useMemo(() => {
     const input: Record<string, unknown> = { page, limit: DEFAULT_LIMIT };
+    if (filters.subject) input.subject = filters.subject;
     if (filters.topicPath) input.topicPath = filters.topicPath;
     if (filters.bloomLevel) input.bloomLevel = Number(filters.bloomLevel);
     if (filters.typeLevel) input.typeLevel = Number(filters.typeLevel);
@@ -328,7 +330,7 @@ export default function SkillListPage() {
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return filters.topicPath !== "" || filters.bloomLevel !== "" || filters.typeLevel !== "";
+    return filters.subject !== "" || filters.topicPath !== "" || filters.bloomLevel !== "" || filters.typeLevel !== "";
   }, [filters]);
 
   return (
@@ -347,7 +349,13 @@ export default function SkillListPage() {
 
       {/* 필터 바 */}
       <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <FilterSelect
+            label="과목"
+            value={filters.subject}
+            onChange={(v) => handleFilterChange("subject", v)}
+            options={SUBJECT_OPTIONS}
+          />
           {/* 분류 경로 필터 (텍스트 입력) */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">분류 경로</label>

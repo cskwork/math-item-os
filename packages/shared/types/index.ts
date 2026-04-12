@@ -244,9 +244,11 @@ export interface PaginatedResult<T> {
 
 // 검색 패싯 결과
 export interface SearchFacets {
+  subject: Record<string, number>;
   schoolLevel: Record<string, number>;
   grade: Record<number, number>;
   itemType: Record<string, number>;
+  codeLanguage: Record<string, number>;
   difficulty: Record<number, number>;
 }
 

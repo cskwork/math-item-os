@@ -8,6 +8,8 @@ import { FormulaEditor } from "@/components/math/formula-editor";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import {
+  SUBJECT_OPTIONS,
+  CODE_LANGUAGE_OPTIONS,
   SCHOOL_LEVEL_OPTIONS,
   ITEM_TYPE_OPTIONS,
   FORMULA_TYPE_OPTIONS,
@@ -16,6 +18,7 @@ import {
   DIFFICULTY_LEVEL_OPTIONS,
   GRADE_BY_LEVEL,
   type SchoolLevelKey,
+  type SubjectKey,
 } from "@math-item-os/shared/constants/index";
 import { extractFormValues } from "./item-form-utils";
 import { AutoTagSuggestions } from "@/components/items/auto-tag-suggestions";
@@ -59,17 +62,27 @@ function getGradeOptions(schoolLevel: SchoolLevel): readonly number[] {
 
 /** 필수 필드 유효성 검사 */
 function validateForm(state: {
+  subject: SubjectKey;
   bodyLatex: string;
   schoolLevel: SchoolLevel;
   grade: number;
   itemType: string;
   answerFormat: string;
   answerValue: string;
+  authoringOutput: AuthoringOutput | null;
 }): FormErrors {
   const errors: FormErrors = {};
 
-  if (!state.bodyLatex.trim()) {
-    errors.bodyLatex = "수식 본문을 입력해 주세요.";
+  if (state.subject === "MATH") {
+    if (!state.bodyLatex.trim()) {
+      errors.bodyLatex = "수식 본문을 입력해 주세요.";
+    }
+  } else if (state.subject === "IT_CERT") {
+    const hasCode = state.authoringOutput?.bodyCode?.trim();
+    const hasText = state.authoringOutput?.bodyText?.trim() || state.bodyLatex.trim();
+    if (!hasCode && !hasText) {
+      errors.bodyLatex = "코드 또는 본문 텍스트를 입력해 주세요.";
+    }
   }
   if (!state.schoolLevel) {
     errors.schoolLevel = "학교급을 선택해 주세요.";
@@ -170,6 +183,7 @@ function ItemForm() {
   const isEditMode = editId !== null;
 
   // -- 폼 상태 --
+  const [subject, setSubject] = useState<SubjectKey>("MATH");
   const [bodyLatex, setBodyLatex] = useState("");
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("middle");
   const [grade, setGrade] = useState<number>(1);
@@ -292,12 +306,14 @@ function ItemForm() {
 
       // 클라이언트 유효성 검사
       const validationErrors = validateForm({
+        subject,
         bodyLatex,
         schoolLevel,
         grade,
         itemType,
         answerFormat,
         answerValue,
+        authoringOutput: authoringOutputRef.current,
       });
 
       if (Object.keys(validationErrors).length > 0) {
@@ -307,8 +323,10 @@ function ItemForm() {
 
       setErrors({});
 
+      const output = authoringOutputRef.current;
       const payload = {
-        bodyLatex,
+        subject: subject as "MATH" | "IT_CERT" | "ENGLISH",
+        bodyLatex: subject === "MATH" ? bodyLatex : (bodyLatex || ""),
         schoolLevel,
         grade,
         semester,
@@ -318,7 +336,7 @@ function ItemForm() {
           | "essay"
           | "fill_in_blank"
           | "true_false",
-        formulaType: formulaType as
+        formulaType: (subject === "MATH" ? formulaType : "none") as
           | "inline"
           | "display"
           | "mixed"
@@ -349,6 +367,13 @@ function ItemForm() {
         skillIds: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
         standardIds: selectedStandardIds.length > 0 ? selectedStandardIds : undefined,
         misconceptionIds: selectedMisconceptionIds.length > 0 ? selectedMisconceptionIds : undefined,
+        // IT 자격증 전용
+        ...(subject === "IT_CERT" && {
+          bodyCode: output?.bodyCode,
+          codeLanguage: output?.codeLanguage as "C" | "JAVA" | "PYTHON" | "SQL" | undefined,
+          expectedOutput: output?.expectedOutput,
+          bodyText: output?.bodyText,
+        }),
       };
 
       if (isEditMode) {
@@ -362,6 +387,7 @@ function ItemForm() {
       }
     },
     [
+      subject,
       bodyLatex,
       schoolLevel,
       grade,
@@ -413,8 +439,18 @@ function ItemForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* 수식 영역 — 탭 토글 */}
-        <FormSection title="수식 영역">
+        {/* 과목 선택 */}
+        <FormSection title="과목">
+          <SelectField
+            label="과목"
+            value={subject}
+            onChange={(v) => setSubject(v as SubjectKey)}
+            options={SUBJECT_OPTIONS}
+          />
+        </FormSection>
+
+        {/* 콘텐츠 영역 — 탭 토글 */}
+        <FormSection title={subject === "MATH" ? "수식 영역" : "문항 콘텐츠"}>
           {/* 탭 헤더 */}
           <div className="flex gap-1 rounded-md bg-slate-100 p-0.5 dark:bg-slate-800">
             <button
@@ -443,7 +479,13 @@ function ItemForm() {
 
           {/* 탭 콘텐츠 */}
           {editorTab === "authoring" ? (
-            <ItemAuthoringGrid onOutputChange={handleAuthoringOutput} />
+            isEditMode && !initialized ? null : (
+              <ItemAuthoringGrid
+                onOutputChange={handleAuthoringOutput}
+                initialBodyLatex={bodyLatex || undefined}
+                subject={subject}
+              />
+            )
           ) : (
             <FormulaEditor
               value={bodyLatex}
@@ -513,24 +555,26 @@ function ItemForm() {
           onMisconceptionSelect={handleMisconceptionToggle}
         />
 
-        {/* 수식 설정 */}
-        <FormSection title="수식 설정">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <SelectField
-              label="수식 유형"
-              value={formulaType}
-              onChange={setFormulaType}
-              options={FORMULA_TYPE_OPTIONS}
-            />
-            <SelectField
-              label="정답 형식"
-              value={answerFormat}
-              onChange={setAnswerFormat}
-              options={ANSWER_FORMAT_OPTIONS}
-              error={errors.answerFormat}
-            />
-          </div>
-        </FormSection>
+        {/* 수식 설정 (수학 전용) */}
+        {subject === "MATH" && (
+          <FormSection title="수식 설정">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                label="수식 유형"
+                value={formulaType}
+                onChange={setFormulaType}
+                options={FORMULA_TYPE_OPTIONS}
+              />
+              <SelectField
+                label="정답 형식"
+                value={answerFormat}
+                onChange={setAnswerFormat}
+                options={ANSWER_FORMAT_OPTIONS}
+                error={errors.answerFormat}
+              />
+            </div>
+          </FormSection>
+        )}
 
         {/* 정답 */}
         <FormSection title="정답">

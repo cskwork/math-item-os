@@ -320,7 +320,7 @@ async function buildPrismaFacets(
     }
   }
 
-  return { schoolLevel, grade, itemType, difficulty };
+  return { subject: {}, schoolLevel, grade, itemType, codeLanguage: {}, difficulty };
 }
 
 // -------------------------------------------------

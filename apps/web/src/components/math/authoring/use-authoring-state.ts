@@ -46,6 +46,10 @@ function createBlock(type: AuthoringBlockType, position: number): AuthoringBlock
       return { ...base, table: DEFAULT_TABLE };
     case "solution":
       return { ...base, solutionLatex: "" };
+    case "code":
+      return { ...base, code: "", codeLanguage: "PYTHON" as const };
+    case "output":
+      return { ...base, expectedOutput: "" };
   }
 }
 
@@ -124,14 +128,19 @@ export function useAuthoringState(options?: UseAuthoringStateOptions) {
   /** 블록 → 제출용 결과 변환 */
   const toOutput = useCallback((): AuthoringOutput => {
     const bodyParts: string[] = [];
+    const textParts: string[] = [];
     let choices: ReadonlyArray<ChoiceItem> | undefined;
     const imageUrls: string[] = [];
+    let bodyCode: string | undefined;
+    let codeLanguage: "C" | "JAVA" | "PYTHON" | "SQL" | undefined;
+    let expectedOutput: string | undefined;
 
     for (const block of state.blocks) {
       switch (block.type) {
         case "body": {
           // latex 필드에 혼합 콘텐츠 저장 (한국어 + $...$LaTeX)
           if (block.latex?.trim()) bodyParts.push(block.latex.trim());
+          if (block.text?.trim()) textParts.push(block.text.trim());
           break;
         }
         case "choices":
@@ -155,6 +164,13 @@ export function useAuthoringState(options?: UseAuthoringStateOptions) {
             bodyParts.push(`\\text{[풀이]} ${block.solutionLatex.trim()}`);
           }
           break;
+        case "code":
+          if (block.code?.trim()) bodyCode = block.code.trim();
+          if (block.codeLanguage) codeLanguage = block.codeLanguage;
+          break;
+        case "output":
+          if (block.expectedOutput?.trim()) expectedOutput = block.expectedOutput.trim();
+          break;
       }
     }
 
@@ -162,6 +178,10 @@ export function useAuthoringState(options?: UseAuthoringStateOptions) {
       bodyLatex: bodyParts.join("\n\n"),
       choices,
       imageUrls,
+      bodyCode,
+      codeLanguage,
+      expectedOutput,
+      bodyText: textParts.length > 0 ? textParts.join("\n\n") : undefined,
     };
   }, [state.blocks]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { useSortable } from "@dnd-kit/react/sortable";
@@ -10,6 +10,8 @@ import { ChoicesBlock } from "./blocks/choices-block";
 import { TableBlock } from "./blocks/table-block";
 import { ImageBlock } from "./blocks/image-block";
 import { SolutionBlock } from "./blocks/solution-block";
+import { CodeBlock } from "./blocks/code-block";
+import { OutputBlock } from "./blocks/output-block";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { useAuthoringState } from "./use-authoring-state";
 import type { AuthoringBlock, AuthoringBlockType, AuthoringOutput } from "./types";
@@ -22,6 +24,8 @@ const BLOCK_LABELS: Record<AuthoringBlockType, string> = {
   table: "표",
   image: "이미지",
   solution: "풀이",
+  code: "코드",
+  output: "실행 결과",
 };
 
 // --- 드래그 가능한 블록 래퍼 ---
@@ -94,13 +98,18 @@ function renderBlockContent(
       return <ImageBlock block={block} onUpdate={onUpdate} />;
     case "solution":
       return <SolutionBlock block={block} editorMode={editorMode} onUpdate={onUpdate} />;
+    case "code":
+      return <CodeBlock block={block} onUpdate={onUpdate} />;
+    case "output":
+      return <OutputBlock block={block} onUpdate={onUpdate} />;
   }
 }
 
 // --- 미리보기 패널 ---
 
 function PreviewPanel({ output }: { readonly output: AuthoringOutput }) {
-  if (!output.bodyLatex.trim() && !output.choices?.length) {
+  const hasContent = output.bodyLatex.trim() || output.choices?.length || output.bodyCode || output.bodyText;
+  if (!hasContent) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-slate-400">
         블록을 추가하면 미리보기가 표시됩니다
@@ -110,10 +119,35 @@ function PreviewPanel({ output }: { readonly output: AuthoringOutput }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 본문 미리보기 */}
+      {/* 텍스트 본문 미리보기 (IT 자격증) */}
+      {output.bodyText?.trim() && (
+        <div className="rounded-md border border-slate-100 bg-white p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
+          {output.bodyText}
+        </div>
+      )}
+
+      {/* LaTeX 본문 미리보기 (수학) */}
       {output.bodyLatex.trim() && (
         <div className="rounded-md border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
           <KatexRenderer latex={output.bodyLatex} displayMode className="text-base" />
+        </div>
+      )}
+
+      {/* 코드 미리보기 (IT 자격증) */}
+      {output.bodyCode?.trim() && (
+        <div className="rounded-md border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 dark:border-slate-800">
+            <span className="text-xs font-medium text-slate-500">{output.codeLanguage ?? "CODE"}</span>
+          </div>
+          <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed">{output.bodyCode}</pre>
+        </div>
+      )}
+
+      {/* 예상 출력 미리보기 */}
+      {output.expectedOutput?.trim() && (
+        <div className="rounded-md border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800">
+          <div className="mb-1 text-xs font-medium text-slate-500">출력</div>
+          <pre className="font-mono text-sm whitespace-pre-wrap">{output.expectedOutput}</pre>
         </div>
       )}
 
@@ -153,9 +187,20 @@ function PreviewPanel({ output }: { readonly output: AuthoringOutput }) {
 interface ItemAuthoringGridProps {
   /** 외부에서 저작 결과를 받을 콜백 */
   readonly onOutputChange?: (output: AuthoringOutput) => void;
+  /** 편집 모드 — 기존 본문 LaTeX를 초기 body 블록에 로드 */
+  readonly initialBodyLatex?: string;
+  /** 과목 — 블록 팔레트 결정 */
+  readonly subject?: "MATH" | "IT_CERT" | "ENGLISH";
 }
 
-function ItemAuthoringGrid({ onOutputChange }: ItemAuthoringGridProps) {
+function ItemAuthoringGrid({ onOutputChange, initialBodyLatex, subject = "MATH" }: ItemAuthoringGridProps) {
+  const initialBlocks = useMemo(
+    () => initialBodyLatex
+      ? [{ id: "auth-init-body", type: "body" as const, position: 0, latex: initialBodyLatex, text: "" }]
+      : undefined,
+    [initialBodyLatex],
+  );
+
   const {
     state,
     addBlock,
@@ -165,7 +210,7 @@ function ItemAuthoringGrid({ onOutputChange }: ItemAuthoringGridProps) {
     selectBlock,
     toggleEditorMode,
     toOutput,
-  } = useAuthoringState();
+  } = useAuthoringState({ initialBlocks });
 
   const output = toOutput();
 
@@ -189,12 +234,14 @@ function ItemAuthoringGrid({ onOutputChange }: ItemAuthoringGridProps) {
   const outputBodyLatex = output.bodyLatex;
   const outputChoicesLen = output.choices?.length ?? 0;
   const outputImgLen = output.imageUrls.length;
+  const outputBodyCode = output.bodyCode;
+  const outputExpectedOutput = output.expectedOutput;
 
   useEffect(() => {
     onOutputChangeRef.current?.(output);
     // output 전체가 아닌 핵심 값만 의존성으로 사용
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputBodyLatex, outputChoicesLen, outputImgLen]);
+  }, [outputBodyLatex, outputChoicesLen, outputImgLen, outputBodyCode, outputExpectedOutput]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -203,6 +250,7 @@ function ItemAuthoringGrid({ onOutputChange }: ItemAuthoringGridProps) {
         editorMode={state.editorMode}
         onAddBlock={addBlock}
         onToggleMode={toggleEditorMode}
+        subject={subject}
       />
 
       {/* 에디터 + 미리보기 2단 레이아웃 */}

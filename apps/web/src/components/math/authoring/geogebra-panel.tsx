@@ -73,8 +73,8 @@ const GeoGebraPanel = memo(function GeoGebraPanel({
         const modeConfig = MODES.find((m) => m.key === mode)!;
         const params = {
           appName: modeConfig.appName,
-          width: container.clientWidth,
-          height: 450,
+          width: container.clientWidth || 1200,
+          height: container.clientHeight || 700,
           showMenuBar: false,
           showToolBar: true,
           showAlgebraInput: true,
@@ -113,9 +113,9 @@ const GeoGebraPanel = memo(function GeoGebraPanel({
   }, [onExportImage]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex h-full flex-col gap-3">
       {/* 모드 탭 */}
-      <div className="flex gap-1">
+      <div className="flex shrink-0 gap-1">
         {MODES.map((m) => (
           <button
             key={m.key}
@@ -133,23 +133,23 @@ const GeoGebraPanel = memo(function GeoGebraPanel({
         ))}
       </div>
 
-      {/* GeoGebra 컨테이너 */}
-      <div className="relative min-h-[450px] rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      {/* GeoGebra 컨테이너 — 남은 공간을 모두 차지 */}
+      <div className="relative flex-1 overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-900/80">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-slate-900/80">
             <span className="text-sm text-slate-400">GeoGebra 로딩 중...</span>
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
             <span className="text-sm text-red-500">{error}</span>
           </div>
         )}
-        <div ref={containerRef} className="h-[450px] w-full" />
+        <div ref={containerRef} className="h-full w-full" />
       </div>
 
       {/* 내보내기 버튼 */}
-      <div className="flex justify-end">
+      <div className="flex shrink-0 justify-end">
         <Button
           type="button"
           variant="outline"

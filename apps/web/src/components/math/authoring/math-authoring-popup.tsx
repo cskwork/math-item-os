@@ -163,7 +163,7 @@ function MathAuthoringPopup({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-w-5xl flex-col gap-0 p-0 h-[85vh]">
+      <DialogContent className="flex h-[95vh] w-[95vw] max-w-[1600px] flex-col gap-0 p-0 sm:max-w-[1600px]">
         {/* 헤더 */}
         <DialogHeader className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
           <DialogTitle>수식 저작도구</DialogTitle>
@@ -268,7 +268,7 @@ function MathAuthoringPopup({
 
                 {/* 사이드 패널 */}
                 {state.activePanel && (
-                  <div className="w-64 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="w-96 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900">
                     {state.activePanel === "symbols" && (
                       <SearchSymbolPalette onInsert={insertAtCursor} />
                     )}

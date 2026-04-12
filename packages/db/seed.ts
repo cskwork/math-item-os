@@ -33,7 +33,7 @@ async function main() {
 
   // 4단계: 오개념 (20개)
   console.log("\n[4/9] 오개념 생성 (20개)...");
-  const misconceptionIds = await seedMisconceptions(prisma, org.id);
+  const misconceptionIds = await seedMisconceptions(prisma, org.id, skillIds);
 
   // 5단계: 선수학습 간선 (80개)
   console.log("\n[5/9] 선수학습 간선 생성 (80개)...");

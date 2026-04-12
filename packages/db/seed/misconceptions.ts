@@ -175,10 +175,24 @@ export const MISCONCEPTIONS: readonly MisconceptionDef[] = [
 ];
 
 /** 오개념 20개 시드 (멱등) */
-export async function seedMisconceptions(prisma: PrismaClient, orgId: string) {
+export async function seedMisconceptions(
+  prisma: PrismaClient,
+  orgId: string,
+  skillIds: Record<string, string>,
+) {
   const created: Record<string, string> = {};
 
   for (const m of MISCONCEPTIONS) {
+    const resolvedSkillIds = m.relatedSkills
+      .map((code) => skillIds[code])
+      .filter((id): id is string => {
+        if (id == null) {
+          console.warn(`  [경고] 오개념 "${m.code}": 스킬 코드 미발견`);
+          return false;
+        }
+        return true;
+      });
+
     const misconception = await prisma.misconception.upsert({
       where: { orgId_code: { orgId, code: m.code } },
       update: {
@@ -186,7 +200,7 @@ export async function seedMisconceptions(prisma: PrismaClient, orgId: string) {
         typicalError: m.typicalError,
         remediation: m.remediation,
         severity: m.severity,
-        relatedSkills: [...m.relatedSkills],
+        relatedSkills: resolvedSkillIds,
       },
       create: {
         orgId,
@@ -195,7 +209,7 @@ export async function seedMisconceptions(prisma: PrismaClient, orgId: string) {
         typicalError: m.typicalError,
         remediation: m.remediation,
         severity: m.severity,
-        relatedSkills: [...m.relatedSkills],
+        relatedSkills: resolvedSkillIds,
       },
     });
     created[m.code] = misconception.id;

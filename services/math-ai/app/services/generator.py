@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-# re는 substitute_template 플레이스홀더 파싱 + compute_system_answer 정규화 모두에 쓰인다.
+from app.services.latex_utils import parse_cases_body, strip_render_braces
 
 
 # ---------------------------------------------------------------------------
@@ -305,23 +305,15 @@ def compute_system_answer(body_latex_substituted: str) -> AnswerResult:
         body_latex_substituted: 매개변수가 이미 치환된 LaTeX 본문
 
     Returns:
-        AnswerResult — `values`/`values_latex`에 변수별 해가 담긴다.
+        `AnswerResult` — `values`/`values_latex`에 변수별 해가 담긴다.
         `value`/`value_latex`에는 첫 변수(알파벳 순)의 값이 복제된다.
     """
     try:
         import sympy
-        from sympy.parsing.latex import parse_latex
 
-        # 렌더링 전용 중괄호 래핑(`{-3}`) 정규화 (sympy_solver와 동일 규칙)
-        cases_pattern = re.compile(r"\{(-[\d.]+)\}")
-        eq_clean = cases_pattern.sub(r"\1", body_latex_substituted)
-
-        cases_match = re.search(
-            r"\\begin\{cases\}(.+?)\\end\{cases\}",
-            eq_clean,
-            re.DOTALL,
-        )
-        if not cases_match:
+        eq_clean = strip_render_braces(body_latex_substituted)
+        parsed = parse_cases_body(eq_clean)
+        if parsed is None:
             return AnswerResult(
                 success=False,
                 value=None,
@@ -329,13 +321,7 @@ def compute_system_answer(body_latex_substituted: str) -> AnswerResult:
                 error="\\begin{cases} 환경을 찾을 수 없습니다.",
             )
 
-        body = cases_match.group(1)
-        eq_strs = [s.strip() for s in re.split(r"\\\\", body) if s.strip()]
-        eqs = [parse_latex(s) for s in eq_strs]
-        free_vars = sorted(
-            {s for e in eqs for s in e.free_symbols},
-            key=str,
-        )
+        eqs, free_vars = parsed
         sols = sympy.solve(eqs, free_vars, dict=True)
         if not sols:
             return AnswerResult(

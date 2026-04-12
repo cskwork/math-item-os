@@ -11,6 +11,8 @@ import concurrent.futures
 import re
 from dataclasses import dataclass
 
+from app.services.latex_utils import parse_cases_body, strip_render_braces
+
 _SOLVE_TIMEOUT_SECONDS = 10
 
 
@@ -114,45 +116,48 @@ def _worker_check_equals(latex_a: str, latex_b: str) -> bool:
     return simplify(expr_a - expr_b) == 0
 
 
-_CASES_PATTERN = r"\\begin\{cases\}(.+?)\\end\{cases\}"
-_BRACE_NEGATIVE_PATTERN = re.compile(r"\{(-[\d.]+)\}")
-
-
-def _strip_render_braces(latex: str) -> str:
-    """렌더링 전용 중괄호 래핑(`{-3}`)을 파서 친화 형태(`-3`)로 정규화한다.
-
-    `generator._format_value_for_latex`가 음수 계수를 `{-N}` 형태로 감싸므로
-    `parse_latex`가 인식할 수 있는 평문 형태로 복원한다.
-    """
-    return _BRACE_NEGATIVE_PATTERN.sub(r"\1", latex)
+_TUPLE_ANSWER_PATTERN = re.compile(r"[a-zA-Z_]\w*\s*=")
 
 
 def _parse_tuple_answer(ans_clean: str, free_vars: list) -> dict:
     """제출 정답을 `{Symbol: expr}` 딕셔너리로 파싱한다.
 
     지원 입력 형태:
-      - "x=42, y=-34" (권장, 튜플 스타일)
-      - "2" 단일값 (backward compat — 첫 변수로 할당)
+      - `"x=42, y=-34"` 튜플 스타일 (권장)
+      - `"2"` 단일값 (단일 변수 방정식에만 허용 — **다변수 시스템에 단일값
+        제출은 의도 불명확하므로 빈 딕셔너리 반환해서 거부**)
     """
-    import re
-
     from sympy import Symbol
     from sympy.parsing.latex import parse_latex
 
     cleaned = ans_clean.strip()
     result: dict = {}
 
-    if "=" in cleaned and re.search(r"[a-zA-Z_]\w*\s*=", cleaned):
+    if not cleaned:
+        return result
+
+    if "=" in cleaned and _TUPLE_ANSWER_PATTERN.search(cleaned):
         for pair in cleaned.split(","):
             if "=" not in pair:
                 continue
             var_name, val_str = pair.split("=", 1)
+            val_str = val_str.strip()
+            if not val_str:
+                return {}
             sym = Symbol(var_name.strip())
-            result[sym] = parse_latex(val_str.strip())
+            try:
+                result[sym] = parse_latex(val_str)
+            except Exception:  # noqa: BLE001
+                return {}
         return result
 
-    if free_vars:
-        result[free_vars[0]] = parse_latex(cleaned)
+    # 단일값 폴백: 변수가 정확히 하나일 때만 허용.
+    # 다변수 시스템에 단일값 제출은 교육적으로 부분 답이므로 거부한다.
+    if len(free_vars) == 1:
+        try:
+            result[free_vars[0]] = parse_latex(cleaned)
+        except Exception:  # noqa: BLE001
+            return {}
     return result
 
 
@@ -165,30 +170,26 @@ def _worker_verify_answer(
     Returns:
         (정답 여부, 설명 문자열)
     """
-    import re
-
     from sympy import simplify, solve
     from sympy.parsing.latex import parse_latex
 
-    eq_clean = _strip_render_braces(equation_latex)
-    ans_clean = _strip_render_braces(answer_latex)
+    eq_clean = strip_render_braces(equation_latex)
+    ans_clean = strip_render_braces(answer_latex)
 
     # ── 연립방정식 (\begin{cases}) 분기 ──
-    cases_match = re.search(_CASES_PATTERN, eq_clean, re.DOTALL)
-    if cases_match:
-        body = cases_match.group(1)
-        eq_strs = [s.strip() for s in re.split(r"\\\\", body) if s.strip()]
-        eqs = [parse_latex(s) for s in eq_strs]
-        free_vars = sorted(
-            {s for e in eqs for s in e.free_symbols},
-            key=str,
-        )
+    parsed_cases = parse_cases_body(eq_clean)
+    if parsed_cases is not None:
+        eqs, free_vars = parsed_cases
         sols = solve(eqs, free_vars, dict=True)
         if not sols:
             return False, "연립방정식의 해가 없습니다."
 
         submitted = _parse_tuple_answer(ans_clean, free_vars)
         if not submitted:
+            if len(free_vars) > 1:
+                return False, (
+                    "다변수 연립방정식은 'x=값, y=값' 형태로 제출해야 합니다."
+                )
             return False, "제출된 정답을 파싱할 수 없습니다."
 
         all_correct = all(
@@ -223,16 +224,27 @@ def _worker_verify_answer(
         var = free_vars.pop()
 
         if eq_expr.is_Relational:
-            # 답도 관계식(부등식/등식)이면 해집합 동치 비교로 전환.
-            # 예: `3x - 8 < 15`에 답 `x < 23/3` → 둘 다 `solve(..., x)`로
-            # 표준 해집합을 구한 뒤 `==`로 비교.
+            # 답도 관계식(부등식/등식)이면 해집합(Interval/FiniteSet) 비교로
+            # 전환. 두 부등식을 var로 푼 뒤 `.as_set()`으로 정규화하여
+            # 구조 비교가 아닌 **set 동치** 로 판정한다. 이렇게 하면
+            # `2x - 4 > 0` vs `x > 2` 같은 재배열 동치도 같다고 인식한다.
             if ans_expr.is_Relational:
                 try:
                     eq_solved = solve(eq_expr, var)
                     ans_solved = solve(ans_expr, var)
-                    is_correct = eq_solved == ans_solved
+                    eq_set = (
+                        eq_solved.as_set()
+                        if hasattr(eq_solved, "as_set")
+                        else eq_solved
+                    )
+                    ans_set = (
+                        ans_solved.as_set()
+                        if hasattr(ans_solved, "as_set")
+                        else ans_solved
+                    )
+                    is_correct = eq_set == ans_set
                     explanation = (
-                        f"부등식 해 {eq_solved}, 제출 {ans_solved}: "
+                        f"부등식 해집합 {eq_set}, 제출 {ans_set}: "
                         f"{'동치' if is_correct else '불일치'}"
                     )
                     return is_correct, explanation

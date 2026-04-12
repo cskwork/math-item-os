@@ -273,6 +273,21 @@ function EmptyGraph() {
   );
 }
 
+// ─── 에러 그래프 표시 ───
+
+function ErrorGraph({ message }: { readonly message: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="flex flex-col items-center gap-2 px-4 text-center">
+        <p className="text-sm font-medium text-red-600">
+          그래프 로딩 중 오류가 발생했습니다.
+        </p>
+        <p className="text-xs text-slate-500">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── API 데이터를 React Flow 노드/엣지로 변환 ───
 
 interface GraphData {
@@ -352,7 +367,7 @@ const SkillGraph = memo(function SkillGraph({
   direction = "both",
   onNodeClick,
 }: SkillGraphProps) {
-  const { data, isLoading } = trpc.skill.getPrerequisiteGraph.useQuery({
+  const { data, isLoading, isError, error } = trpc.skill.getPrerequisiteGraph.useQuery({
     skillId,
     depth,
     direction,
@@ -372,6 +387,10 @@ const SkillGraph = memo(function SkillGraph({
 
   if (isLoading) {
     return <GraphSkeleton />;
+  }
+
+  if (isError) {
+    return <ErrorGraph message={error?.message ?? "알 수 없는 오류"} />;
   }
 
   // 루트 노드만 존재하는 경우 빈 그래프 표시

@@ -2,6 +2,7 @@
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
 import type { Prisma } from "@math-item-os/db";
+import { renderLatex } from "@math-item-os/math-parser";
 
 // -------------------------------------------------
 // 입력/출력 타입 정의
@@ -200,6 +201,7 @@ ${itemsHtml}
   <footer class="assignment-footer">
     <span class="page-info"></span>
   </footer>
+
 </body>
 </html>`;
 }
@@ -215,10 +217,14 @@ function buildItemHtml(
 ): string {
   const { item, points } = assignmentItem;
 
-  // bodyHtml 우선 사용, 없으면 LaTeX를 KaTeX 클래스로 감싸서 렌더링 위임
-  const content = item.bodyHtml
-    ? item.bodyHtml
-    : `<span class="katex-display">${escapeHtml(item.bodyLatex)}</span>`;
+  // bodyHtml 우선 사용, 없으면 서버사이드 KaTeX 렌더링
+  let content: string;
+  if (item.bodyHtml) {
+    content = item.bodyHtml;
+  } else {
+    const { html } = renderLatex(item.bodyLatex, { displayMode: true });
+    content = html;
+  }
 
   const pointsBadge =
     points != null

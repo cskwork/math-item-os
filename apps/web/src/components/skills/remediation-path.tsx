@@ -204,6 +204,13 @@ const StepItemCard = memo(function StepItemCard({
 
       {/* 메타 배지 */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {/* 상태 배지 (미승인) */}
+        {item.status !== "approved" && (
+          <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            {item.status === "draft" ? "초안" : "검토중"}
+          </span>
+        )}
+
         {/* 난이도 배지 */}
         {difficultyLabel && difficultyColor && (
           <span

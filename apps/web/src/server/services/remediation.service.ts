@@ -285,7 +285,7 @@ async function fetchConfirmationItems(
 // 내부 헬퍼 함수
 // -------------------------------------------------
 
-/** 승인 문항 조회를 위한 공통 where 절을 생성한다 */
+/** 승인 문항 조회를 위한 공통 where 절을 생성한다. approved 우선, 없으면 draft 포함. */
 function buildItemWhereClause(
   skillIds: ReadonlyArray<string>,
   orgId: string,
@@ -294,17 +294,17 @@ function buildItemWhereClause(
 ): Prisma.ItemWhereInput {
   return {
     orgId,
-    status: "approved",
+    status: { in: ["approved", "reviewed", "draft"] },
     skills: {
       some: { skillId: { in: [...skillIds] } },
     },
     ...(excludeIds.size > 0 && {
       id: { notIn: [...excludeIds] },
     }),
-    difficultyAuthor: {
-      not: null,
-      ...difficultyFilter,
-    },
+    OR: [
+      { difficultyAuthor: difficultyFilter },
+      { difficultyAuthor: null },
+    ],
   };
 }
 

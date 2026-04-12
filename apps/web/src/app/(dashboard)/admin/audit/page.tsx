@@ -15,7 +15,7 @@ const TABLE_NAME_OPTIONS = [
 ] as const;
 
 const TABLE_NAME_LABELS: Record<string, string> = {
-  items: "문항", skills: "스킬", standards: "성취기준",
+  items: "문항", skills: "성취기준", standards: "성취기준",
   misconceptions: "오개념", templates: "템플릿",
   assignments: "과제", users: "사용자",
 };

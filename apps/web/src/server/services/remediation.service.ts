@@ -140,7 +140,7 @@ export async function getRemediationPath(
     {
       phase: "prerequisite_review",
       items: prerequisiteItems,
-      explanation: "관련 스킬의 선수 개념을 복습합니다",
+      explanation: "관련 성취기준의 선수 개념을 복습합니다",
     },
     {
       phase: "basic_practice",

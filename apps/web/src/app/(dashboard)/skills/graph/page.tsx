@@ -157,8 +157,8 @@ export default function SkillGraphPage() {
               options={skillOptions}
               value={selectedSkillId ?? ""}
               onChange={handleSkillSelect}
-              placeholder="스킬 선택..."
-              searchPlaceholder="스킬 검색..."
+              placeholder="성취기준 선택..."
+              searchPlaceholder="성취기준 검색..."
               emptyText="검색 결과가 없습니다."
               className="min-w-[200px]"
             />

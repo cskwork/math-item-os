@@ -244,7 +244,7 @@ describe("getPrerequisiteGraph - traversal", () => {
       ),
     ).rejects.toMatchObject({
       code: "NOT_FOUND",
-      message: expect.stringContaining("스킬을 찾을 수 없습니다"),
+      message: expect.stringContaining("성취기준을 찾을 수 없습니다"),
     });
   });
 
@@ -256,7 +256,7 @@ describe("getPrerequisiteGraph - traversal", () => {
       ),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   });
 });

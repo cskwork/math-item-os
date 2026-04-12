@@ -148,14 +148,14 @@ export async function updateSkill(
   if (!existing) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `스킬을 찾을 수 없습니다: ${input.id}`,
+      message: `성취기준을 찾을 수 없습니다: ${input.id}`,
     });
   }
 
   if (existing.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   }
 
@@ -231,14 +231,14 @@ export async function deleteSkill(
   if (!existing) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `스킬을 찾을 수 없습니다: ${id}`,
+      message: `성취기준을 찾을 수 없습니다: ${id}`,
     });
   }
 
   if (existing.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   }
 
@@ -277,14 +277,14 @@ export async function getSkillById(id: string, orgId: string) {
   if (!skill) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `스킬을 찾을 수 없습니다: ${id}`,
+      message: `성취기준을 찾을 수 없습니다: ${id}`,
     });
   }
 
   if (skill.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   }
 
@@ -340,14 +340,14 @@ export async function getSkillItems(
   if (!skill) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `스킬을 찾을 수 없습니다: ${skillId}`,
+      message: `성취기준을 찾을 수 없습니다: ${skillId}`,
     });
   }
 
   if (skill.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   }
 

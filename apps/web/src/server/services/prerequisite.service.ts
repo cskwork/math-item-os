@@ -319,14 +319,14 @@ export async function getPrerequisiteGraph(
   if (!rootSkill) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `스킬을 찾을 수 없습니다: ${skillId}`,
+      message: `성취기준을 찾을 수 없습니다: ${skillId}`,
     });
   }
 
   if (rootSkill.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "해당 조직의 스킬이 아닙니다",
+      message: "해당 조직의 성취기준이 아닙니다",
     });
   }
 

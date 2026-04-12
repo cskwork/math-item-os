@@ -262,8 +262,7 @@ model Item {
   isGenerated      Boolean       @default(false)
   templateId       String?
 
-  // 벡터 임베딩 (pgvector - raw SQL migration에서 추가)
-  // embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(768)")?
 
   currentVersion Int    @default(1) @db.SmallInt
   createdBy      String?

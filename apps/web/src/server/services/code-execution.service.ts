@@ -20,6 +20,38 @@ export interface ExecutionResult {
   readonly memory: number | null;
 }
 
+// -------------------------------------------------
+// Rate Limiter (인메모리, 사용자당 분당 10회 제한)
+// -------------------------------------------------
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(userId: string): void {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `코드 실행 요청이 너무 많습니다. ${Math.ceil((entry.resetAt - now) / 1000)}초 후 다시 시도하세요.`,
+    });
+  }
+
+  rateLimitMap.set(userId, { count: entry.count + 1, resetAt: entry.resetAt });
+}
+
+// -------------------------------------------------
+// Judge0 API
+// -------------------------------------------------
+
 /** Judge0 API URL */
 function getJudge0Url(): string {
   const url = process.env.JUDGE0_API_URL;
@@ -34,13 +66,17 @@ function getJudge0Url(): string {
 
 /**
  * 코드를 실행하고 결과를 반환한다.
- * Judge0 CE�� synchronous 모드(wait=true) 사용.
+ * Judge0 CE synchronous 모드(wait=true) 사용.
+ * 사용자당 분당 10회 rate limit 적용.
  */
 export async function executeCode(
   code: string,
   language: CodeLanguage,
+  userId: string,
   stdin?: string,
 ): Promise<ExecutionResult> {
+  checkRateLimit(userId);
+
   const judge0Url = getJudge0Url();
   const languageId = LANGUAGE_IDS[language];
 
@@ -54,10 +90,10 @@ export async function executeCode(
         language_id: languageId,
         stdin: stdin ?? "",
         cpu_time_limit: 5,
-        memory_limit: 262144, // 256MB
-        max_processes_and_or_threads: 5,
+        memory_limit: 131072, // 128MB (더 보수적)
+        max_processes_and_or_threads: 3,
       }),
-      signal: AbortSignal.timeout(15000), // 15초 HTTP 타임아웃
+      signal: AbortSignal.timeout(15000),
     },
   );
 
@@ -93,7 +129,7 @@ export function getSupportedLanguages() {
   ];
 }
 
-/** Judge0 상태 코드 → ���국어 메시지 */
+/** Judge0 상태 코드 한국어 매핑 */
 function translateStatus(statusId: number): string {
   switch (statusId) {
     case 1: return "대기열에 있음";

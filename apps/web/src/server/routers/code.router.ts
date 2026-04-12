@@ -10,11 +10,11 @@ const executeCodeSchema = z.object({
 });
 
 export const codeRouter = createTRPCRouter({
-  /** 코드 실행 — reviewer 이상 권한 필요 */
+  /** 코드 실행 — reviewer 이상 권한 필요, 분당 10회 rate limit */
   execute: reviewerProcedure
     .input(executeCodeSchema)
-    .mutation(async ({ input }) => {
-      return executeCode(input.code, input.language, input.stdin);
+    .mutation(async ({ input, ctx }) => {
+      return executeCode(input.code, input.language, ctx.user.id, input.stdin);
     }),
 
   /** 지원 언어 목록 조회 */

@@ -5,8 +5,9 @@
 // ─── 과목 ───
 export const SUBJECT = {
   MATH: { value: "MATH" as const, label: "수학", order: 1 },
-  IT_CERT: { value: "IT_CERT" as const, label: "정보처리", order: 2 },
-  ENGLISH: { value: "ENGLISH" as const, label: "영어", order: 3 },
+  IT_CERT: { value: "IT_CERT" as const, label: "정보", order: 2 },
+  // ENGLISH는 스키마에 정의되어 있으나 UI/검증 미구현. 구현 전까지 숨김.
+  // ENGLISH: { value: "ENGLISH" as const, label: "영어", order: 3 },
 } as const;
 
 export type SubjectKey = keyof typeof SUBJECT;

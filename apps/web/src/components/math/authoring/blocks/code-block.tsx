@@ -18,7 +18,6 @@ const LANGUAGES = [
 ] as const;
 
 export const CodeBlock = memo(function CodeBlock({ block, onUpdate }: CodeBlockProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<unknown>(null);
 
@@ -160,17 +159,6 @@ export const CodeBlock = memo(function CodeBlock({ block, onUpdate }: CodeBlockP
           "overflow-hidden",
         )}
       />
-
-      {/* CodeMirror 미지원 시 textarea fallback */}
-      <noscript>
-        <textarea
-          ref={textareaRef}
-          value={code}
-          onChange={(e) => onUpdate(block.id, { code: e.target.value })}
-          className="w-full min-h-[120px] rounded-md border p-3 font-mono text-sm"
-          placeholder="코드를 입력하세요..."
-        />
-      </noscript>
 
       {/* 실행 결과 */}
       {executeMutation.error && (

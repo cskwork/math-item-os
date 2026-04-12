@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
+import React, { useState, useCallback, useEffect, useRef, Suspense, type FormEvent } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormulaEditor } from "@/components/math/formula-editor";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,15 @@ import {
 } from "@math-item-os/shared/constants/index";
 import { extractFormValues } from "./item-form-utils";
 import { AutoTagSuggestions } from "@/components/items/auto-tag-suggestions";
+import type { AuthoringOutput } from "@/components/math/authoring";
+
+// MathLive는 SSR 불가 — 클라이언트 전용 dynamic import
+const ItemAuthoringGrid = dynamic(
+  () => import("@/components/math/authoring").then((m) => ({ default: m.ItemAuthoringGrid })),
+  { ssr: false, loading: () => <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">저작 도구 로딩 중...</div> },
+);
+
+type EditorTab = "classic" | "authoring";
 
 // --- 타입 정의 ---
 
@@ -177,6 +187,8 @@ function ItemForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [changeSummary, setChangeSummary] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [editorTab, setEditorTab] = useState<EditorTab>("authoring");
+  const authoringOutputRef = useRef<AuthoringOutput | null>(null);
 
   // -- 편집 모드: 기존 문항 로드 --
   const { data: existingItem, isLoading: isLoadingItem } = trpc.item.getById.useQuery(
@@ -255,6 +267,14 @@ function ItemForm() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }, []);
+
+  // -- 저작 도구 출력 → bodyLatex 동기화 --
+  const handleAuthoringOutput = useCallback((output: AuthoringOutput) => {
+    authoringOutputRef.current = output;
+    if (editorTab === "authoring") {
+      setBodyLatex(output.bodyLatex);
+    }
+  }, [editorTab]);
 
   // -- 활용 목적 토글 --
   const handleUsagePurposeToggle = useCallback((purpose: string) => {
@@ -377,7 +397,7 @@ function ItemForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -393,14 +413,49 @@ function ItemForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* 수식 영역 */}
+        {/* 수식 영역 — 탭 토글 */}
         <FormSection title="수식 영역">
-          <FormulaEditor
-            value={bodyLatex}
-            onChange={setBodyLatex}
-            label="수식"
-            error={errors.bodyLatex}
-          />
+          {/* 탭 헤더 */}
+          <div className="flex gap-1 rounded-md bg-slate-100 p-0.5 dark:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => setEditorTab("authoring")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                editorTab === "authoring"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              }`}
+            >
+              저작 도구
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorTab("classic")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                editorTab === "classic"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              }`}
+            >
+              LaTeX 직접 입력
+            </button>
+          </div>
+
+          {/* 탭 콘텐츠 */}
+          {editorTab === "authoring" ? (
+            <ItemAuthoringGrid onOutputChange={handleAuthoringOutput} />
+          ) : (
+            <FormulaEditor
+              value={bodyLatex}
+              onChange={setBodyLatex}
+              label="수식"
+              error={errors.bodyLatex}
+            />
+          )}
+
+          {errors.bodyLatex && editorTab === "authoring" && (
+            <p className="text-sm text-red-500" role="alert">{errors.bodyLatex}</p>
+          )}
         </FormSection>
 
         {/* 기본 정보 */}

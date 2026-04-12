@@ -123,7 +123,7 @@ const SkillTags = memo(function SkillTags({ skills }: SkillTagsProps) {
 
   return (
     <span className="text-xs text-slate-500">
-      스킬: {skills.map((s) => s.skill.title).join(", ")}
+      성취기준: {skills.map((s) => s.skill.title).join(", ")}
     </span>
   );
 });

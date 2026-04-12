@@ -99,9 +99,9 @@ function TableSkeleton() {
 function EmptyState({ onCreateClick }: Readonly<{ onCreateClick: () => void }>) {
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-900">
-      <p className="text-sm text-slate-500 dark:text-slate-400">등록된 스킬이 없습니다</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">등록된 성취기준이 없습니다</p>
       <Button variant="outline" size="sm" className="mt-3" onClick={onCreateClick}>
-        새 스킬 추가
+        새 성취기준 추가
       </Button>
     </div>
   );
@@ -208,11 +208,11 @@ export default function SkillListPage() {
       utils.skill.list.invalidate();
       setFormModal({ open: false, mode: "create", editingId: null, initialData: INITIAL_FORM });
       setFormError("");
-      toast.success("스킬이 추가되었습니다");
+      toast.success("성취기준이 추가되었습니다");
     },
     onError: (err) => {
       setFormError(err.message);
-      toast.error("스킬 처리에 실패했습니다");
+      toast.error("성취기준 처리에 실패했습니다");
     },
   });
 
@@ -221,11 +221,11 @@ export default function SkillListPage() {
       utils.skill.list.invalidate();
       setFormModal({ open: false, mode: "create", editingId: null, initialData: INITIAL_FORM });
       setFormError("");
-      toast.success("스킬이 수정되었습니다");
+      toast.success("성취기준이 수정되었습니다");
     },
     onError: (err) => {
       setFormError(err.message);
-      toast.error("스킬 처리에 실패했습니다");
+      toast.error("성취기준 처리에 실패했습니다");
     },
   });
 
@@ -233,10 +233,10 @@ export default function SkillListPage() {
     onSuccess: () => {
       utils.skill.list.invalidate();
       setDeleteTarget(null);
-      toast.success("스킬이 삭제되었습니다");
+      toast.success("성취기준이 삭제되었습니다");
     },
     onError: () => {
-      toast.error("스킬 처리에 실패했습니다");
+      toast.error("성취기준 처리에 실패했습니다");
     },
   });
 
@@ -337,13 +337,13 @@ export default function SkillListPage() {
     <div className="mx-auto max-w-6xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">스킬 관리</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">성취기준 관리</h1>
         <div className="flex gap-2">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Link href={"/skills/graph" as any}>
             <Button variant="outline">그래프 보기</Button>
           </Link>
-          <Button onClick={handleOpenCreate}>새 스킬 추가</Button>
+          <Button onClick={handleOpenCreate}>새 성취기준 추가</Button>
         </div>
       </div>
 
@@ -398,7 +398,7 @@ export default function SkillListPage() {
 
       {isError && (
         <ErrorState
-          message={error?.message ?? "스킬 목록을 불러오는 중 오류가 발생했습니다."}
+          message={error?.message ?? "성취기준 목록을 불러오는 중 오류가 발생했습니다."}
         />
       )}
 
@@ -415,7 +415,7 @@ export default function SkillListPage() {
               <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
                 <tr>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">코드</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">스킬명</th>
+                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">성취기준명</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">분류 경로</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">Bloom 수준</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-400">문제 유형</th>
@@ -488,10 +488,10 @@ export default function SkillListPage() {
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
-        title="스킬 삭제"
+        title="성취기준 삭제"
         description={
           deleteTarget
-            ? `\u201C${deleteTarget.title}\u201D 스킬을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+            ? `\u201C${deleteTarget.title}\u201D 성취기준을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
             : ""
         }
         confirmLabel="삭제"

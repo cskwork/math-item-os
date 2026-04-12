@@ -74,12 +74,12 @@ export function SkillFormModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "새 스킬 추가" : "스킬 수정"}
+            {mode === "create" ? "새 성취기준 추가" : "성취기준 수정"}
           </DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "새로운 스킬 정보를 입력하세요"
-              : "스킬 정보를 수정하세요"}
+              ? "새로운 성취기준 정보를 입력하세요"
+              : "성취기준 정보를 수정하세요"}
           </DialogDescription>
         </DialogHeader>
 
@@ -98,13 +98,13 @@ export function SkillFormModal({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">스킬명</label>
+            <label className="text-xs font-medium text-slate-500">성취기준명</label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => handleChange("title", e.target.value)}
               required
-              placeholder="스킬 이름을 입력하세요"
+              placeholder="성취기준 이름을 입력하세요"
               className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
             />
           </div>
@@ -114,7 +114,7 @@ export function SkillFormModal({
             <textarea
               value={form.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="스킬에 대한 설명 (선택)"
+              placeholder="성취기준에 대한 설명 (선택)"
               rows={3}
               className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
             />

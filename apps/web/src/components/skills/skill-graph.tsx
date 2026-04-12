@@ -266,7 +266,7 @@ function EmptyGraph() {
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-2">
         <p className="text-sm text-slate-500">
-          연결된 선수/후속 스킬이 없습니다.
+          연결된 선수/후속 성취기준이 없습니다.
         </p>
       </div>
     </div>

@@ -42,7 +42,7 @@ const SIMILAR_LIMIT = 10;
 const LATEX_MAX = 80;
 
 const SIGNAL_LABELS: Record<keyof SimilarSignals, string> = {
-  skillMatch: "스킬 일치",
+  skillMatch: "성취기준 일치",
   formulaStructure: "수식 구조",
   prerequisiteDistance: "선수학습",
   textSemantic: "텍스트 유사",

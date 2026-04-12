@@ -7,7 +7,7 @@ import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import type { GuideNodeData, GuideNode, GuideCategory } from "./flow-data";
 
-const NODE_WIDTH = 180;
+const NODE_WIDTH = 210;
 
 const CATEGORY_STYLES: Record<GuideCategory, string> = {
   start: "border-blue-500 bg-blue-50",
@@ -19,7 +19,7 @@ const CATEGORY_STYLES: Record<GuideCategory, string> = {
 const GuideNodeComponent = memo(function GuideNodeComponent({
   data,
 }: NodeProps<GuideNode>) {
-  const { label, description, href, category, icon: Icon } = data;
+  const { label, description, tip, href, category, icon: Icon } = data;
 
   const content = (
     <div
@@ -36,6 +36,11 @@ const GuideNodeComponent = memo(function GuideNodeComponent({
       <p className="text-center text-[11px] leading-tight text-slate-500">
         {description}
       </p>
+      <div className="mt-1 w-full border-t border-slate-200 pt-1.5">
+        <p className="text-center text-[10px] leading-snug text-slate-400">
+          {tip}
+        </p>
+      </div>
     </div>
   );
 

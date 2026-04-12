@@ -97,7 +97,7 @@ export const MathItemBlock = memo(function MathItemBlock({
       {/* 스킬 태그 */}
       {item.skills != null && item.skills.length > 0 && (
         <span className="text-xs text-slate-500">
-          스킬: {item.skills.map((s) => s.skill.title).join(", ")}
+          성취기준: {item.skills.map((s) => s.skill.title).join(", ")}
         </span>
       )}
     </div>

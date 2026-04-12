@@ -329,7 +329,7 @@ function EmptyPath() {
       <p className="text-center text-sm text-slate-400">
         교정 경로를 생성할 수 없습니다.
         <br />
-        관련 스킬이 설정되어 있는지 확인해주세요.
+        관련 성취기준이 설정되어 있는지 확인해주세요.
       </p>
     </div>
   );

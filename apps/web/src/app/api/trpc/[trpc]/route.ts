@@ -9,6 +9,17 @@ function handler(req: Request) {
     req,
     router: appRouter,
     createContext: createTRPCContext,
+    onError({ error, path, type }) {
+      console.error(
+        `[tRPC ${type}] ${path ?? "<no-path>"} failed:`,
+        {
+          code: error.code,
+          message: error.message,
+          cause: error.cause,
+          stack: error.stack,
+        },
+      );
+    },
   });
 }
 

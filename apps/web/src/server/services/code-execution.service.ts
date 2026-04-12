@@ -80,31 +80,76 @@ export async function executeCode(
   const judge0Url = getJudge0Url();
   const languageId = LANGUAGE_IDS[language];
 
-  const response = await fetch(
-    `${judge0Url}/submissions?base64_encoded=false&wait=true`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        source_code: code,
-        language_id: languageId,
-        stdin: stdin ?? "",
-        cpu_time_limit: 5,
-        memory_limit: 131072, // 128MB (더 보수적)
-        max_processes_and_or_threads: 3,
-      }),
-      signal: AbortSignal.timeout(15000),
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `${judge0Url}/submissions?base64_encoded=false&wait=true`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_code: code,
+          language_id: languageId,
+          stdin: stdin ?? "",
+          cpu_time_limit: 5,
+          memory_limit: 131072, // 128MB (더 보수적)
+          max_processes_and_or_threads: 3,
+          // cgroups v2 호스트(Ubuntu 24.04+)에서 isolate가 --cg 플래그로 실패하므로
+          // per-process 제한을 활성화하여 cgroups 비사용 경로로 실행한다.
+          enable_per_process_and_thread_time_limit: true,
+          enable_per_process_and_thread_memory_limit: true,
+        }),
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+  } catch (error) {
+    console.error("[code-execution] Judge0 fetch failed:", {
+      url: judge0Url,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message, cause: error.cause }
+          : error,
+    });
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: `Judge0 연결 실패: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      cause: error,
+    });
+  }
 
   if (!response.ok) {
+    const bodyText = await response.text().catch(() => "<unreadable>");
+    console.error("[code-execution] Judge0 returned non-OK:", {
+      status: response.status,
+      statusText: response.statusText,
+      body: bodyText.slice(0, 500),
+    });
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: `Judge0 API 오류: ${response.status} ${response.statusText}`,
     });
   }
 
-  const data = await response.json();
+  let data: {
+    stdout: string | null;
+    stderr: string | null;
+    compile_output: string | null;
+    status?: { id: number };
+    time: string | null;
+    memory: number | null;
+  };
+  try {
+    data = await response.json();
+  } catch (error) {
+    console.error("[code-execution] Judge0 response not JSON:", error);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Judge0 응답 파싱 실패",
+      cause: error,
+    });
+  }
 
   return {
     stdout: data.stdout,

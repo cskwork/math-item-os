@@ -29,6 +29,28 @@ class TestVerifyAnswerSingleEquation:
         assert result.correct is True
 
 
+class TestVerifyAnswerInequalities:
+    """일차부등식 해집합 동치 비교."""
+
+    def test_strict_less_than_correct(self) -> None:
+        """`3x - 8 < 15`에 해답 `x < 23/3`은 동치."""
+        result = verify_answer("3x - 8 < 15", "x < 23/3")
+        assert result.success is True
+        assert result.correct is True
+
+    def test_strict_less_than_wrong_bound(self) -> None:
+        """경계가 다른 오답."""
+        result = verify_answer("3x - 8 < 15", "x < 8")
+        assert result.success is True
+        assert result.correct is False
+
+    def test_wrong_direction(self) -> None:
+        """부등호 방향이 반대인 오답."""
+        result = verify_answer("2x + 1 > 5", "x < 2")
+        assert result.success is True
+        assert result.correct is False
+
+
 class TestVerifyAnswerSystemOfEquations:
     """2원1차 연립방정식 CAS 검증 분기."""
 

@@ -223,6 +223,22 @@ def _worker_verify_answer(
         var = free_vars.pop()
 
         if eq_expr.is_Relational:
+            # 답도 관계식(부등식/등식)이면 해집합 동치 비교로 전환.
+            # 예: `3x - 8 < 15`에 답 `x < 23/3` → 둘 다 `solve(..., x)`로
+            # 표준 해집합을 구한 뒤 `==`로 비교.
+            if ans_expr.is_Relational:
+                try:
+                    eq_solved = solve(eq_expr, var)
+                    ans_solved = solve(ans_expr, var)
+                    is_correct = eq_solved == ans_solved
+                    explanation = (
+                        f"부등식 해 {eq_solved}, 제출 {ans_solved}: "
+                        f"{'동치' if is_correct else '불일치'}"
+                    )
+                    return is_correct, explanation
+                except Exception as exc:  # noqa: BLE001
+                    return False, f"부등식 동치 검증 실패: {exc}"
+
             # Eq(lhs, rhs) 형태인 경우
             substituted = eq_expr.subs(var, ans_expr)
             # 대입 결과가 True/False(BooleanAtom)이면 직접 판정

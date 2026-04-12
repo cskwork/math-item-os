@@ -35,6 +35,8 @@ export interface GenerateApiVariant {
   readonly params: Record<string, unknown>;
   readonly answer_value: string;
   readonly answer_latex: string;
+  readonly answer_values?: Record<string, string> | null;
+  readonly answer_values_latex?: Record<string, string> | null;
   readonly seed: number | null;
 }
 

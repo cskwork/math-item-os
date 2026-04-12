@@ -107,6 +107,8 @@ export interface GeneratedVariant {
   readonly params: Record<string, unknown>;
   readonly answerValue: string;
   readonly answerLatex: string;
+  readonly answerValues?: Record<string, string> | null;
+  readonly answerValuesLatex?: Record<string, string> | null;
   readonly casVerification: CasVerificationResult;
 }
 
@@ -551,8 +553,10 @@ async function _processGeneration(
             bodyHtml: conversion.html,
             answer: {
               value: apiVariant.answer_value,
+              values: apiVariant.answer_values ?? null,
               format: "exact_value",
               latex: apiVariant.answer_latex,
+              valuesLatex: apiVariant.answer_values_latex ?? null,
             } as Prisma.InputJsonValue,
             schoolLevel: sourceItem?.schoolLevel ?? "middle",
             grade: sourceItem?.grade ?? 1,
@@ -580,7 +584,9 @@ async function _processGeneration(
             bodyLatex: apiVariant.body_latex,
             answer: {
               value: apiVariant.answer_value,
+              values: apiVariant.answer_values ?? null,
               latex: apiVariant.answer_latex,
+              valuesLatex: apiVariant.answer_values_latex ?? null,
             } as Prisma.InputJsonValue,
             changeSummary:
               strategy === "sympy"
@@ -632,6 +638,8 @@ async function _processGeneration(
         params: apiVariant.params,
         answerValue: apiVariant.answer_value,
         answerLatex: apiVariant.answer_latex,
+        answerValues: apiVariant.answer_values ?? null,
+        answerValuesLatex: apiVariant.answer_values_latex ?? null,
         casVerification: cas,
       });
     }

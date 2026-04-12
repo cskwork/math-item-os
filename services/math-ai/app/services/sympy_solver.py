@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import re
 from dataclasses import dataclass
 
 _SOLVE_TIMEOUT_SECONDS = 10
@@ -113,6 +114,48 @@ def _worker_check_equals(latex_a: str, latex_b: str) -> bool:
     return simplify(expr_a - expr_b) == 0
 
 
+_CASES_PATTERN = r"\\begin\{cases\}(.+?)\\end\{cases\}"
+_BRACE_NEGATIVE_PATTERN = re.compile(r"\{(-[\d.]+)\}")
+
+
+def _strip_render_braces(latex: str) -> str:
+    """렌더링 전용 중괄호 래핑(`{-3}`)을 파서 친화 형태(`-3`)로 정규화한다.
+
+    `generator._format_value_for_latex`가 음수 계수를 `{-N}` 형태로 감싸므로
+    `parse_latex`가 인식할 수 있는 평문 형태로 복원한다.
+    """
+    return _BRACE_NEGATIVE_PATTERN.sub(r"\1", latex)
+
+
+def _parse_tuple_answer(ans_clean: str, free_vars: list) -> dict:
+    """제출 정답을 `{Symbol: expr}` 딕셔너리로 파싱한다.
+
+    지원 입력 형태:
+      - "x=42, y=-34" (권장, 튜플 스타일)
+      - "2" 단일값 (backward compat — 첫 변수로 할당)
+    """
+    import re
+
+    from sympy import Symbol
+    from sympy.parsing.latex import parse_latex
+
+    cleaned = ans_clean.strip()
+    result: dict = {}
+
+    if "=" in cleaned and re.search(r"[a-zA-Z_]\w*\s*=", cleaned):
+        for pair in cleaned.split(","):
+            if "=" not in pair:
+                continue
+            var_name, val_str = pair.split("=", 1)
+            sym = Symbol(var_name.strip())
+            result[sym] = parse_latex(val_str.strip())
+        return result
+
+    if free_vars:
+        result[free_vars[0]] = parse_latex(cleaned)
+    return result
+
+
 def _worker_verify_answer(
     equation_latex: str,
     answer_latex: str,
@@ -122,11 +165,45 @@ def _worker_verify_answer(
     Returns:
         (정답 여부, 설명 문자열)
     """
-    from sympy import simplify
+    import re
+
+    from sympy import simplify, solve
     from sympy.parsing.latex import parse_latex
 
-    eq_expr = parse_latex(equation_latex)
-    ans_expr = parse_latex(answer_latex)
+    eq_clean = _strip_render_braces(equation_latex)
+    ans_clean = _strip_render_braces(answer_latex)
+
+    # ── 연립방정식 (\begin{cases}) 분기 ──
+    cases_match = re.search(_CASES_PATTERN, eq_clean, re.DOTALL)
+    if cases_match:
+        body = cases_match.group(1)
+        eq_strs = [s.strip() for s in re.split(r"\\\\", body) if s.strip()]
+        eqs = [parse_latex(s) for s in eq_strs]
+        free_vars = sorted(
+            {s for e in eqs for s in e.free_symbols},
+            key=str,
+        )
+        sols = solve(eqs, free_vars, dict=True)
+        if not sols:
+            return False, "연립방정식의 해가 없습니다."
+
+        submitted = _parse_tuple_answer(ans_clean, free_vars)
+        if not submitted:
+            return False, "제출된 정답을 파싱할 수 없습니다."
+
+        all_correct = all(
+            simplify(sols[0][var] - val) == 0
+            for var, val in submitted.items()
+            if var in sols[0]
+        )
+        pairs = ", ".join(f"{v}={sols[0][v]}" for v in free_vars)
+        return all_correct, (
+            f"연립방정식 해 ({pairs}), "
+            f"제출: {'만족' if all_correct else '불만족'}"
+        )
+
+    eq_expr = parse_latex(eq_clean)
+    ans_expr = parse_latex(ans_clean)
 
     # 방정식에서 자유 변수 추출
     free_vars = eq_expr.free_symbols

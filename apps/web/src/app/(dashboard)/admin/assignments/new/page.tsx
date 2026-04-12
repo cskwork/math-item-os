@@ -3,15 +3,14 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  AssignmentBuilder,
-  type AssignmentBuilderItem,
-} from "@/components/admin/assignment-builder";
+import { CanvasBuilder } from "@/components/admin/canvas/canvas-builder";
+import { useCanvasState } from "@/components/admin/canvas/use-canvas-state";
 
 // --- 상수 ---
 
@@ -41,18 +40,6 @@ const PURPOSE_DIFFICULTY_GUIDE: Record<AssignmentPurpose, string> = {
   advanced: "고난이도 (4~5)",
 };
 
-// --- 목적별 기본 난이도 범위 ---
-
-const PURPOSE_DIFFICULTY_RANGE: Record<
-  AssignmentPurpose,
-  { min: number; max: number }
-> = {
-  diagnosis: { min: 1, max: 5 },
-  remediation: { min: 1, max: 2 },
-  pre_exam: { min: 3, max: 4 },
-  advanced: { min: 4, max: 5 },
-};
-
 // --- 메인 페이지 ---
 
 export default function NewAssignmentPage() {
@@ -65,22 +52,19 @@ export default function NewAssignmentPage() {
   const [itemCount, setItemCount] = useState(DEFAULT_ITEM_COUNT);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 문항 상태
-  const [selectedItems, setSelectedItems] = useState<AssignmentBuilderItem[]>(
-    [],
-  );
-
   // 검색/추천 상태
   const [showSearch, setShowSearch] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
   const [isRecommending, setIsRecommending] = useState(false);
+  const [showConfig, setShowConfig] = useState(true);
+
+  // 캔버스 상태
+  const canvas = useCanvasState();
 
   // --- tRPC 쿼리 ---
 
-  // 추천 문항 (목적/난이도/스킬 기반 4-factor 점수 엔진)
   const recommendMutation = trpc.admin.recommendItems.useMutation();
 
-  // 수동 검색
   const searchInput = useMemo(
     () => ({
       query: searchQuery.trim() || undefined,
@@ -143,15 +127,24 @@ export default function NewAssignmentPage() {
     [],
   );
 
+  // 기존 아이템 ID 수집 (추천 시 제외용)
+  const existingItemIds = useMemo(
+    () =>
+      canvas.blocks
+        .filter((b) => b.type === "math_item" && b.itemId)
+        .map((b) => b.itemId!),
+    [canvas.blocks],
+  );
+
   const handleRecommend = useCallback(() => {
     setIsRecommending(true);
     recommendMutation.mutate({
       purpose,
       difficulty: targetDifficulty,
       count: itemCount,
-      excludeItemIds: selectedItems.map((si) => si.item.id),
+      excludeItemIds: existingItemIds,
     });
-  }, [purpose, targetDifficulty, itemCount, selectedItems, recommendMutation]);
+  }, [purpose, targetDifficulty, itemCount, existingItemIds, recommendMutation]);
 
   const handleToggleSearch = useCallback(() => {
     setShowSearch((prev) => !prev);
@@ -168,60 +161,42 @@ export default function NewAssignmentPage() {
 
   const handleAddItem = useCallback(
     (rawItem: SearchResultItemData) => {
-      // 중복 방지
-      const alreadyExists = selectedItems.some((si) => si.item.id === rawItem.id);
-      if (alreadyExists) return;
-
-      const entry: AssignmentBuilderItem = {
-        item: {
+      canvas.addMathItemBlock(
+        {
           id: rawItem.id,
           bodyLatex: rawItem.bodyLatex,
           itemType: rawItem.itemType,
           difficultyAuthor: rawItem.difficultyAuthor ?? null,
         },
-        position: selectedItems.length + 1,
-        points: 10,
-      };
-
-      setSelectedItems((prev) => [...prev, entry]);
+        10,
+      );
     },
-    [selectedItems],
-  );
-
-  const handleItemsChange = useCallback(
-    (items: readonly AssignmentBuilderItem[]) => {
-      setSelectedItems([...items]);
-    },
-    [],
-  );
-
-  const handleRemoveItem = useCallback(
-    (itemId: string) => {
-      setSelectedItems((prev) => prev.filter((si) => si.item.id !== itemId));
-    },
-    [],
+    [canvas],
   );
 
   const handleSave = useCallback(() => {
+    const payload = canvas.toSavePayload();
     if (title.trim().length === 0) return;
-    if (selectedItems.length === 0) return;
+    if (payload.itemIds.length === 0) return;
 
     createAssignmentMutation.mutate({
       title: title.trim(),
       purpose,
-      itemIds: selectedItems.map((si) => si.item.id),
-      points: selectedItems.map((si) => si.points),
+      itemIds: payload.itemIds,
+      points: payload.points,
     });
-  }, [title, purpose, selectedItems, createAssignmentMutation]);
+  }, [title, purpose, canvas, createAssignmentMutation]);
 
   // --- 파생 상태 ---
 
   const selectedItemIds = useMemo(
-    () => new Set(selectedItems.map((si) => si.item.id)),
-    [selectedItems],
+    () => new Set(existingItemIds),
+    [existingItemIds],
   );
 
-  const canSave = title.trim().length > 0 && selectedItems.length >= 1;
+  const canSave =
+    title.trim().length > 0 &&
+    canvas.blocks.some((b) => b.type === "math_item");
 
   const recommendResult = recommendMutation.data;
   const recommendedItems: SearchResultItemData[] = useMemo(
@@ -243,58 +218,73 @@ export default function NewAssignmentPage() {
   const searchTotal = searchQueryResult.data?.total ?? 0;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4">
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-3 p-3">
       {/* 페이지 헤더 */}
-      <div>
-        <h1 className="text-lg font-semibold text-slate-900">학습지 제작</h1>
-        <p className="text-sm text-slate-500">
-          목적에 맞는 문항을 추천받거나 직접 검색하여 학습지를 구성합니다
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">학습지 제작</h1>
+          <p className="text-sm text-slate-500">
+            문항을 추천/검색하여 학습지를 구성합니다
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowConfig((v) => !v)}
+          className="gap-1.5 text-xs text-slate-500"
+        >
+          {showConfig ? (
+            <><PanelLeftClose className="h-4 w-4" /> 설정 접기</>
+          ) : (
+            <><PanelLeftOpen className="h-4 w-4" /> 설정 열기</>
+          )}
+        </Button>
       </div>
 
       {/* 2-column 레이아웃 */}
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        {/* 왼쪽 패널: 학습지 설정 */}
-        <div className="w-[380px] shrink-0 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4">
-          <ConfigurationPanel
-            title={title}
-            purpose={purpose}
-            targetDifficulty={targetDifficulty}
-            itemCount={itemCount}
-            isRecommending={recommendMutation.isPending}
-            onTitleChange={handleTitleChange}
-            onPurposeChange={handlePurposeChange}
-            onDifficultyChange={handleDifficultyChange}
-            onItemCountChange={handleItemCountChange}
-            onRecommend={handleRecommend}
-            onToggleSearch={handleToggleSearch}
-            showSearch={showSearch}
-          />
-        </div>
+      <div className="flex flex-1 gap-3 overflow-hidden">
+        {/* 왼쪽 패널: 학습지 설정 (접기 가능) */}
+        {showConfig && (
+          <div className="w-[300px] shrink-0 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+            <ConfigurationPanel
+              title={title}
+              purpose={purpose}
+              targetDifficulty={targetDifficulty}
+              itemCount={itemCount}
+              isRecommending={recommendMutation.isPending}
+              onTitleChange={handleTitleChange}
+              onPurposeChange={handlePurposeChange}
+              onDifficultyChange={handleDifficultyChange}
+              onItemCountChange={handleItemCountChange}
+              onRecommend={handleRecommend}
+              onToggleSearch={handleToggleSearch}
+              showSearch={showSearch}
+            />
+          </div>
+        )}
 
-        {/* 오른쪽 패널: 문항 구성 */}
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-          {/* 문항 빌더 */}
+        {/* 캔버스 빌더 (최대 공간) */}
+        <div className="flex flex-1 flex-col gap-3 overflow-hidden">
           <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4">
-            {selectedItems.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-slate-400">
-                  아래에서 추천 또는 검색된 문항을 추가하세요
-                </p>
-              </div>
-            ) : (
-              <AssignmentBuilder
-                items={selectedItems}
-                onItemsChange={handleItemsChange}
-                onRemoveItem={handleRemoveItem}
-              />
-            )}
+            <CanvasBuilder
+              blocks={canvas.blocks}
+              layout={canvas.layout}
+              selectedBlockId={canvas.selectedBlockId}
+              onAddBlock={canvas.addBlock}
+              onRemoveBlock={canvas.removeBlock}
+              onMoveBlock={canvas.moveBlock}
+              onUpdateBlock={canvas.updateBlock}
+              onSelectBlock={canvas.selectBlock}
+              onLayoutChange={canvas.setLayout}
+            />
           </div>
 
           {/* 저장 버튼 */}
-          <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
             <p className="text-sm text-slate-500">
-              선택된 문항: {selectedItems.length}개
+              문항:{" "}
+              {canvas.blocks.filter((b) => b.type === "math_item").length}
+              개 / 전체 블록: {canvas.blocks.length}개
             </p>
             <Button
               disabled={!canSave || createAssignmentMutation.isPending}
@@ -315,7 +305,7 @@ export default function NewAssignmentPage() {
       </div>
 
       {/* 하단 패널: 추천/검색 결과 */}
-      <div className="shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="max-h-[200px] shrink-0 overflow-y-auto rounded-lg border border-slate-200 bg-white">
         {/* 검색 입력 (토글) */}
         {showSearch && (
           <div className="border-b border-slate-200 p-3">

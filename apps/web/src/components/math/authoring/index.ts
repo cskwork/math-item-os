@@ -10,6 +10,9 @@ export { SymbolPalette } from "./symbol-palette";
 
 export { useAuthoringState } from "./use-authoring-state";
 
+export { MathAuthoringPopup } from "./math-authoring-popup";
+export type { MathAuthoringPopupProps } from "./popup-types";
+
 export type {
   AuthoringBlock,
   AuthoringBlockType,

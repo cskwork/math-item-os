@@ -23,6 +23,7 @@ import {
 import { extractFormValues } from "./item-form-utils";
 import { AutoTagSuggestions } from "@/components/items/auto-tag-suggestions";
 import type { AuthoringOutput } from "@/components/math/authoring";
+import { MathAuthoringPopup } from "@/components/math/authoring";
 
 // MathLive는 SSR 불가 — 클라이언트 전용 dynamic import
 const ItemAuthoringGrid = dynamic(
@@ -202,6 +203,7 @@ function ItemForm() {
   const [changeSummary, setChangeSummary] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [editorTab, setEditorTab] = useState<EditorTab>("authoring");
+  const [popupOpen, setPopupOpen] = useState(false);
   const authoringOutputRef = useRef<AuthoringOutput | null>(null);
 
   // -- 편집 모드: 기존 문항 로드 --
@@ -498,6 +500,17 @@ function ItemForm() {
           {errors.bodyLatex && editorTab === "authoring" && (
             <p className="text-sm text-red-500" role="alert">{errors.bodyLatex}</p>
           )}
+
+          {/* 수식 저작도구 팝업 */}
+          <Button type="button" variant="outline" size="sm" onClick={() => setPopupOpen(true)}>
+            수식 저작도구
+          </Button>
+          <MathAuthoringPopup
+            open={popupOpen}
+            onOpenChange={setPopupOpen}
+            initialLatex={bodyLatex}
+            onConfirm={(latex) => setBodyLatex(latex)}
+          />
         </FormSection>
 
         {/* 기본 정보 */}

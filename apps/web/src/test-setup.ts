@@ -9,19 +9,24 @@ import { PrismaClient } from "@math-item-os/db";
 const prisma = new PrismaClient();
 
 export async function setup(): Promise<void> {
-  await prisma.$executeRawUnsafe(
-    `DROP RULE IF EXISTS audit_log_no_update ON audit_logs`,
-  );
-  await prisma.$executeRawUnsafe(
-    `DROP RULE IF EXISTS audit_log_no_delete ON audit_logs`,
-  );
-  await prisma.$executeRawUnsafe(
-    `DROP RULE IF EXISTS item_version_no_update ON item_versions`,
-  );
-  await prisma.$executeRawUnsafe(
-    `DROP RULE IF EXISTS item_version_no_delete ON item_versions`,
-  );
-  await prisma.$disconnect();
+  try {
+    await prisma.$executeRawUnsafe(
+      `DROP RULE IF EXISTS audit_log_no_update ON audit_logs`,
+    );
+    await prisma.$executeRawUnsafe(
+      `DROP RULE IF EXISTS audit_log_no_delete ON audit_logs`,
+    );
+    await prisma.$executeRawUnsafe(
+      `DROP RULE IF EXISTS item_version_no_update ON item_versions`,
+    );
+    await prisma.$executeRawUnsafe(
+      `DROP RULE IF EXISTS item_version_no_delete ON item_versions`,
+    );
+    await prisma.$disconnect();
+  } catch {
+    // DB 미가동 시 무시 — 컴포넌트 테스트 등 DB 불필요 테스트 허용
+    await prisma.$disconnect().catch(() => {});
+  }
 }
 
 export async function teardown(): Promise<void> {

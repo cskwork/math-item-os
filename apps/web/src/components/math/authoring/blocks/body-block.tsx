@@ -37,6 +37,7 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
   const content = block.latex ?? "";
   const [showPalette, setShowPalette] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
+  const [mlReady, setMlReady] = useState(mathLiveLoaded);
   const [composerValue, setComposerValue] = useState("");
   const composerContainerRef = useRef<HTMLDivElement>(null);
   const composerMfRef = useRef<any>(null);
@@ -79,11 +80,11 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
   const openComposer = useCallback(() => {
     setComposerValue("");
     setShowComposer(true);
-    ensureMathLive();
+    ensureMathLive().then(() => setMlReady(true));
   }, []);
 
   useEffect(() => {
-    if (!showComposer || !mathLiveLoaded || !composerContainerRef.current) return;
+    if (!showComposer || !mlReady || !composerContainerRef.current) return;
     if (composerMfRef.current) return;
 
     const mf = document.createElement("math-field") as any;
@@ -109,7 +110,7 @@ const BodyBlock = memo(function BodyBlock({ block, editorMode, onUpdate }: BodyB
       if (mf.parentNode) mf.parentNode.removeChild(mf);
       composerMfRef.current = null;
     };
-  }, [showComposer]);
+  }, [showComposer, mlReady]);
 
   const handleComposerSymbolInsert = useCallback((latex: string) => {
     const mf = composerMfRef.current;

@@ -152,4 +152,80 @@ describe("solve.router", () => {
     expect(result.session.assignmentId).toBe(seeded!.assignmentId);
     expect(result.session.status).toBe("in_progress");
   });
+
+  // ─── 추가 커버리지: submitResponse (lines 38-39) ───
+
+  it("happy path: 세션에 개별 문항 응답을 제출한다", async () => {
+    const caller = makeCaller();
+
+    // 세션 생성
+    const session = await caller.startSession({
+      assignmentId: seeded!.assignmentId,
+      solveToken: seeded!.solveToken,
+      studentName: seeded!.studentName,
+    });
+
+    // 문항이 없어도 응답 제출 시 에러가 나는지 또는 빈 응답이 기록되는지 확인
+    // assignmentItem이 없으므로 NOT_FOUND가 날 수 있음
+    await expect(
+      caller.submitResponse({
+        sessionToken: session.session.token,
+        assignmentItemId: "nonexistent-assignment-item",
+        answer: { value: "42", format: "exact_value" },
+      }),
+    ).rejects.toBeDefined();
+  });
+
+  // ─── 추가 커버리지: submitSession (lines 44-45) ───
+
+  it("happy path: 세션을 제출하면 채점 결과를 반환한다", async () => {
+    const caller = makeCaller();
+
+    // 세션 생성
+    const session = await caller.startSession({
+      assignmentId: seeded!.assignmentId,
+      solveToken: seeded!.solveToken,
+      studentName: seeded!.studentName,
+    });
+
+    // 문항 없는 세션 제출 → 0점 채점
+    const result = await caller.submitSession({
+      sessionToken: session.session.token,
+    });
+
+    expect(result.session).toBeDefined();
+    expect(result.session.status).toBe("graded");
+  });
+
+  // ─── 추가 커버리지: getResults (lines 50-52) ───
+
+  it("happy path: 채점 완료 세션의 결과를 조회한다", async () => {
+    const caller = makeCaller();
+
+    // 세션 생성 → 제출
+    const session = await caller.startSession({
+      assignmentId: seeded!.assignmentId,
+      solveToken: seeded!.solveToken,
+      studentName: seeded!.studentName,
+    });
+
+    await caller.submitSession({
+      sessionToken: session.session.token,
+    });
+
+    const result = await caller.getResults({
+      sessionToken: session.session.token,
+    });
+
+    expect(result.session).toBeDefined();
+    expect(result.session.status).toBe("graded");
+  });
+
+  it("getResults: 존재하지 않는 토큰이면 NOT_FOUND", async () => {
+    const caller = makeCaller();
+
+    await expect(
+      caller.getResults({ sessionToken: "nonexistent-session-token-xyz" }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
 });

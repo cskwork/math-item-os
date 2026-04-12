@@ -27,7 +27,10 @@ import {
   listTemplates,
   getTemplateById,
   createTemplate,
+  updateTemplate,
+  deleteTemplate,
 } from "../services/template.service";
+import { recommendItems } from "../services/assignment-recommend.service";
 import {
   startGenerationJob,
   getGenerationResult,
@@ -69,6 +72,32 @@ const createTemplateSchema = z.object({
   constraints: z.record(z.unknown()).optional(),
 });
 
+/** 템플릿 수정 스키마 */
+const updateTemplateSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1).optional(),
+  bodyTemplate: z.string().min(1).optional(),
+  parameters: z.array(z.record(z.unknown())).optional(),
+  answerTemplate: z.string().optional(),
+  constraints: z.record(z.unknown()).optional(),
+});
+
+/** 문항 추천 스키마 (UsagePurpose 6개 전체 지원) */
+const recommendItemsSchema = z.object({
+  purpose: z.enum([
+    "diagnosis",
+    "remediation",
+    "pre_exam",
+    "advanced",
+    "practice",
+    "review",
+  ]),
+  skillIds: z.array(z.string()).optional(),
+  difficulty: z.number().int().min(1).max(5).optional(),
+  count: z.number().int().min(1).max(50).default(10),
+  excludeItemIds: z.array(z.string()).optional(),
+});
+
 /** 학습지 목록 조회 스키마 */
 const listAssignmentsSchema = paginationSchema.extend({
   purpose: assignmentPurposeSchema.optional(),
@@ -104,6 +133,22 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const orgId = getOrgId();
       return createTemplate(input, ctx.user.id, orgId);
+    }),
+
+  // 템플릿 수정 (검수자 이상)
+  updateTemplate: reviewerProcedure
+    .input(updateTemplateSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return updateTemplate(input, ctx.user.id, orgId);
+    }),
+
+  // 템플릿 삭제 (검수자 이상)
+  deleteTemplate: reviewerProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return deleteTemplate(input.id, ctx.user.id, orgId);
     }),
 
   // 전략 사전 감지 (검수자 이상)
@@ -219,6 +264,23 @@ export const adminRouter = createTRPCRouter({
       } finally {
         generationEmitter.off("generation", listener);
       }
+    }),
+
+  // 문항 추천 (검수자 이상) - 목적/난이도/스킬 기반 4-factor 점수 엔진
+  recommendItems: reviewerProcedure
+    .input(recommendItemsSchema)
+    .mutation(async ({ input }) => {
+      const orgId = getOrgId();
+      return recommendItems(
+        {
+          purpose: input.purpose,
+          skillIds: input.skillIds,
+          difficulty: input.difficulty,
+          count: input.count,
+          excludeItemIds: input.excludeItemIds,
+        },
+        orgId,
+      );
     }),
 
   // 학습지 생성 (검수자 이상)

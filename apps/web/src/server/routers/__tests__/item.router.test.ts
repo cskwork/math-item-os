@@ -268,4 +268,118 @@ describe("item.router", () => {
     expect(result).toHaveProperty("total");
     expect(Array.isArray(result.items)).toBe(true);
   });
+
+  // ─── 추가 커버리지: update (lines 52-54) ───
+
+  it("happy path: reviewer가 문항을 수정하면 결과를 반환한다", async () => {
+    const caller = makeCaller("reviewer");
+
+    // 먼저 문항 생성
+    const created = await caller.create({
+      bodyLatex: `${TEST_PREFIX}update-target z = 5`,
+      answer: { value: "5", format: "exact_value" },
+      schoolLevel: "middle",
+      grade: 8,
+      itemType: "short_answer",
+      answerFormat: "exact_value",
+    });
+    if (created.item?.id) createdItemIds.push(created.item.id);
+
+    const result = await caller.update({
+      id: created.item!.id,
+      bodyLatex: `${TEST_PREFIX}updated z = 10`,
+    });
+
+    expect(result.item).toBeDefined();
+    expect(result.item?.bodyLatex).toContain("updated z = 10");
+  });
+
+  // ─── 추가 커버리지: updateStatus (lines 59-68) ───
+
+  it("happy path: reviewer가 문항 상태를 전이한다", async () => {
+    const caller = makeCaller("reviewer");
+
+    const created = await caller.create({
+      bodyLatex: `${TEST_PREFIX}status-target w = 7`,
+      answer: { value: "7", format: "exact_value" },
+      schoolLevel: "high",
+      grade: 10,
+      itemType: "short_answer",
+      answerFormat: "exact_value",
+    });
+    if (created.item?.id) createdItemIds.push(created.item.id);
+
+    // draft → reviewed 전이
+    const result = await caller.updateStatus({
+      id: created.item!.id,
+      status: "reviewed",
+    });
+
+    expect(result.item).toBeDefined();
+    expect(result.item.status).toBe("reviewed");
+  });
+
+  // ─── 추가 커버리지: getById (lines 74-76) ───
+
+  it("happy path: reviewer가 문항 단건 조회를 한다", async () => {
+    const caller = makeCaller("reviewer");
+
+    const created = await caller.create({
+      bodyLatex: `${TEST_PREFIX}getById-target a = 3`,
+      answer: { value: "3", format: "exact_value" },
+      schoolLevel: "middle",
+      grade: 7,
+      itemType: "short_answer",
+      answerFormat: "exact_value",
+    });
+    if (created.item?.id) createdItemIds.push(created.item.id);
+
+    const result = await caller.getById({ id: created.item!.id });
+
+    // getItemById returns the item directly (no wrapper)
+    expect(result).toBeDefined();
+    expect(result.id).toBe(created.item!.id);
+    expect(result.bodyLatex).toContain("getById-target");
+  });
+
+  // ─── 추가 커버리지: suggestMetadata (lines 91-92) ───
+
+  it("happy path: teacher가 suggestMetadata를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("teacher");
+
+    const result = await caller.suggestMetadata({
+      bodyLatex: "x^2 + 2x + 1 = 0",
+      schoolLevel: "high",
+      grade: 10,
+    });
+
+    expect(result).toMatchObject({
+      skills: [],
+      standards: [],
+      misconceptions: [],
+    });
+  });
+
+  // ─── 추가 커버리지: bulkUpload (lines 98-100) ───
+
+  it("happy path: reviewer가 bulkUpload를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.bulkUpload({
+      format: "json",
+      fileUrl: "https://example.com/items.json",
+    });
+
+    expect(result).toMatchObject({ jobId: "test-job-1", status: "queued" });
+  });
+
+  // ─── 추가 커버리지: getBulkUploadStatus (lines 106-107) ───
+
+  it("happy path: reviewer가 getBulkUploadStatus를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.getBulkUploadStatus({ jobId: "test-job-1" });
+
+    expect(result).toMatchObject({ jobId: "test-job-1", status: "processing" });
+  });
 });

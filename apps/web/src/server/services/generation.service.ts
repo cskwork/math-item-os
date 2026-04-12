@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
-import type { Prisma } from "@math-item-os/db";
+import type { Prisma, SchoolLevel, ItemType, AnswerFormat } from "@math-item-os/db";
 import { convertLatex } from "./conversion.service";
 import { incrementVariantCount } from "./template.service";
 import { createAuditLog } from "./audit.service";
@@ -264,7 +264,7 @@ export async function startGenerationJob(
   orgId: string,
 ): Promise<{ readonly jobId: string }> {
   // 템플릿 존재 여부 및 소속 조직 확인
-  const template = await prisma.template.findUnique({
+  const templateRow = await prisma.template.findUnique({
     where: { id: input.templateId },
     select: {
       id: true,
@@ -274,22 +274,31 @@ export async function startGenerationJob(
       parameters: true,
       answerTemplate: true,
       constraints: true,
+      items: {
+        take: 1,
+        orderBy: { createdAt: "desc" },
+        select: { schoolLevel: true, grade: true, itemType: true, answerFormat: true },
+      },
     },
   });
 
-  if (!template) {
+  if (!templateRow) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: `템플릿을 찾을 수 없습니다: ${input.templateId}`,
     });
   }
 
-  if (template.orgId !== orgId) {
+  if (templateRow.orgId !== orgId) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "해당 조직의 템플릿이 아닙니다",
     });
   }
+
+  // 기존 생성 문항의 메타데이터 (없으면 기본값 사용)
+  const sourceItem = (templateRow.items ?? [])[0] ?? null;
+  const template: TemplateSnapshot = templateRow;
 
   const jobId = randomUUID();
 
@@ -307,7 +316,7 @@ export async function startGenerationJob(
   });
 
   // 비동기 생성 시작 (fire-and-forget)
-  void _processGeneration(jobId, template, input, performedBy, orgId);
+  void _processGeneration(jobId, template, input, performedBy, orgId, sourceItem);
 
   return { jobId };
 }
@@ -393,12 +402,21 @@ export function listGenerationJobs(options?: {
  * d) variantCount 갱신
  * e) 감사 로그 기록
  */
+/** 소스 문항 메타데이터 (schoolLevel/grade 전파용) */
+type SourceItemMeta = {
+  readonly schoolLevel: SchoolLevel;
+  readonly grade: number;
+  readonly itemType: ItemType;
+  readonly answerFormat: AnswerFormat;
+};
+
 async function _processGeneration(
   jobId: string,
   template: TemplateSnapshot,
   input: StartGenerationInput,
   performedBy: string,
   orgId: string,
+  sourceItem: SourceItemMeta | null,
 ): Promise<void> {
   const job = jobStore.get(jobId);
   if (!job) return;
@@ -536,10 +554,10 @@ async function _processGeneration(
               format: "exact_value",
               latex: apiVariant.answer_latex,
             } as Prisma.InputJsonValue,
-            schoolLevel: "middle",
-            grade: 1,
-            itemType: "short_answer",
-            answerFormat: "exact_value",
+            schoolLevel: sourceItem?.schoolLevel ?? "middle",
+            grade: sourceItem?.grade ?? 1,
+            itemType: sourceItem?.itemType ?? "short_answer",
+            answerFormat: sourceItem?.answerFormat ?? "exact_value",
             solutionSteps: input.params?.solutionSteps ?? undefined,
             status: "draft",
             isGenerated: true,

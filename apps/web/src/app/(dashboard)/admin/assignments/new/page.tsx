@@ -72,30 +72,13 @@ export default function NewAssignmentPage() {
 
   // 검색/추천 상태
   const [showSearch, setShowSearch] = useState(false);
-  const [recommendPage, setRecommendPage] = useState(1);
   const [searchPage, setSearchPage] = useState(1);
   const [isRecommending, setIsRecommending] = useState(false);
 
   // --- tRPC 쿼리 ---
 
-  // 추천 문항 (목적/난이도 기반 필터)
-  const difficultyRange = PURPOSE_DIFFICULTY_RANGE[purpose];
-  const recommendInput = useMemo(
-    () => ({
-      filters: {
-        difficultyMin: difficultyRange.min,
-        difficultyMax: difficultyRange.max,
-      },
-      page: recommendPage,
-      limit: SEARCH_PAGE_LIMIT,
-      sort: "difficulty" as const,
-    }),
-    [difficultyRange.min, difficultyRange.max, recommendPage],
-  );
-
-  const recommendQuery = trpc.search.items.useQuery(recommendInput, {
-    enabled: isRecommending,
-  });
+  // 추천 문항 (목적/난이도/스킬 기반 4-factor 점수 엔진)
+  const recommendMutation = trpc.admin.recommendItems.useMutation();
 
   // 수동 검색
   const searchInput = useMemo(
@@ -140,7 +123,6 @@ export default function NewAssignmentPage() {
   const handlePurposeChange = useCallback((value: AssignmentPurpose) => {
     setPurpose(value);
     setIsRecommending(false);
-    setRecommendPage(1);
   }, []);
 
   const handleDifficultyChange = useCallback(
@@ -162,9 +144,14 @@ export default function NewAssignmentPage() {
   );
 
   const handleRecommend = useCallback(() => {
-    setRecommendPage(1);
     setIsRecommending(true);
-  }, []);
+    recommendMutation.mutate({
+      purpose,
+      difficulty: targetDifficulty,
+      count: itemCount,
+      excludeItemIds: selectedItems.map((si) => si.item.id),
+    });
+  }, [purpose, targetDifficulty, itemCount, selectedItems, recommendMutation]);
 
   const handleToggleSearch = useCallback(() => {
     setShowSearch((prev) => !prev);
@@ -236,9 +223,23 @@ export default function NewAssignmentPage() {
 
   const canSave = title.trim().length > 0 && selectedItems.length >= 1;
 
-  const recommendedItems = recommendQuery.data?.items ?? [];
+  const recommendResult = recommendMutation.data;
+  const recommendedItems: SearchResultItemData[] = useMemo(
+    () =>
+      (recommendResult?.items ?? []).map((rec) => ({
+        id: rec.item.id,
+        bodyLatex: rec.item.bodyLatex,
+        itemType: rec.item.itemType,
+        difficultyAuthor: rec.item.difficultyAuthor ?? null,
+        schoolLevel: rec.item.schoolLevel,
+        grade: rec.item.grade,
+        reason: rec.reason,
+        score: rec.score,
+      })),
+    [recommendResult],
+  );
+  const recommendStrategy = recommendResult?.reasoning?.strategy ?? null;
   const searchedItems = searchQueryResult.data?.items ?? [];
-  const recommendTotal = recommendQuery.data?.total ?? 0;
   const searchTotal = searchQueryResult.data?.total ?? 0;
 
   return (
@@ -260,7 +261,7 @@ export default function NewAssignmentPage() {
             purpose={purpose}
             targetDifficulty={targetDifficulty}
             itemCount={itemCount}
-            isRecommending={recommendQuery.isFetching}
+            isRecommending={recommendMutation.isPending}
             onTitleChange={handleTitleChange}
             onPurposeChange={handlePurposeChange}
             onDifficultyChange={handleDifficultyChange}
@@ -332,12 +333,11 @@ export default function NewAssignmentPage() {
         {isRecommending && !showSearch && (
           <RecommendedItemsPanel
             items={recommendedItems}
-            total={recommendTotal}
-            page={recommendPage}
-            isLoading={recommendQuery.isLoading}
+            total={recommendedItems.length}
+            isLoading={recommendMutation.isPending}
             selectedIds={selectedItemIds}
+            strategy={recommendStrategy}
             onAdd={handleAddItem}
-            onPageChange={setRecommendPage}
           />
         )}
 
@@ -526,29 +526,27 @@ interface SearchResultItemData {
   readonly difficultyAuthor: number | null;
   readonly schoolLevel: string;
   readonly grade: number;
+  readonly reason?: string;
+  readonly score?: number;
 }
 
 interface RecommendedItemsPanelProps {
   readonly items: readonly SearchResultItemData[];
   readonly total: number;
-  readonly page: number;
   readonly isLoading: boolean;
   readonly selectedIds: ReadonlySet<string>;
+  readonly strategy: string | null;
   readonly onAdd: (item: SearchResultItemData) => void;
-  readonly onPageChange: (page: number) => void;
 }
 
 function RecommendedItemsPanel({
   items,
   total,
-  page,
   isLoading,
   selectedIds,
+  strategy,
   onAdd,
-  onPageChange,
 }: RecommendedItemsPanelProps) {
-  const totalPages = Math.max(1, Math.ceil(total / SEARCH_PAGE_LIMIT));
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -569,17 +567,15 @@ function RecommendedItemsPanel({
 
   return (
     <div className="flex flex-col gap-2 p-3">
+      {strategy && (
+        <p className="rounded-md bg-blue-50 px-3 py-1.5 text-xs text-blue-700">
+          {strategy}
+        </p>
+      )}
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold text-slate-700">
           추천 문항 ({total}건)
         </h3>
-        {totalPages > 1 && (
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-          />
-        )}
       </div>
       <ItemCardList items={items} selectedIds={selectedIds} onAdd={onAdd} />
     </div>
@@ -687,6 +683,11 @@ function ItemCardList({ items, selectedIds, onAdd }: ItemCardListProps) {
                     <span>난이도 {item.difficultyAuthor}</span>
                   )}
                 </div>
+                {item.reason && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {item.reason}
+                  </p>
+                )}
               </div>
               <span
                 className={cn(

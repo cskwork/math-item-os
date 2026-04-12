@@ -92,6 +92,7 @@ vi.mock("../../services/review.service", () => ({
     .mockResolvedValue({ id: "task-1", status: "completed" }),
 }));
 
+
 // ─────────────────────────────────────────────
 // 라우터 / Prisma import (mock 등록 이후)
 // ─────────────────────────────────────────────
@@ -99,6 +100,8 @@ import { createCallerFactory } from "../../trpc";
 import { adminRouter } from "../admin.router";
 import { prisma } from "@math-item-os/db";
 import type { UserRole } from "@math-item-os/db";
+import { generationEmitter } from "../../services/generation-events";
+import type { GenerationEvent } from "../../services/generation-events";
 
 // ─────────────────────────────────────────────
 // 테스트 헬퍼: caller 생성
@@ -249,5 +252,299 @@ describe("admin.router", () => {
         role: "superadmin", // userRoleSchema는 admin/reviewer/teacher만 허용
       } as never),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  // ─── 추가 커버리지: reviewer 절차 호출 ───
+
+  it("happy path: reviewer가 listTemplates를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.listTemplates({ page: 1, limit: 20 });
+    expect(result).toMatchObject({ templates: [], total: 0 });
+  });
+
+  it("happy path: reviewer가 getTemplate을 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.getTemplate({ id: "tmpl-1" });
+    expect(result).toBeNull();
+  });
+
+  it("happy path: reviewer가 createTemplate을 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.createTemplate({
+      title: "Test Template",
+      bodyTemplate: "x + {{a}} = {{b}}",
+      parameters: [{ name: "a" }],
+      answerTemplate: "{{b}} - {{a}}",
+    });
+    expect(result).toMatchObject({ id: "tmpl-test-1" });
+  });
+
+  it("happy path: reviewer가 generateVariants를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.generateVariants({
+      templateId: "tmpl-1",
+      count: 5,
+    });
+    expect(result).toMatchObject({ jobId: "gen-job-1" });
+  });
+
+  it("happy path: reviewer가 getGenerationResult를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.getGenerationResult({ jobId: "gen-job-1" });
+    expect(result).toMatchObject({ status: "pending" });
+  });
+
+  it("happy path: reviewer가 listGenerationJobs를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.listGenerationJobs({ limit: 10 });
+    expect(result).toEqual([]);
+  });
+
+  it("happy path: reviewer가 detectStrategy를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.detectStrategy({ templateId: "tmpl-1" });
+    expect(result).toMatchObject({ strategy: "sympy" });
+  });
+
+  it("happy path: reviewer가 createAssignment를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.createAssignment({
+      title: "Test Assignment",
+      purpose: "diagnosis",
+      itemIds: ["item-1"],
+    });
+    expect(result).toMatchObject({ id: "assign-test-1" });
+  });
+
+  it("happy path: reviewer가 getAssignment를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.getAssignment({ id: "assign-1" });
+    expect(result).toBeNull();
+  });
+
+  it("happy path: reviewer가 listAssignments를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.listAssignments({ page: 1, limit: 20 });
+    expect(result).toMatchObject({ assignments: [], total: 0 });
+  });
+
+  it("happy path: reviewer가 updateAssignmentItems를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.updateAssignmentItems({
+      assignmentId: "assign-1",
+      itemIds: ["item-1", "item-2"],
+    });
+    expect(result).toMatchObject({ id: "assign-test-1" });
+  });
+
+  it("happy path: reviewer가 publishAssignment를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.publishAssignment({ id: "assign-1" });
+    expect(result).toMatchObject({ id: "assign-test-1" });
+  });
+
+  it("happy path: reviewer가 exportAssignment를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.exportAssignment({
+      assignmentId: "assign-1",
+      format: "pdf",
+    });
+    expect(result).toMatchObject({ url: "https://example.com/pdf" });
+  });
+
+  it("happy path: reviewer가 listReviewTasks를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.listReviewTasks({ page: 1, limit: 20 });
+    expect(result).toMatchObject({ tasks: [], total: 0 });
+  });
+
+  it("happy path: reviewer가 updateReviewTask를 호출하면 mock 결과를 받는다", async () => {
+    const caller = makeCaller("reviewer");
+    const result = await caller.updateReviewTask({
+      taskId: "task-1",
+      status: "completed",
+    });
+    expect(result).toMatchObject({ id: "task-1", status: "completed" });
+  });
+
+  // ─── 추가 커버리지: admin 전용 절차 ───
+
+  it("happy path: admin이 updateUserRole을 호출하면 DB에서 역할을 변경한다", async () => {
+    const caller = makeCaller("admin");
+    const result = await caller.updateUserRole({
+      userId: "test-teacher-admin",
+      role: "reviewer",
+    });
+    // DB 변경이므로 실제 결과 확인
+    expect(result).toBeDefined();
+  });
+
+  // ─── 추가 커버리지: teacher 권한 거부 ───
+
+  it("teacher는 listTemplates를 호출할 수 없다 (FORBIDDEN)", async () => {
+    const caller = makeCaller("teacher");
+    await expect(
+      caller.listTemplates({ page: 1, limit: 10 }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("teacher는 createTemplate을 호출할 수 없다 (FORBIDDEN)", async () => {
+    const caller = makeCaller("teacher");
+    await expect(
+      caller.createTemplate({
+        title: "X",
+        bodyTemplate: "y",
+        parameters: [],
+        answerTemplate: "z",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("teacher는 generateVariants를 호출할 수 없다 (FORBIDDEN)", async () => {
+    const caller = makeCaller("teacher");
+    await expect(
+      caller.generateVariants({ templateId: "tmpl-1", count: 1 }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("미인증 caller는 getQualityMetrics 호출 시 UNAUTHORIZED", async () => {
+    const caller = makeCaller(null);
+    await expect(caller.getQualityMetrics()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("미인증 caller는 listUsers 호출 시 UNAUTHORIZED", async () => {
+    const caller = makeCaller(null);
+    await expect(
+      caller.listUsers({ page: 1, limit: 10 }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  // ─── 추가 커버리지: onGenerationProgress subscription (lines 143-221) ───
+
+  it("onGenerationProgress: 버퍼된 터미널 이벤트가 있으면 즉시 yield 후 종료", async () => {
+    const jobId = `test-job-sub-buffered-${Date.now()}`;
+
+    // 버퍼에 이벤트 미리 추가 (터미널 이벤트 포함)
+    const events: GenerationEvent[] = [
+      { jobId, type: "job_started", data: {}, timestamp: new Date().toISOString() },
+      { jobId, type: "job_completed", data: { variants: 3 }, timestamp: new Date().toISOString() },
+    ];
+    for (const e of events) {
+      generationEmitter.emitGeneration(e);
+    }
+
+    const caller = makeCaller("reviewer");
+
+    // createCallerFactory의 subscription은 async iterable을 반환
+    const iterable = await caller.onGenerationProgress({ jobId });
+    const collected: unknown[] = [];
+
+    for await (const event of iterable) {
+      collected.push(event);
+      if (collected.length >= 2) break;
+    }
+
+    expect(collected.length).toBe(2);
+
+    // cleanup
+    generationEmitter.clearBuffer(jobId);
+  });
+
+  it("onGenerationProgress: 라이브 이벤트를 수신하고 터미널 이벤트에서 종료", async () => {
+    const jobId = `test-job-sub-live-${Date.now()}`;
+    const caller = makeCaller("reviewer");
+
+    const iterable = await caller.onGenerationProgress({ jobId });
+    const collected: unknown[] = [];
+
+    // 비동기로 이벤트 발행 (구독 시작 후)
+    const emitTimeout = setTimeout(() => {
+      generationEmitter.emitGeneration({
+        jobId,
+        type: "job_started",
+        data: {},
+        timestamp: new Date().toISOString(),
+      });
+      generationEmitter.emitGeneration({
+        jobId,
+        type: "variant_generated",
+        data: { index: 0 },
+        timestamp: new Date().toISOString(),
+      });
+      generationEmitter.emitGeneration({
+        jobId,
+        type: "job_failed",
+        data: { error: "test" },
+        timestamp: new Date().toISOString(),
+      });
+    }, 50);
+
+    for await (const event of iterable) {
+      collected.push(event);
+      if (collected.length >= 3) break;
+    }
+
+    clearTimeout(emitTimeout);
+
+    expect(collected.length).toBe(3);
+
+    // cleanup
+    generationEmitter.clearBuffer(jobId);
+  });
+
+  it("onGenerationProgress: 다른 jobId 이벤트는 무시된다", async () => {
+    const jobId = `test-job-sub-filter-${Date.now()}`;
+    const otherJobId = `test-job-sub-other-${Date.now()}`;
+    const caller = makeCaller("reviewer");
+
+    const iterable = await caller.onGenerationProgress({ jobId });
+    const collected: unknown[] = [];
+
+    const emitTimeout = setTimeout(() => {
+      // 다른 job 이벤트 (무시되어야 함)
+      generationEmitter.emitGeneration({
+        jobId: otherJobId,
+        type: "variant_generated",
+        data: {},
+        timestamp: new Date().toISOString(),
+      });
+      // 본래 job 이벤트
+      generationEmitter.emitGeneration({
+        jobId,
+        type: "job_started",
+        data: {},
+        timestamp: new Date().toISOString(),
+      });
+      generationEmitter.emitGeneration({
+        jobId,
+        type: "job_completed",
+        data: {},
+        timestamp: new Date().toISOString(),
+      });
+    }, 50);
+
+    for await (const event of iterable) {
+      collected.push(event);
+      if (collected.length >= 2) break;
+    }
+
+    clearTimeout(emitTimeout);
+
+    // 다른 job 이벤트는 포함되지 않아야 함
+    expect(collected.length).toBe(2);
+
+    // cleanup
+    generationEmitter.clearBuffer(jobId);
+    generationEmitter.clearBuffer(otherJobId);
+  });
+
+  it("onGenerationProgress: teacher는 호출할 수 없다 (FORBIDDEN)", async () => {
+    const caller = makeCaller("teacher");
+
+    await expect(
+      caller.onGenerationProgress({ jobId: "any" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

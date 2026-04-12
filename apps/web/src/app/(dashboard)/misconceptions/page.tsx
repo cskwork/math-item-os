@@ -11,7 +11,7 @@ import { PageHelp } from "@/components/help/page-help";
 
 const DIFFICULTY_OPTIONS = [
   { value: 1, label: "1 (매우 쉬움)" },
-  { value: 2, label: "2 (쉬���)" },
+  { value: 2, label: "2 (쉬움)" },
   { value: 3, label: "3 (보통)" },
   { value: 4, label: "4 (어려움)" },
   { value: 5, label: "5 (매우 어려움)" },

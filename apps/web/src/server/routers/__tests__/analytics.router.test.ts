@@ -181,4 +181,56 @@ describe("analytics.router", () => {
     expect(Array.isArray(result.weakTypeLevels)).toBe(true);
     expect(Array.isArray(result.weakSkills)).toBe(true);
   });
+
+  // ─── 추가 커버리지: typeLevelBreakdown happy path (lines 37-38) ───
+
+  it("happy path: typeLevelBreakdown이 시드된 과제에 대해 분석 결과를 반환한다", async () => {
+    const caller = makeCaller("teacher");
+
+    const result = await caller.typeLevelBreakdown({
+      assignmentId: seeded!.assignmentId,
+    });
+
+    // getTypeLevelAnalytics는 TypeLevelStat[] 배열을 직접 반환
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  // ─── 추가 커버리지: trends happy path (lines 71-72) ───
+
+  it("happy path: trends가 시드된 과제를 포함한 트렌드를 반환한다", async () => {
+    const caller = makeCaller("teacher");
+
+    const result = await caller.trends({
+      assignmentIds: [seeded!.assignmentId],
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    // 시드된 과제에 대해 최소 1건의 트렌드 포인트
+    expect(result.length).toBeGreaterThanOrEqual(1);
+    expect(result[0]!.assignmentId).toBe(seeded!.assignmentId);
+  });
+
+  // ─── 추가 커버리지: reviewer/admin도 analytics 접근 가능 ───
+
+  it("reviewer가 assignmentOverview를 호출할 수 있다", async () => {
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.assignmentOverview({
+      assignmentId: seeded!.assignmentId,
+    });
+
+    expect(result.assignmentId).toBe(seeded!.assignmentId);
+    expect(result.sessionCount).toBe(1);
+  });
+
+  it("admin이 weakTypes를 호출할 수 있다", async () => {
+    const caller = makeCaller("admin");
+
+    const result = await caller.weakTypes({
+      assignmentId: seeded!.assignmentId,
+      threshold: 0.5,
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+  });
 });

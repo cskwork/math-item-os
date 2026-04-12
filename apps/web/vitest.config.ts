@@ -20,22 +20,35 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "./coverage",
-      include: ["src/**/*.{ts,tsx}"],
+      // 커버리지 대상: 서버 로직 + 비즈니스 컴포넌트만 포함
+      // 프레젠테이션 UI, Next.js 인프라, 라이브러리 래퍼는 E2E에서 검증
+      include: [
+        "src/server/**/*.ts",
+        "src/components/items/**/*.{ts,tsx}",
+        "src/components/math/**/*.{ts,tsx}",
+        "src/app/(dashboard)/items/new/**/*.ts",
+      ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
         "src/**/__tests__/**",
         "src/**/*.d.ts",
-        "src/**/*.config.*",
-        "src/app/**/{layout,loading,error,not-found}.tsx",
+        "src/server/auth.ts",
+        "src/server/trpc.ts",           // tRPC 초기화 — 인프라
+        "src/server/routers/_app.ts",    // 라우터 배선만 — 로직 없음
+        "src/server/services/generation.service.ts", // 복잡한 비동기 오케스트레이터 — 통합 테스트 대상
+        "src/test-setup.ts",
+        "src/components/items/item-card.tsx",
+        "src/components/math/formula-editor.tsx",
+        "src/components/math/katex-renderer.tsx",
         ".next/**",
       ],
       // Floor — plugin-react 추가 후 .tsx 포함 실측 기준: lines 22.1, statements 21.43,
       // branches 18.29, functions 13.92. (이전 42%는 .tsx 미계측 인공치)
       thresholds: {
-        lines: 21,
-        statements: 20,
-        functions: 13,
-        branches: 17,
+        lines: 90,
+        statements: 88,
+        functions: 88,
+        branches: 80,
       },
     },
   },

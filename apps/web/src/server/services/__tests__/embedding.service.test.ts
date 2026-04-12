@@ -192,4 +192,137 @@ describe("syncItemEmbedding", () => {
     const approvedResults = await findSimilarByVector(queryVector, ORG_ID, 5);
     expect(approvedResults.find((r) => r.itemId === ITEM_ID)).toBeDefined();
   });
+
+  it("존재하지 않는 문항은 조용히 반환한다 (fire-and-forget)", async () => {
+    // 존재하지 않는 ID로 호출해도 예외를 던지지 않음
+    await expect(syncItemEmbedding("nonexistent-item")).resolves.toBeUndefined();
+    // fetch가 호출되지 않아야 함 (item == null 이므로 early return)
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("임베딩 API가 null을 반환하면 DB 업데이트를 건너뛴다", async () => {
+    // 이미 존재하는 ITEM_ID 사용
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ embedding: null }),
+    });
+
+    await expect(syncItemEmbedding(ITEM_ID)).resolves.toBeUndefined();
+    // API 호출은 되었으나 null이라서 DB 업데이트 안 함
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("네트워크 오류 시에도 예외를 던지지 않는다 (fire-and-forget)", async () => {
+    mockFetch.mockRejectedValue(new Error("ECONNREFUSED"));
+
+    await expect(syncItemEmbedding(ITEM_ID)).resolves.toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────
+// buildEmbeddingText - 추가 엣지 케이스
+// ─────────────────────────────────────────────
+
+describe("buildEmbeddingText - additional", () => {
+  it("여러 스킬을 쉼표로 구분하여 결합한다", () => {
+    const text = buildEmbeddingText({
+      bodyLatex: "x + y = z",
+      skills: [
+        { skill: { title: "덧셈" } },
+        { skill: { title: "뺄셈" } },
+        { skill: { title: "등식" } },
+      ],
+    });
+    expect(text).toBe("x + y = z [skills: 덧셈, 뺄셈, 등식]");
+  });
+
+  it("여러 오개념을 쉼표로 구분하여 결합한다", () => {
+    const text = buildEmbeddingText({
+      bodyLatex: "2x = 4",
+      misconceptions: [
+        { misconception: { title: "부호 오류" } },
+        { misconception: { title: "나눗셈 오류" } },
+      ],
+    });
+    expect(text).toBe("2x = 4 [misconceptions: 부호 오류, 나눗셈 오류]");
+  });
+
+  it("빈 스킬/오개념 배열은 태그 없이 본문만 반환", () => {
+    const text = buildEmbeddingText({
+      bodyLatex: "x = 1",
+      skills: [],
+      misconceptions: [],
+    });
+    expect(text).toBe("x = 1");
+  });
+});
+
+// ─────────────────────────────────────────────
+// generateEmbeddingBatch - 추가 테스트
+// ─────────────────────────────────────────────
+
+describe("generateEmbeddingBatch - additional", () => {
+  it("HTTP 오류 시 모든 요소가 null인 배열을 반환한다", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      json: async () => ({}),
+    });
+
+    const result = await generateEmbeddingBatch(["a", "b", "c"]);
+    expect(result).toEqual([null, null, null]);
+  });
+
+  it("네트워크 예외 시 모든 요소가 null인 배열을 반환한다", async () => {
+    mockFetch.mockRejectedValue(new Error("network error"));
+
+    const result = await generateEmbeddingBatch(["a", "b"]);
+    expect(result).toEqual([null, null]);
+  });
+
+  it("응답에 embeddings가 없으면 null 배열을 반환한다", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    const result = await generateEmbeddingBatch(["a"]);
+    expect(result).toEqual([null]);
+  });
+});
+
+// ─────────────────────────────────────────────
+// generateEmbedding - 추가 테스트
+// ─────────────────────────────────────────────
+
+describe("generateEmbedding - additional", () => {
+  it("응답에 embedding이 없으면 null을 반환한다", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    const result = await generateEmbedding("text");
+    expect(result).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────
+// findSimilarByVector - 추가 테스트
+// ─────────────────────────────────────────────
+
+describe("findSimilarByVector - additional", () => {
+  it("excludeItemId를 지정하면 해당 문항이 결과에서 제외된다", async () => {
+    const queryVector = Array.from({ length: 768 }, () => 0.1);
+    const results = await findSimilarByVector(queryVector, ORG_ID, 5, ITEM_ID);
+
+    // ITEM_ID가 excludeItemId로 지정되었으므로 결과에 포함되지 않아야 함
+    expect(results.find((r) => r.itemId === ITEM_ID)).toBeUndefined();
+  });
+
+  it("다른 조직의 문항은 결과에 포함되지 않는다", async () => {
+    const queryVector = Array.from({ length: 768 }, () => 0.1);
+    const results = await findSimilarByVector(queryVector, "other-org", 5);
+    // 다른 조직이므로 ITEM_ID가 결과에 없어야 함
+    expect(results.find((r) => r.itemId === ITEM_ID)).toBeUndefined();
+  });
 });

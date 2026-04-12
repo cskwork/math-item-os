@@ -287,4 +287,114 @@ describe("search.router", () => {
       caller.items({ page: 1, limit: 999 } as never),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+
+  // ─── 추가 커버리지: hasSearchCriteria 분기 (lines 334-343) ───
+
+  it("쿼리도 필터도 없으면 Prisma 폴백을 사용한다 (hasSearchCriteria=false)", async () => {
+    const { searchItems } = await import("../../services/meilisearch.service");
+    const caller = makeCaller("reviewer");
+
+    // 쿼리 없음 + 필터 없음
+    const result = await caller.items({ page: 1, limit: 10 });
+
+    // Meilisearch가 호출되지 않아야 함
+    expect(searchItems).not.toHaveBeenCalled();
+    expect(result).toHaveProperty("items");
+  });
+
+  it("빈 문자열 쿼리는 Prisma 폴백을 사용한다", async () => {
+    const { searchItems } = await import("../../services/meilisearch.service");
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.items({ query: "   ", page: 1, limit: 10 });
+
+    expect(searchItems).not.toHaveBeenCalled();
+    expect(result).toHaveProperty("items");
+  });
+
+  it("빈 배열 필터는 Prisma 폴백을 사용한다", async () => {
+    const { searchItems } = await import("../../services/meilisearch.service");
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.items({
+      page: 1,
+      limit: 10,
+      filters: { skillIds: [], standardIds: [] },
+    });
+
+    expect(searchItems).not.toHaveBeenCalled();
+    expect(result).toHaveProperty("items");
+  });
+
+  // ─── 추가 커버리지: similar 프로시저 (lines 407-444) ───
+
+  it("happy path: similar가 빈 결과를 반환한다 (mock: findSimilarItems=[])", async () => {
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.similar({
+      itemId: createdItemIds[0]!,
+      limit: 5,
+    });
+
+    expect(result).toHaveProperty("items");
+    expect(result.items).toEqual([]);
+  });
+
+  it("similar: findSimilarItems가 결과를 반환하면 DB에서 문항을 조회한다", async () => {
+    const { findSimilarItems } = await import("../../services/similarity.service");
+    const mockFind = vi.mocked(findSimilarItems);
+
+    // mock을 결과가 있는 경우로 설정
+    mockFind.mockResolvedValueOnce([
+      {
+        itemId: createdItemIds[0]!,
+        score: 0.95,
+        signals: { skillOverlap: 0.8, difficultyDelta: 0.1, sameType: 1, bloomGap: 0, gradeGap: 0, standardOverlap: 0 },
+        explanation: "High similarity",
+      },
+    ]);
+
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.similar({
+      itemId: createdItemIds[1]!,
+      limit: 5,
+    });
+
+    expect(result).toHaveProperty("items");
+    expect(result.items.length).toBe(1);
+    expect(result.items[0]!.score).toBe(0.95);
+    expect(result.items[0]!.item.id).toBe(createdItemIds[0]);
+  });
+
+  it("similar: DB에 없는 itemId는 필터링된다", async () => {
+    const { findSimilarItems } = await import("../../services/similarity.service");
+    const mockFind = vi.mocked(findSimilarItems);
+
+    mockFind.mockResolvedValueOnce([
+      {
+        itemId: "nonexistent-item-id-xyz",
+        score: 0.5,
+        signals: { skillOverlap: 0, difficultyDelta: 0, sameType: 0, bloomGap: 0, gradeGap: 0, standardOverlap: 0 },
+        explanation: "Should be filtered",
+      },
+    ]);
+
+    const caller = makeCaller("reviewer");
+
+    const result = await caller.similar({
+      itemId: createdItemIds[0]!,
+      limit: 5,
+    });
+
+    expect(result.items).toEqual([]);
+  });
+
+  it("미인증 caller가 similar를 호출하면 UNAUTHORIZED", async () => {
+    const caller = makeCaller(null);
+
+    await expect(
+      caller.similar({ itemId: "any", limit: 5 }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
 });

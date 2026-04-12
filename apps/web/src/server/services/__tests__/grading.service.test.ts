@@ -316,5 +316,137 @@ describe("gradeResponse", () => {
       }, 1);
       expect(result.result).toBe("correct");
     });
+
+    it("studentAnswer가 숫자 값이면 문자열로 변환되어 처리된다", () => {
+      const result = gradeResponse(42 as never, {
+        itemType: "short_answer",
+        answer: { value: "42" },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("correct");
+    });
+
+    it("studentAnswer가 배열이면 문자열로 변환된다", () => {
+      const result = gradeResponse([1, 2, 3] as never, {
+        itemType: "short_answer",
+        answer: { value: "1,2,3" },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("correct");
+    });
+
+    it("studentAnswer 객체에 value가 숫자면 String 변환된다", () => {
+      const result = gradeResponse({ value: 42 } as never, {
+        itemType: "short_answer",
+        answer: { value: "42" },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("correct");
+    });
+
+    it("studentAnswer 객체에 value가 null이면 빈 문자열로 처리된다", () => {
+      const result = gradeResponse({ value: null } as never, {
+        itemType: "short_answer",
+        answer: { value: "42" },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("incorrect");
+    });
+  });
+
+  // -----------------------------------------------
+  // true_false - 추가 엣지 케이스
+  // -----------------------------------------------
+  describe("true_false - additional", () => {
+    const tfItem = (value: string) => ({
+      itemType: "true_false" as const,
+      answer: { value },
+      choices: null,
+    });
+
+    it("인식할 수 없는 불리언 값은 null로 파싱되어 incorrect", () => {
+      const result = gradeResponse(ans("maybe"), tfItem("true"), 1);
+      expect(result.result).toBe("incorrect");
+    });
+
+    it("answer.value가 인식할 수 없으면 incorrect", () => {
+      const result = gradeResponse(ans("true"), tfItem("neither"), 1);
+      expect(result.result).toBe("incorrect");
+    });
+
+    it("양쪽 모두 인식할 수 없으면 null===null → correct", () => {
+      // parseBooleanValue가 둘 다 null을 반환하므로 null === null → correct
+      const result = gradeResponse(ans("neither"), tfItem("neither"), 1);
+      expect(result.result).toBe("correct");
+    });
+
+    it("answer가 null이면 incorrect", () => {
+      const result = gradeResponse(ans("true"), {
+        itemType: "true_false",
+        answer: null,
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("incorrect");
+    });
+  });
+
+  // -----------------------------------------------
+  // short_answer - answer가 null인 경우
+  // -----------------------------------------------
+  describe("short_answer - null answer", () => {
+    it("answer가 null이면 incorrect", () => {
+      const result = gradeResponse(ans("anything"), {
+        itemType: "short_answer",
+        answer: null,
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("incorrect");
+    });
+  });
+
+  // -----------------------------------------------
+  // expression - 추가 케이스
+  // -----------------------------------------------
+  describe("expression - additional", () => {
+    it("answer가 null이면 incorrect", () => {
+      const result = gradeResponse(ans("x^2"), {
+        itemType: "expression",
+        answer: null,
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("incorrect");
+    });
+
+    it("대소문자 무시하여 일치하면 correct", () => {
+      const result = gradeResponse(ans("x^2 + y"), {
+        itemType: "expression",
+        answer: { value: "X^2 + Y" },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("correct");
+    });
+  });
+
+  // -----------------------------------------------
+  // fill_in_blank - 추가 케이스
+  // -----------------------------------------------
+  describe("fill_in_blank - additional", () => {
+    it("alternatives와 일치하면 correct", () => {
+      const result = gradeResponse(ans("pi"), {
+        itemType: "fill_in_blank",
+        answer: { value: "π", alternatives: ["pi", "3.14"] },
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("correct");
+    });
+
+    it("answer가 null이면 incorrect", () => {
+      const result = gradeResponse(ans("test"), {
+        itemType: "fill_in_blank",
+        answer: null,
+        choices: null,
+      }, 1);
+      expect(result.result).toBe("incorrect");
+    });
   });
 });

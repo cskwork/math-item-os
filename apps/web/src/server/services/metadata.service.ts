@@ -84,7 +84,7 @@ async function validateSkillIds(
     const missing = skillIds.filter((id: string) => !foundIds.has(id));
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `존재하지 않거나 해당 조직에 속하지 않는 스킬: ${missing.join(", ")}`,
+      message: `존재하지 않거나 해당 조직에 속하지 않는 성취기준: ${missing.join(", ")}`,
     });
   }
 }

@@ -204,6 +204,13 @@ const StepItemCard = memo(function StepItemCard({
 
       {/* 메타 배지 */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {/* 상태 배지 (미승인) */}
+        {item.status !== "approved" && (
+          <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            {item.status === "draft" ? "초안" : "검토중"}
+          </span>
+        )}
+
         {/* 난이도 배지 */}
         {difficultyLabel && difficultyColor && (
           <span
@@ -322,7 +329,7 @@ function EmptyPath() {
       <p className="text-center text-sm text-slate-400">
         교정 경로를 생성할 수 없습니다.
         <br />
-        관련 스킬이 설정되어 있는지 확인해주세요.
+        관련 성취기준이 설정되어 있는지 확인해주세요.
       </p>
     </div>
   );

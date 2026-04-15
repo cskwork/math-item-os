@@ -41,6 +41,58 @@ const TEMPLATE_DETAIL_INCLUDE = {
   },
 } satisfies Prisma.TemplateInclude;
 
+// -- 파라미터 유효성 검증 --
+
+/** 템플릿 파라미터 배열과 bodyTemplate의 정합성을 검증한다. */
+function validateParameters(
+  parameters: ReadonlyArray<Record<string, unknown>>,
+  bodyTemplate: string,
+): void {
+  const names: string[] = [];
+
+  for (const param of parameters) {
+    const name = param.name;
+    if (typeof name !== "string" || name.trim().length === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "파라미터 name이 비어있습니다",
+      });
+    }
+
+    if (names.includes(name)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `중복된 파라미터 이름: ${name}`,
+      });
+    }
+    names.push(name);
+
+    const min = param.min;
+    const max = param.max;
+    if (typeof min === "number" && typeof max === "number" && min >= max) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `파라미터 ${name}의 min(${min})이 max(${max})보다 크거나 같습니다`,
+      });
+    }
+  }
+
+  // bodyTemplate 내 placeholder와 파라미터 이름 일치 확인
+  const placeholders = [...bodyTemplate.matchAll(/\{\{(\w+)\}\}/g)].map(
+    (m) => m[1]!,
+  );
+  const nameSet = new Set(names);
+
+  for (const ph of placeholders) {
+    if (!nameSet.has(ph)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `bodyTemplate의 placeholder {{${ph}}}에 대응하는 파라미터가 없습니다`,
+      });
+    }
+  }
+}
+
 // -- 1. 템플릿 생성 --
 
 /** 새 템플릿을 생성한다. 감사 로그 기록 포함. */
@@ -49,6 +101,8 @@ export async function createTemplate(
   performedBy: string,
   orgId: string,
 ) {
+  validateParameters(input.parameters, input.bodyTemplate);
+
   return prisma.$transaction(async (tx: TxClient) => {
     // 템플릿 레코드 생성
     const created = await tx.template.create({
@@ -117,6 +171,13 @@ export async function updateTemplate(
       code: "FORBIDDEN",
       message: "해당 조직의 템플릿이 아닙니다",
     });
+  }
+
+  // 파라미터 또는 bodyTemplate이 변경되면 정합성 검증
+  const newParams = input.parameters ?? (existing.parameters as ReadonlyArray<Record<string, unknown>>);
+  const newBody = input.bodyTemplate ?? existing.bodyTemplate;
+  if (input.parameters !== undefined || input.bodyTemplate !== undefined) {
+    validateParameters(newParams, newBody);
   }
 
   return prisma.$transaction(async (tx: TxClient) => {

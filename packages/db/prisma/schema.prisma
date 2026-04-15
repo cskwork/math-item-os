@@ -17,6 +17,19 @@ datasource db {
 // Enums
 // ─────────────────────────────────────────────────
 
+enum Subject {
+  MATH
+  IT_CERT
+  ENGLISH
+}
+
+enum CodeLanguage {
+  C
+  JAVA
+  PYTHON
+  SQL
+}
+
 enum SchoolLevel {
   elementary
   middle
@@ -230,18 +243,25 @@ model Organization {
   @@map("organizations")
 }
 
-/// 수학 문항. LaTeX + MathML + SymPy AST 3중 표현 저장.
+/// 문항. 수학은 LaTeX 3중 표현, IT자격증은 코드+텍스트.
 model Item {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orgId     String
   passageId String?
+  subject   Subject @default(MATH)
 
-  // 3중 표현 (Constitution I)
+  // 수학: 3중 표현 (Constitution I)
   bodyLatex  String  @db.Text
   bodyMathml String? @db.Text
   bodySympy  String? @db.Text
   bodyHtml   String? @db.Text
   bodyBlocks Json?   // Tiptap JSON document (structured block storage)
+
+  // IT 자격증: 코드 + 텍스트
+  bodyCode       String?       @db.Text
+  codeLanguage   CodeLanguage?
+  expectedOutput String?       @db.Text
+  bodyText       String?       @db.Text
 
   // 선택지/정답
   choices Json? // [{label, latex, mathml, is_correct}]
@@ -264,8 +284,7 @@ model Item {
   isGenerated      Boolean       @default(false)
   templateId       String?
 
-  // 벡터 임베딩 (pgvector - raw SQL migration에서 추가)
-  // embedding Unsupported("vector(768)")?
+  embedding Unsupported("vector(768)")?
 
   currentVersion Int    @default(1) @db.SmallInt
   createdBy      String?
@@ -290,6 +309,7 @@ model Item {
   reviewSuggestions   ReviewSuggestion[]
 
   @@index([orgId, status, schoolLevel, grade])
+  @@index([orgId, subject, status])
   @@index([orgId, itemType])
   @@index([orgId, createdAt])
   @@map("items")
@@ -314,8 +334,9 @@ model ItemVersion {
 
 /// 지식 그래프 노드. 선수학습 관계 DAG 형성.
 model Skill {
-  id               String @id @default(cuid())
+  id               String  @id @default(cuid())
   orgId            String
+  subject          Subject @default(MATH)
   code             String
   title            String
   description      String?
@@ -334,6 +355,7 @@ model Skill {
   prerequisitesTo    PrerequisiteEdge[] @relation("EdgeTo")
 
   @@unique([orgId, code])
+  @@index([orgId, subject])
   @@index([orgId, topicPath])
   @@map("skills")
 }
@@ -357,10 +379,11 @@ model PrerequisiteEdge {
   @@map("prerequisite_edges")
 }
 
-/// 2022 개정 교육과정 성취기준. CASE 프레임워크 호환.
+/// 교육과정 성취기준. 수학은 2022 개정 교육과정, IT는 NCS 기반.
 model Standard {
   id          String      @id @default(cuid())
   orgId       String
+  subject     Subject     @default(MATH)
   code        String
   title       String
   schoolLevel SchoolLevel
@@ -380,10 +403,11 @@ model Standard {
   @@map("standards")
 }
 
-/// 수학 오개념. 연구 기반 사전 정의 + 검수자 확장.
+/// 오개념. 연구 기반 사전 정의 + 검수자 확장.
 model Misconception {
   id            String   @id @default(cuid())
   orgId         String
+  subject       Subject  @default(MATH)
   code          String
   title         String
   typicalError  String?

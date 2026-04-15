@@ -1,6 +1,60 @@
 // 시드 데이터: 문항 100개 + 정션 테이블 + 난이도 프로필 시딩
 import type { PrismaClient } from "@prisma/client";
+import {
+  latexToMathml,
+  renderLatex,
+  tokenizeKatexContent,
+  hasDelimitedMath,
+} from "@math-item-os/math-parser";
 import { ITEMS } from "./items-data.js";
+
+/**
+ * bodyLatex에서 순수 LaTeX를 추출하여 MathML + HTML을 생성한다.
+ * SymPy는 Python 서비스 의존적이므로 시드 시 생성하지 않는다.
+ */
+function convertForSeed(bodyLatex: string): {
+  bodyMathml: string | null;
+  bodyHtml: string;
+} {
+  const isMixed = hasDelimitedMath(bodyLatex);
+  const hasKorean = /[가-힣]/.test(bodyLatex);
+
+  if (isMixed) {
+    const segments = tokenizeKatexContent(bodyLatex);
+    const mathSegments = segments.filter((s) => s.type === "math");
+    if (mathSegments.length === 0) {
+      return { bodyMathml: null, bodyHtml: "" };
+    }
+
+    const pureLatex = mathSegments.map((s) => s.content).join(" ");
+    const displayMode = mathSegments[0].displayMode;
+    const mathmlResult = latexToMathml(pureLatex, { displayMode });
+
+    // HTML: 세그먼트별 렌더링
+    const html = segments
+      .map((seg) => {
+        if (seg.type === "text") {
+          return seg.content
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
+        return renderLatex(seg.content, { displayMode: seg.displayMode }).html;
+      })
+      .join("");
+
+    return { bodyMathml: mathmlResult.mathml, bodyHtml: html };
+  }
+
+  if (hasKorean) {
+    return { bodyMathml: null, bodyHtml: "" };
+  }
+
+  // 순수 LaTeX
+  const mathmlResult = latexToMathml(bodyLatex);
+  const renderResult = renderLatex(bodyLatex);
+  return { bodyMathml: mathmlResult.mathml, bodyHtml: renderResult.html };
+}
 
 /**
  * 문항 100개 시드 (멱등)
@@ -30,9 +84,13 @@ export async function seedItems(
       where: { orgId, metadata: { path: ["code"], equals: def.code } },
     });
 
+    const conversion = convertForSeed(def.bodyLatex);
+
     const itemData = {
       orgId,
       bodyLatex: def.bodyLatex,
+      bodyMathml: conversion.bodyMathml,
+      bodyHtml: conversion.bodyHtml,
       answer: def.answer,
       schoolLevel: "middle" as const,
       grade: def.grade,

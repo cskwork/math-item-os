@@ -3,9 +3,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.animate import router as animate_router
 from app.routers.generate import router as generate_router
 from app.routers.similarity import router as similarity_router
+from app.routers.solve import router as solve_router
 from app.routers.validate import router as validate_router
+from app.routers.visualize import router as visualize_router
 
 app = FastAPI(
     title="Math AI Service",
@@ -24,6 +27,9 @@ app.add_middleware(
 app.include_router(validate_router, prefix="/convert", tags=["convert"])
 app.include_router(similarity_router, prefix="/similarity", tags=["similarity"])
 app.include_router(generate_router, prefix="/generate", tags=["generate"])
+app.include_router(visualize_router, prefix="/visualize", tags=["visualize"])
+app.include_router(animate_router, prefix="/animate", tags=["animate"])
+app.include_router(solve_router, prefix="/solve", tags=["solve"])
 
 
 @app.get("/health")

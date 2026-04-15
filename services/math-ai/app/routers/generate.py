@@ -100,6 +100,8 @@ async def generate_variants(body: GenerateRequest) -> GenerateResponse:
                     params=result.params,  # type: ignore[arg-type]
                     answer_value=result.answer_value,  # type: ignore[arg-type]
                     answer_latex=result.answer_latex,  # type: ignore[arg-type]
+                    answer_values=result.answer_values,
+                    answer_values_latex=result.answer_values_latex,
                     seed=result.seed,  # type: ignore[arg-type]
                 )
             )

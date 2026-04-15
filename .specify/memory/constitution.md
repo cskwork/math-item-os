@@ -1,28 +1,31 @@
 <!-- SYNC IMPACT REPORT
-Version change: 1.0.0 -> 2.0.0 (MAJOR - all principles redefined)
-Reason: Project scope changed from HWP-to-HTML converter to
-  Math Knowledge Graph + Item OS (LaTeX math item platform)
+Version change: 2.0.0 -> 2.0.1 (PATCH - clarifications reconcile constitution with shipped reality)
+Reason: Two implementation decisions diverged from the v2.0.0 text and needed
+  to be ratified as explicit carve-outs rather than silent exceptions:
+  (a) bodyLatex fields store mixed Korean prose + LaTeX fragments
+      (pdf.service.ts:renderMixedLatex), not pure LaTeX
+  (b) remediation paths include reviewed+draft items, not approved-only
+      (remediation.service.ts:297)
 
 Principles modified:
-  I.   Parsing Fidelity -> Math Representation Integrity
-  II.  Output Correctness and Accessibility -> Explainable Knowledge Structure
-  III. Regression-Guarded Testing -> Automated Correctness Verification
-  IV.  Bounded Resource Consumption -> Curriculum-Aligned Data Integrity
+  I.   Math Representation Integrity - clarified LaTeX scope (prose+fragments
+       vs. pure LaTeX CAS targets)
+  IV.  Curriculum-Aligned Data Integrity - clarified approved-only visibility
+       with an explicit remediation-path exception
 
 Sections modified:
-  Quality Gates: HWP/HTML-specific gates removed, CAS/search gates added
-  Development Workflow: HWP corpus management -> math item fixture management
+  None (Quality Gates, Development Workflow, Governance unchanged)
 
 Templates requiring updates:
   - .specify/templates/plan-template.md: ✅ no changes needed (Constitution Check is dynamic)
   - .specify/templates/spec-template.md: ✅ no changes needed (generic template)
   - .specify/templates/tasks-template.md: ✅ no changes needed (generic template)
+  - .specify/templates/agent-file-template.md: ✅ no changes needed
+  - .specify/templates/checklist-template.md: ✅ no changes needed
 
 Follow-up TODOs:
-  - Create tests/fixtures/items/ directory for reference math items
-  - Create tests/fixtures/curriculum/ for 2022 curriculum skill graph data
-  - Configure CAS verification test harness
-  - Set up search performance benchmark with 80K+ item dataset
+  - None. Previous v2.0.0 TODOs (fixture directories, CAS harness, search
+    benchmark dataset) remain open and are tracked outside the constitution.
 -->
 
 # Math Item OS Constitution
@@ -35,6 +38,15 @@ Every math item MUST maintain a faithful, lossless triple
 representation: LaTeX (authoring) + MathML (rendering) +
 CAS expression tree (verification/comparison).
 
+- The `bodyLatex` authoring field MAY contain natural language
+  prose (Korean or other locale) interleaved with LaTeX
+  fragments delimited by `$...$` (inline) or `$$...$$`
+  (display). Renderers MUST split on these delimiters, convert
+  each fragment to MathML, and preserve the surrounding prose
+  verbatim. Fields that feed CAS verification (answer keys,
+  solution expressions, generation templates) MUST be pure
+  LaTeX without natural language, so the CAS leg operates on
+  unambiguous input.
 - LaTeX → MathML conversion MUST preserve all mathematical
   semantics. The rendered output MUST be visually identical to
   the authored LaTeX intent. Any conversion that alters meaning
@@ -142,8 +154,16 @@ continuously enforced.
   machine-readability and interoperability.
 - Item quality states (draft/reviewed/approved/retired) MUST
   be enforced as a state machine. Transitions MUST be audited.
-  Only "approved" items MUST appear in teacher-facing search
-  and recommendations.
+  Default teacher-facing search and recommendation surfaces
+  MUST show only `approved` items.
+- Exception — remediation correction paths MAY include
+  `reviewed` and `draft` items when the item is linked to a
+  reviewed misconception, so that students are not blocked on
+  a correction flow by an empty approved pool. Responses MUST
+  carry each item's current quality state so the client can
+  render a visible indicator, and such items MUST NOT leak
+  into generic browse, keyword search, or assignment-builder
+  pickers. `retired` items MUST NEVER be surfaced.
 - Copyright provenance MUST be tracked for every item. Items
   derived from copyrighted sources (exam archives, textbooks)
   MUST be flagged and MUST NOT be stored verbatim — only
@@ -291,4 +311,4 @@ constitution SHOULD be maintained in a separate `CONTRIBUTING.md`
 or `.specify/memory/guidance.md` file. The constitution defines
 principles; guidance files define procedures.
 
-**Version**: 2.0.0 | **Ratified**: 2026-04-07 | **Last Amended**: 2026-04-07
+**Version**: 2.0.1 | **Ratified**: 2026-04-07 | **Last Amended**: 2026-04-13

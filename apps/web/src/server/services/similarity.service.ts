@@ -75,7 +75,7 @@ interface SourceItem {
 
 /** 시그널 이름과 한국어 라벨 매핑 */
 const SIGNAL_LABELS: Record<keyof SimilaritySignals, string> = {
-  skillMatch: "스킬 일치",
+  skillMatch: "성취기준 일치",
   formulaStructure: "수식 구조 유사",
   prerequisiteDistance: "선수학습 연결",
   textSemantic: "텍스트 의미 유사",

@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, Suspense, type FormEvent } from "react";
+import React, { useState, useCallback, useEffect, useRef, Suspense, type FormEvent } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BlockEditor } from "@/components/math/block-editor";
+import { FormulaEditor } from "@/components/math/formula-editor";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import {
+  SUBJECT_OPTIONS,
+  CODE_LANGUAGE_OPTIONS,
   SCHOOL_LEVEL_OPTIONS,
   ITEM_TYPE_OPTIONS,
   FORMULA_TYPE_OPTIONS,
@@ -15,9 +18,20 @@ import {
   DIFFICULTY_LEVEL_OPTIONS,
   GRADE_BY_LEVEL,
   type SchoolLevelKey,
+  type SubjectKey,
 } from "@math-item-os/shared/constants/index";
 import { extractFormValues } from "./item-form-utils";
 import { AutoTagSuggestions } from "@/components/items/auto-tag-suggestions";
+import type { AuthoringOutput } from "@/components/math/authoring";
+import { MathAuthoringPopup } from "@/components/math/authoring";
+
+// MathLive는 SSR 불가 — 클라이언트 전용 dynamic import
+const ItemAuthoringGrid = dynamic(
+  () => import("@/components/math/authoring").then((m) => ({ default: m.ItemAuthoringGrid })),
+  { ssr: false, loading: () => <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">저작 도구 로딩 중...</div> },
+);
+
+type EditorTab = "classic" | "authoring";
 
 // --- 타입 정의 ---
 
@@ -49,17 +63,27 @@ function getGradeOptions(schoolLevel: SchoolLevel): readonly number[] {
 
 /** 필수 필드 유효성 검사 */
 function validateForm(state: {
+  subject: SubjectKey;
   bodyLatex: string;
   schoolLevel: SchoolLevel;
   grade: number;
   itemType: string;
   answerFormat: string;
   answerValue: string;
+  authoringOutput: AuthoringOutput | null;
 }): FormErrors {
   const errors: FormErrors = {};
 
-  if (!state.bodyLatex.trim()) {
-    errors.bodyLatex = "수식 본문을 입력해 주세요.";
+  if (state.subject === "MATH") {
+    if (!state.bodyLatex.trim()) {
+      errors.bodyLatex = "수식 본문을 입력해 주세요.";
+    }
+  } else if (state.subject === "IT_CERT") {
+    const hasCode = state.authoringOutput?.bodyCode?.trim();
+    const hasText = state.authoringOutput?.bodyText?.trim() || state.bodyLatex.trim();
+    if (!hasCode && !hasText) {
+      errors.bodyLatex = "코드 또는 본문 텍스트를 입력해 주세요.";
+    }
   }
   if (!state.schoolLevel) {
     errors.schoolLevel = "학교급을 선택해 주세요.";
@@ -160,8 +184,8 @@ function ItemForm() {
   const isEditMode = editId !== null;
 
   // -- 폼 상태 --
+  const [subject, setSubject] = useState<SubjectKey>("MATH");
   const [bodyLatex, setBodyLatex] = useState("");
-  const [bodyBlocks, setBodyBlocks] = useState<any>(null);
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("middle");
   const [grade, setGrade] = useState<number>(1);
   const [semester, setSemester] = useState<Semester>(undefined);
@@ -178,6 +202,9 @@ function ItemForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [changeSummary, setChangeSummary] = useState("");
   const [initialized, setInitialized] = useState(false);
+  const [editorTab, setEditorTab] = useState<EditorTab>("authoring");
+  const [popupOpen, setPopupOpen] = useState(false);
+  const authoringOutputRef = useRef<AuthoringOutput | null>(null);
 
   // -- 편집 모드: 기존 문항 로드 --
   const { data: existingItem, isLoading: isLoadingItem } = trpc.item.getById.useQuery(
@@ -257,6 +284,14 @@ function ItemForm() {
     );
   }, []);
 
+  // -- 저작 도구 출력 → bodyLatex 동기화 --
+  const handleAuthoringOutput = useCallback((output: AuthoringOutput) => {
+    authoringOutputRef.current = output;
+    if (editorTab === "authoring") {
+      setBodyLatex(output.bodyLatex);
+    }
+  }, [editorTab]);
+
   // -- 활용 목적 토글 --
   const handleUsagePurposeToggle = useCallback((purpose: string) => {
     setUsagePurposes((prev) =>
@@ -273,12 +308,14 @@ function ItemForm() {
 
       // 클라이언트 유효성 검사
       const validationErrors = validateForm({
+        subject,
         bodyLatex,
         schoolLevel,
         grade,
         itemType,
         answerFormat,
         answerValue,
+        authoringOutput: authoringOutputRef.current,
       });
 
       if (Object.keys(validationErrors).length > 0) {
@@ -288,9 +325,10 @@ function ItemForm() {
 
       setErrors({});
 
+      const output = authoringOutputRef.current;
       const payload = {
-        bodyLatex,
-        bodyBlocks: bodyBlocks ?? undefined,
+        subject: subject as "MATH" | "IT_CERT" | "ENGLISH",
+        bodyLatex: subject === "MATH" ? bodyLatex : (bodyLatex || ""),
         schoolLevel,
         grade,
         semester,
@@ -300,7 +338,7 @@ function ItemForm() {
           | "essay"
           | "fill_in_blank"
           | "true_false",
-        formulaType: formulaType as
+        formulaType: (subject === "MATH" ? formulaType : "none") as
           | "inline"
           | "display"
           | "mixed"
@@ -331,6 +369,13 @@ function ItemForm() {
         skillIds: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
         standardIds: selectedStandardIds.length > 0 ? selectedStandardIds : undefined,
         misconceptionIds: selectedMisconceptionIds.length > 0 ? selectedMisconceptionIds : undefined,
+        // IT 자격증 전용
+        ...(subject === "IT_CERT" && {
+          bodyCode: output?.bodyCode,
+          codeLanguage: output?.codeLanguage as "C" | "JAVA" | "PYTHON" | "SQL" | undefined,
+          expectedOutput: output?.expectedOutput,
+          bodyText: output?.bodyText,
+        }),
       };
 
       if (isEditMode) {
@@ -344,8 +389,8 @@ function ItemForm() {
       }
     },
     [
+      subject,
       bodyLatex,
-      bodyBlocks,
       schoolLevel,
       grade,
       semester,
@@ -380,7 +425,7 @@ function ItemForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       {/* 페이지 헤더 */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -396,15 +441,75 @@ function ItemForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {/* 수식 영역 */}
-        <FormSection title="수식 영역">
-          <BlockEditor
-            value={bodyBlocks}
-            onChange={setBodyBlocks}
-            onLatexChange={setBodyLatex}
-            initialLatex={isEditMode && existingItem?.bodyLatex && !bodyBlocks ? existingItem.bodyLatex : undefined}
-            label="수식"
-            error={errors.bodyLatex}
+        {/* 과목 선택 */}
+        <FormSection title="과목">
+          <SelectField
+            label="과목"
+            value={subject}
+            onChange={(v) => setSubject(v as SubjectKey)}
+            options={SUBJECT_OPTIONS}
+          />
+        </FormSection>
+
+        {/* 콘텐츠 영역 — 탭 토글 */}
+        <FormSection title={subject === "MATH" ? "수식 영역" : "문항 콘텐츠"}>
+          {/* 탭 헤더 */}
+          <div className="flex gap-1 rounded-md bg-slate-100 p-0.5 dark:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => setEditorTab("authoring")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                editorTab === "authoring"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              }`}
+            >
+              저작 도구
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorTab("classic")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                editorTab === "classic"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+              }`}
+            >
+              LaTeX 직접 입력
+            </button>
+          </div>
+
+          {/* 탭 콘텐츠 */}
+          {editorTab === "authoring" ? (
+            isEditMode && !initialized ? null : (
+              <ItemAuthoringGrid
+                onOutputChange={handleAuthoringOutput}
+                initialBodyLatex={bodyLatex || undefined}
+                subject={subject}
+              />
+            )
+          ) : (
+            <FormulaEditor
+              value={bodyLatex}
+              onChange={setBodyLatex}
+              label="수식"
+              error={errors.bodyLatex}
+            />
+          )}
+
+          {errors.bodyLatex && editorTab === "authoring" && (
+            <p className="text-sm text-red-500" role="alert">{errors.bodyLatex}</p>
+          )}
+
+          {/* 수식 저작도구 팝업 */}
+          <Button type="button" variant="outline" size="sm" onClick={() => setPopupOpen(true)}>
+            수식 저작도구
+          </Button>
+          <MathAuthoringPopup
+            open={popupOpen}
+            onOpenChange={setPopupOpen}
+            initialLatex={bodyLatex}
+            onConfirm={(latex) => setBodyLatex(latex)}
           />
         </FormSection>
 
@@ -463,24 +568,26 @@ function ItemForm() {
           onMisconceptionSelect={handleMisconceptionToggle}
         />
 
-        {/* 수식 설정 */}
-        <FormSection title="수식 설정">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <SelectField
-              label="수식 유형"
-              value={formulaType}
-              onChange={setFormulaType}
-              options={FORMULA_TYPE_OPTIONS}
-            />
-            <SelectField
-              label="정답 형식"
-              value={answerFormat}
-              onChange={setAnswerFormat}
-              options={ANSWER_FORMAT_OPTIONS}
-              error={errors.answerFormat}
-            />
-          </div>
-        </FormSection>
+        {/* 수식 설정 (수학 전용) */}
+        {subject === "MATH" && (
+          <FormSection title="수식 설정">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                label="수식 유형"
+                value={formulaType}
+                onChange={setFormulaType}
+                options={FORMULA_TYPE_OPTIONS}
+              />
+              <SelectField
+                label="정답 형식"
+                value={answerFormat}
+                onChange={setAnswerFormat}
+                options={ANSWER_FORMAT_OPTIONS}
+                error={errors.answerFormat}
+              />
+            </div>
+          </FormSection>
+        )}
 
         {/* 정답 */}
         <FormSection title="정답">

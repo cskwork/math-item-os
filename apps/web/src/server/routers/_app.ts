@@ -7,6 +7,10 @@ import { adminRouter } from "./admin.router";
 import { solveRouter } from "./solve.router";
 import { worksheetRouter } from "./worksheet.router";
 import { analyticsRouter } from "./analytics.router";
+import { visualizeRouter } from "./visualize.router";
+import { animateRouter } from "./animate.router";
+import { deepSolveRouter } from "./deep-solve.router";
+import { codeRouter } from "./code.router";
 
 export const appRouter = createTRPCRouter({
   item: itemRouter,
@@ -16,6 +20,10 @@ export const appRouter = createTRPCRouter({
   solve: solveRouter,
   worksheet: worksheetRouter,
   analytics: analyticsRouter,
+  visualize: visualizeRouter,
+  animate: animateRouter,
+  deepSolve: deepSolveRouter,
+  code: codeRouter,
 });
 
 export type AppRouter = typeof appRouter;

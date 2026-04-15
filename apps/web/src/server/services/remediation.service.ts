@@ -86,21 +86,21 @@ export async function getRemediationPath(
     });
   }
 
-  const relatedSkillCodes = misconception.relatedSkills;
+  const relatedSkillIds = misconception.relatedSkills;
 
   // 관련 스킬이 없으면 빈 경로 반환
-  if (relatedSkillCodes.length === 0) {
+  if (relatedSkillIds.length === 0) {
     return { steps: [] };
   }
 
-  // relatedSkills에는 code가 저장되어 있으므로 id로 변환
+  // relatedSkills에는 skill ID가 저장되어 있으므로 존재 여부만 검증
   const skillRows = await prisma.skill.findMany({
-    where: { orgId, code: { in: [...relatedSkillCodes] } },
+    where: { orgId, id: { in: [...relatedSkillIds] } },
     select: { id: true },
   });
-  const relatedSkillIds = skillRows.map((s) => s.id);
+  const validSkillIds = skillRows.map((s) => s.id);
 
-  if (relatedSkillIds.length === 0) {
+  if (validSkillIds.length === 0) {
     return { steps: [] };
   }
 
@@ -109,7 +109,7 @@ export async function getRemediationPath(
 
   // Phase 1: 선수 개념 복습
   const prerequisiteItems = await fetchPrerequisiteReviewItems(
-    relatedSkillIds,
+    validSkillIds,
     orgId,
     difficulty,
     limit,
@@ -119,7 +119,7 @@ export async function getRemediationPath(
 
   // Phase 2: 기본 연습
   const basicItems = await fetchBasicPracticeItems(
-    relatedSkillIds,
+    validSkillIds,
     orgId,
     difficulty,
     limit,
@@ -129,7 +129,7 @@ export async function getRemediationPath(
 
   // Phase 3: 확인 심화
   const confirmationItems = await fetchConfirmationItems(
-    relatedSkillIds,
+    validSkillIds,
     orgId,
     difficulty,
     limit,
@@ -140,7 +140,7 @@ export async function getRemediationPath(
     {
       phase: "prerequisite_review",
       items: prerequisiteItems,
-      explanation: "관련 스킬의 선수 개념을 복습합니다",
+      explanation: "관련 성취기준의 선수 개념을 복습합니다",
     },
     {
       phase: "basic_practice",
@@ -285,7 +285,7 @@ async function fetchConfirmationItems(
 // 내부 헬퍼 함수
 // -------------------------------------------------
 
-/** 승인 문항 조회를 위한 공통 where 절을 생성한다 */
+/** 승인 문항 조회를 위한 공통 where 절을 생성한다. approved 우선, 없으면 draft 포함. */
 function buildItemWhereClause(
   skillIds: ReadonlyArray<string>,
   orgId: string,
@@ -294,17 +294,17 @@ function buildItemWhereClause(
 ): Prisma.ItemWhereInput {
   return {
     orgId,
-    status: "approved",
+    status: { in: ["approved", "reviewed", "draft"] },
     skills: {
       some: { skillId: { in: [...skillIds] } },
     },
     ...(excludeIds.size > 0 && {
       id: { notIn: [...excludeIds] },
     }),
-    difficultyAuthor: {
-      not: null,
-      ...difficultyFilter,
-    },
+    OR: [
+      { difficultyAuthor: difficultyFilter },
+      { difficultyAuthor: null },
+    ],
   };
 }
 

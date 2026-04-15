@@ -32,6 +32,9 @@ import {
 } from "../services/prerequisite.service";
 import {
   createMisconception,
+  updateMisconception,
+  deleteMisconception,
+  getMisconceptionById,
   listMisconceptions,
 } from "../services/misconception.service";
 import { getRemediationPath } from "../services/remediation.service";
@@ -55,6 +58,16 @@ const updateSkillSchema = z.object({
   bloomLevel: z.number().int().min(1).max(6).optional(),
   estimatedTimeMin: z.number().int().min(1).optional(),
   typeLevel: z.number().int().min(1).max(6).optional(),
+});
+
+/** 오개념 수정 스키마 */
+const updateMisconceptionSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1).optional(),
+  typicalError: z.string().optional(),
+  remediation: z.string().optional(),
+  severity: z.number().int().min(1).max(5).optional(),
+  relatedSkillIds: z.array(z.string()).optional(),
 });
 
 /** 선수 학습 관계 삭제 스키마 */
@@ -158,6 +171,30 @@ export const skillRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const orgId = getOrgId();
       return createMisconception(input, ctx.user.id, orgId);
+    }),
+
+  // 오개념 단건 조회 (인증된 사용자)
+  getMisconception: protectedProcedure
+    .input(getByIdSchema)
+    .query(async ({ input }) => {
+      const orgId = getOrgId();
+      return getMisconceptionById(input.id, orgId);
+    }),
+
+  // 오개념 수정 (검수자 이상)
+  updateMisconception: reviewerProcedure
+    .input(updateMisconceptionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return updateMisconception(input, ctx.user.id, orgId);
+    }),
+
+  // 오개념 삭제 (검수자 이상)
+  deleteMisconception: reviewerProcedure
+    .input(getByIdSchema)
+    .mutation(async ({ input, ctx }) => {
+      const orgId = getOrgId();
+      return deleteMisconception(input.id, ctx.user.id, orgId);
     }),
 
   // 교정 학습 경로 조회 (인증된 사용자)

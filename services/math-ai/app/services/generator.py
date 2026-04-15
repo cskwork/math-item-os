@@ -8,6 +8,8 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from app.services.latex_utils import parse_cases_body, strip_render_braces
+
 
 # ---------------------------------------------------------------------------
 # 데이터 클래스 정의
@@ -28,11 +30,17 @@ class ParameterDef:
 
 @dataclass(frozen=True)
 class AnswerResult:
-    """정답 계산 결과."""
+    """정답 계산 결과.
+
+    단일변수 방정식은 `value`/`value_latex`만 채워지고,
+    연립방정식은 추가로 `values`/`values_latex`에 변수별 해를 담는다.
+    """
 
     success: bool
-    value: str | None  # str(answer)
+    value: str | None  # str(answer) — 단일값 또는 첫 변수 값
     value_latex: str | None  # sympy.latex(answer)
+    values: dict[str, str] | None = None  # 연립방정식 해 {변수명: str(해)}
+    values_latex: dict[str, str] | None = None  # {변수명: latex(해)}
     error: str | None = None
 
 
@@ -51,8 +59,10 @@ class VariantResult:
     success: bool
     body_latex: str | None  # 치환된 LaTeX
     params: dict | None  # {매개변수명: 값}
-    answer_value: str | None  # 계산된 정답
+    answer_value: str | None  # 계산된 정답 (단일값 또는 튜플의 첫 변수)
     answer_latex: str | None  # LaTeX 형식 정답
+    answer_values: dict[str, str] | None = None  # 연립방정식 해
+    answer_values_latex: dict[str, str] | None = None  # 연립방정식 해 LaTeX
     seed: int | None = None
     error: str | None = None
 
@@ -285,6 +295,65 @@ def compute_answer(
         )
 
 
+def compute_system_answer(body_latex_substituted: str) -> AnswerResult:
+    """`\\begin{cases}` 환경을 감지해 SymPy solve로 연립방정식을 풀이한다.
+
+    단일변수 템플릿에는 사용하지 말고, `\\begin{cases}...\\end{cases}`를
+    포함한 치환 완료된 LaTeX 본문을 전달해야 한다.
+
+    Args:
+        body_latex_substituted: 매개변수가 이미 치환된 LaTeX 본문
+
+    Returns:
+        `AnswerResult` — `values`/`values_latex`에 변수별 해가 담긴다.
+        `value`/`value_latex`에는 첫 변수(알파벳 순)의 값이 복제된다.
+    """
+    try:
+        import sympy
+
+        eq_clean = strip_render_braces(body_latex_substituted)
+        parsed = parse_cases_body(eq_clean)
+        if parsed is None:
+            return AnswerResult(
+                success=False,
+                value=None,
+                value_latex=None,
+                error="\\begin{cases} 환경을 찾을 수 없습니다.",
+            )
+
+        eqs, free_vars = parsed
+        sols = sympy.solve(eqs, free_vars, dict=True)
+        if not sols:
+            return AnswerResult(
+                success=False,
+                value=None,
+                value_latex=None,
+                error="연립방정식의 해가 없습니다.",
+            )
+
+        primary = sols[0]
+        values = {str(var): str(primary[var]) for var in free_vars}
+        values_latex = {
+            str(var): sympy.latex(primary[var]) for var in free_vars
+        }
+        first_var = free_vars[0]
+        return AnswerResult(
+            success=True,
+            value=str(primary[first_var]),
+            value_latex=sympy.latex(primary[first_var]),
+            values=values,
+            values_latex=values_latex,
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        return AnswerResult(
+            success=False,
+            value=None,
+            value_latex=None,
+            error=f"연립방정식 풀이 실패: {exc}",
+        )
+
+
 # ---------------------------------------------------------------------------
 # 제약 조건 검증 (전체 변이 수준)
 # ---------------------------------------------------------------------------
@@ -505,7 +574,12 @@ def generate_variant(
 
         # 제약 조건을 통과한 경우 - 템플릿 치환 및 정답 계산
         body_latex = substitute_template(body_template, params)
-        answer_result = compute_answer(answer_template, params)
+
+        # 연립방정식(\begin{cases}) 템플릿은 SymPy solve로 전체 해를 계산
+        if r"\begin{cases}" in body_template:
+            answer_result = compute_system_answer(body_latex)
+        else:
+            answer_result = compute_answer(answer_template, params)
 
         if not answer_result.success:
             last_failures = [answer_result.error or "정답 계산 실패"]
@@ -517,6 +591,8 @@ def generate_variant(
             params=params,
             answer_value=answer_result.value,
             answer_latex=answer_result.value_latex,
+            answer_values=answer_result.values,
+            answer_values_latex=answer_result.values_latex,
             seed=attempt_seed,
         )
 

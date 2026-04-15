@@ -78,12 +78,14 @@ async function fetchItemsByMeilisearch(
   input: {
     readonly query?: string;
     readonly filters?: {
+      readonly subject?: string;
       readonly schoolLevel?: string;
       readonly grade?: number;
       readonly semester?: string;
       readonly skillIds?: string[];
       readonly standardIds?: string[];
       readonly itemType?: string;
+      readonly codeLanguage?: string;
       readonly difficultyMin?: number;
       readonly difficultyMax?: number;
       readonly usagePurposes?: string[];
@@ -164,11 +166,13 @@ async function fetchItemsByPrisma(
     readonly sort?: "relevance" | "difficulty" | "createdAt";
     readonly statusFilter?: string[];
     readonly filters?: {
+      readonly subject?: string;
       readonly difficultyMin?: number;
       readonly difficultyMax?: number;
       readonly schoolLevel?: string;
       readonly grade?: number;
       readonly itemType?: string;
+      readonly codeLanguage?: string;
       readonly skillIds?: string[];
       readonly isGenerated?: boolean;
       readonly typeLevel?: number;
@@ -185,6 +189,7 @@ async function fetchItemsByPrisma(
       input.statusFilter.length > 0 && {
         status: { in: input.statusFilter as Prisma.EnumQualityStatusFilter["in"] },
       }),
+    ...(f?.subject != null && { subject: f.subject as any }),
     ...(f?.difficultyMin != null || f?.difficultyMax != null
       ? {
           difficultyAuthor: {
@@ -197,6 +202,7 @@ async function fetchItemsByPrisma(
     ...(f?.schoolLevel != null && { schoolLevel: f.schoolLevel as any }),
     ...(f?.grade != null && { grade: f.grade }),
     ...(f?.itemType != null && { itemType: f.itemType as any }),
+    ...(f?.codeLanguage != null && { codeLanguage: f.codeLanguage as any }),
     ...(f?.isGenerated != null && { isGenerated: f.isGenerated }),
     ...(f?.skillIds != null && f.skillIds.length > 0 && {
       skills: { some: { skillId: { in: f.skillIds } } },
@@ -274,8 +280,13 @@ async function buildPrismaFacets(
       }),
   };
 
-  const [schoolLevelGroups, gradeGroups, itemTypeGroups, difficultyGroups] =
+  const [subjectGroups, schoolLevelGroups, gradeGroups, itemTypeGroups, codeLanguageGroups, difficultyGroups] =
     await Promise.all([
+      prisma.item.groupBy({
+        by: ["subject"],
+        where: baseWhere,
+        _count: true,
+      }),
       prisma.item.groupBy({
         by: ["schoolLevel"],
         where: baseWhere,
@@ -289,6 +300,11 @@ async function buildPrismaFacets(
       prisma.item.groupBy({
         by: ["itemType"],
         where: baseWhere,
+        _count: true,
+      }),
+      prisma.item.groupBy({
+        by: ["codeLanguage"],
+        where: { ...baseWhere, codeLanguage: { not: null } },
         _count: true,
       }),
       prisma.item.groupBy({
@@ -320,7 +336,19 @@ async function buildPrismaFacets(
     }
   }
 
-  return { schoolLevel, grade, itemType, difficulty };
+  const subject: Record<string, number> = {};
+  for (const g of subjectGroups) {
+    subject[g.subject] = g._count;
+  }
+
+  const codeLanguage: Record<string, number> = {};
+  for (const g of codeLanguageGroups) {
+    if (g.codeLanguage != null) {
+      codeLanguage[g.codeLanguage] = g._count;
+    }
+  }
+
+  return { subject, schoolLevel, grade, itemType, codeLanguage, difficulty };
 }
 
 // -------------------------------------------------

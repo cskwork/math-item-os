@@ -15,6 +15,17 @@ import {
 } from "./helpers/test-data";
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
+  // 운영 DB 가드: helpers/db.ts import 만으로도 fail-fast 하지만,
+  // 진입점에서 한 번 더 명시적으로 방어선을 세운다.
+  const dbUrl = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+  const dbName = dbUrl.split("/").pop()?.split("?")[0] ?? "";
+  if (!dbName.endsWith("_test") && process.env.ALLOW_NON_TEST_DB !== "1") {
+    throw new Error(
+      `[E2E] 운영 DB 차단: "${dbName}" 은(는) *_test DB 가 아닙니다. ` +
+        `TEST_DATABASE_URL 을 설정하거나 ALLOW_NON_TEST_DB=1 로 덮어쓰세요.`,
+    );
+  }
+
   // 1. 테스트 사용자 및 세션 시딩
   await seedTestUsers();
 

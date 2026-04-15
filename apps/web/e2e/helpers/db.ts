@@ -15,7 +15,52 @@ import {
   SESSION_EXPIRES_DAYS,
 } from "./test-data";
 
-const prisma = new PrismaClient();
+/**
+ * 운영 DB 오염 방지 가드.
+ *
+ * 테스트는 반드시 DB 이름이 `_test` 로 끝나는 격리 데이터베이스에서 실행되어야 한다.
+ * TEST_DATABASE_URL 이 설정되어 있으면 그것을 우선 사용하고, 아니면 DATABASE_URL 을
+ * 검사한다. 어느 쪽이든 DB 이름이 `_test` 로 끝나지 않으면 즉시 실패한다.
+ *
+ * Why: `seedTestUsers()` 가 upsert 로 사용자/조직 행을 덮어쓰기 때문에, 운영 DB 가
+ * 주입되면 실사용자 데이터가 파괴된다. 이 가드는 한 번이라도 로컬/CI 에서 실수해 본
+ * 순간 고치기에 너무 비싸기 때문에 import-time 에 fail-fast 한다.
+ */
+function resolveTestDatabaseUrl(): string {
+  const candidate = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+  if (!candidate) {
+    throw new Error(
+      "E2E 테스트 가드: TEST_DATABASE_URL 또는 DATABASE_URL 이 설정되어야 합니다.",
+    );
+  }
+
+  let dbName: string;
+  try {
+    const parsed = new URL(candidate);
+    dbName = parsed.pathname.replace(/^\//, "").split("?")[0] ?? "";
+  } catch {
+    throw new Error(
+      `E2E 테스트 가드: DATABASE_URL 형식이 올바르지 않습니다. (${candidate})`,
+    );
+  }
+
+  const allowOverride = process.env.ALLOW_NON_TEST_DB === "1";
+  if (!dbName.endsWith("_test") && !allowOverride) {
+    throw new Error(
+      `E2E 테스트 가드: DB 이름 "${dbName}" 은(는) "_test" 로 끝나지 않습니다. ` +
+        `운영 DB 오염 방지를 위해 차단합니다. 격리된 테스트 DB (예: mathitem_test) 를 사용하거나, ` +
+        `의도한 경우 ALLOW_NON_TEST_DB=1 로 덮어쓰세요.`,
+    );
+  }
+
+  return candidate;
+}
+
+const TEST_DATABASE_URL = resolveTestDatabaseUrl();
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: TEST_DATABASE_URL } },
+});
 
 /**
  * 세션 만료 일시 계산

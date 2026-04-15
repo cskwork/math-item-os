@@ -10,12 +10,13 @@ import type {
   FormulaType,
   SemesterType,
   UsagePurpose,
+  Subject,
+  CodeLanguage,
   Prisma,
 } from "@math-item-os/db";
 import { convertLatex } from "./conversion.service";
 import type { FullConversionResult } from "./conversion.service";
 import { indexItem } from "./meilisearch.service";
-import { runAutoReview } from "./auto-review.service";
 
 /** 인터랙티브 트랜잭션 클라이언트 타입 */
 type TxClient = Omit<
@@ -28,8 +29,8 @@ type TxClient = Omit<
 // -------------------------------------------------
 
 export interface CreateItemInput {
+  readonly subject?: Subject;
   readonly bodyLatex: string;
-  readonly bodyBlocks?: unknown;
   readonly choices?: ReadonlyArray<Record<string, unknown>>;
   readonly answer: Record<string, unknown>;
   readonly schoolLevel: SchoolLevel;
@@ -45,12 +46,17 @@ export interface CreateItemInput {
   readonly standardIds?: string[];
   readonly misconceptionIds?: string[];
   readonly passageId?: string;
+  // IT 자격증 전용
+  readonly bodyCode?: string;
+  readonly codeLanguage?: CodeLanguage;
+  readonly expectedOutput?: string;
+  readonly bodyText?: string;
 }
 
 export interface UpdateItemInput {
   readonly id: string;
+  readonly subject?: Subject;
   readonly bodyLatex?: string;
-  readonly bodyBlocks?: unknown;
   readonly choices?: ReadonlyArray<Record<string, unknown>>;
   readonly answer?: Record<string, unknown>;
   readonly schoolLevel?: SchoolLevel;
@@ -67,16 +73,23 @@ export interface UpdateItemInput {
   readonly misconceptionIds?: string[];
   readonly passageId?: string;
   readonly changeSummary?: string;
+  // IT 자격증 전용
+  readonly bodyCode?: string;
+  readonly codeLanguage?: CodeLanguage;
+  readonly expectedOutput?: string;
+  readonly bodyText?: string;
 }
 
 export interface ListItemsParams {
   readonly page: number;
   readonly limit: number;
+  readonly subject?: Subject;
   readonly status?: QualityStatus[];
   readonly schoolLevel?: SchoolLevel;
   readonly grade?: number;
   readonly skillId?: string;
   readonly itemType?: ItemType;
+  readonly codeLanguage?: CodeLanguage;
   readonly difficultyMin?: number;
   readonly difficultyMax?: number;
   readonly sortBy?: string;
@@ -141,19 +154,28 @@ export async function createItem(
   userId: string,
   orgId: string,
 ): Promise<CreateItemResult> {
-  // 3중 변환 실행 (트랜잭션 외부 - 외부 서비스 호출 포함)
-  const conversionResult = await convertLatex(input.bodyLatex);
+  const subject = input.subject ?? "MATH";
+  const isMath = subject === "MATH";
+
+  // 수학 문항만 3중 변환 실행 (트랜잭션 외부 - 외부 서비스 호출 포함)
+  const conversionResult: FullConversionResult = isMath
+    ? await convertLatex(input.bodyLatex)
+    : { mathml: null, sympy: null, html: "", errors: [] as string[] };
 
   const item = await prisma.$transaction(async (tx: TxClient) => {
     // 문항 본체 생성
     const created = await tx.item.create({
       data: {
         orgId,
+        subject,
         bodyLatex: input.bodyLatex,
         bodyMathml: conversionResult.mathml,
         bodySympy: conversionResult.sympy,
         bodyHtml: conversionResult.html,
-        bodyBlocks: input.bodyBlocks as Prisma.InputJsonValue ?? undefined,
+        bodyCode: input.bodyCode,
+        codeLanguage: input.codeLanguage,
+        expectedOutput: input.expectedOutput,
+        bodyText: input.bodyText,
         choices: input.choices as Prisma.InputJsonValue ?? undefined,
         answer: input.answer as Prisma.InputJsonValue,
         schoolLevel: input.schoolLevel,
@@ -251,7 +273,6 @@ export async function createItem(
   // Meilisearch 인덱스 동기화 (비동기, 실패해도 문항 생성은 성공)
   if (item) {
     void indexItem(item);
-    void runAutoReview(item.id, orgId);
   }
 
   return { item, conversionResult };
@@ -280,6 +301,7 @@ export async function updateItem(
     select: {
       id: true,
       orgId: true,
+      subject: true,
       bodyLatex: true,
       currentVersion: true,
       answer: true,
@@ -300,7 +322,7 @@ export async function updateItem(
     });
   }
 
-  // bodyLatex 변경 시 3중 변환 재실행
+  // bodyLatex 변경 시 3중 변환 재실행 (수학 문항만)
   const latexChanged = input.bodyLatex != null && input.bodyLatex !== existing.bodyLatex;
   let conversionFields: {
     bodyMathml?: string | null;
@@ -308,7 +330,9 @@ export async function updateItem(
     bodyHtml?: string;
   } = {};
 
-  if (latexChanged) {
+  // subject 변경이 없으면 기존 문항의 subject를 기준으로 판단
+  const effectiveSubject = input.subject ?? (existing as { subject?: string }).subject ?? "MATH";
+  if (latexChanged && effectiveSubject === "MATH") {
     const conversion = await convertLatex(input.bodyLatex!);
     conversionFields = {
       bodyMathml: conversion.mathml,
@@ -325,7 +349,6 @@ export async function updateItem(
       ...conversionFields,
       currentVersion: nextVersion,
       ...(input.bodyLatex != null && { bodyLatex: input.bodyLatex }),
-      ...(input.bodyBlocks !== undefined && { bodyBlocks: input.bodyBlocks as Prisma.InputJsonValue }),
       ...(input.choices !== undefined && { choices: input.choices as Prisma.InputJsonValue }),
       ...(input.answer !== undefined && { answer: input.answer as Prisma.InputJsonValue }),
       ...(input.schoolLevel != null && { schoolLevel: input.schoolLevel }),
@@ -338,6 +361,11 @@ export async function updateItem(
       ...(input.usagePurposes !== undefined && { usagePurposes: input.usagePurposes }),
       ...(input.difficultyAuthor !== undefined && { difficultyAuthor: input.difficultyAuthor }),
       ...(input.passageId !== undefined && { passageId: input.passageId }),
+      ...(input.subject != null && { subject: input.subject }),
+      ...(input.bodyCode !== undefined && { bodyCode: input.bodyCode }),
+      ...(input.codeLanguage !== undefined && { codeLanguage: input.codeLanguage }),
+      ...(input.expectedOutput !== undefined && { expectedOutput: input.expectedOutput }),
+      ...(input.bodyText !== undefined && { bodyText: input.bodyText }),
     };
 
     // 문항 본체 업데이트
@@ -495,11 +523,13 @@ export async function listItems(params: ListItemsParams, orgId: string) {
   const {
     page,
     limit,
+    subject,
     status,
     schoolLevel,
     grade,
     skillId,
     itemType,
+    codeLanguage,
     difficultyMin,
     difficultyMax,
     sortBy = "createdAt",
@@ -509,10 +539,12 @@ export async function listItems(params: ListItemsParams, orgId: string) {
   // 동적 where 절 구성
   const where: Prisma.ItemWhereInput = {
     orgId,
+    ...(subject != null && { subject }),
     ...(status && status.length > 0 && { status: { in: status } }),
     ...(schoolLevel != null && { schoolLevel }),
     ...(grade != null && { grade }),
     ...(itemType != null && { itemType }),
+    ...(codeLanguage != null && { codeLanguage }),
     ...(skillId != null && {
       skills: { some: { skillId } },
     }),

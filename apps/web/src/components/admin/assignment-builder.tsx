@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useMemo, memo } from "react";
-import { GripVertical, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
+import { DragDropProvider } from "@dnd-kit/react";
+import { useSortable, isSortable } from "@dnd-kit/react/sortable";
 import { cn } from "@/lib/utils";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
+
+type DragEndHandler = NonNullable<
+  React.ComponentProps<typeof DragDropProvider>["onDragEnd"]
+>;
+type DragEndEventArg = Parameters<DragEndHandler>[0];
 
 // ─── 타입 정의 ───
 
@@ -32,7 +39,6 @@ interface AssignmentBuilderProps {
 
 // ─── 상수 ───
 
-const DEFAULT_POINTS = 10;
 const BODY_PREVIEW_MAX_LENGTH = 80;
 
 /** 난이도별 배지 색상 매핑 */
@@ -67,19 +73,6 @@ function recalculatePositions(
     ...entry,
     position: index + 1,
   }));
-}
-
-/** 두 인덱스의 항목을 교환한 새 배열 반환 (불변) */
-function swapItems(
-  items: ReadonlyArray<AssignmentBuilderItem>,
-  indexA: number,
-  indexB: number,
-): ReadonlyArray<AssignmentBuilderItem> {
-  const mutable = [...items];
-  const temp = mutable[indexA];
-  mutable[indexA] = mutable[indexB];
-  mutable[indexB] = temp;
-  return recalculatePositions(mutable);
 }
 
 // ─── 난이도 배지 ───
@@ -130,46 +123,35 @@ const SkillTags = memo(function SkillTags({ skills }: SkillTagsProps) {
 
   return (
     <span className="text-xs text-slate-500">
-      스킬: {skills.map((s) => s.skill.title).join(", ")}
+      성취기준: {skills.map((s) => s.skill.title).join(", ")}
     </span>
   );
 });
 
-// ─── 개별 문항 행 ───
+// ─── 개별 문항 행 (Sortable) ───
 
-interface ItemRowProps {
+interface SortableItemRowProps {
   readonly entry: AssignmentBuilderItem;
   readonly index: number;
-  readonly totalCount: number;
   readonly isReadOnly: boolean;
-  readonly onMoveUp: (index: number) => void;
-  readonly onMoveDown: (index: number) => void;
   readonly onPointsChange: (index: number, points: number) => void;
   readonly onRemove: (itemId: string) => void;
 }
 
-const ItemRow = memo(function ItemRow({
+function SortableItemRow({
   entry,
   index,
-  totalCount,
   isReadOnly,
-  onMoveUp,
-  onMoveDown,
   onPointsChange,
   onRemove,
-}: ItemRowProps) {
+}: SortableItemRowProps) {
   const { item, position, points } = entry;
 
-  const isFirst = index === 0;
-  const isLast = index === totalCount - 1;
-
-  const handleMoveUp = useCallback(() => {
-    onMoveUp(index);
-  }, [onMoveUp, index]);
-
-  const handleMoveDown = useCallback(() => {
-    onMoveDown(index);
-  }, [onMoveDown, index]);
+  const { ref, isDragging } = useSortable({
+    id: item.id,
+    index,
+    disabled: isReadOnly,
+  });
 
   const handlePointsChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,48 +169,24 @@ const ItemRow = memo(function ItemRow({
 
   return (
     <div
+      ref={ref}
       className={cn(
         "flex items-start gap-2 rounded-lg border border-slate-200 p-3 transition-colors",
         "hover:border-slate-300 hover:bg-slate-50/50",
+        isDragging && "z-10 border-blue-300 bg-blue-50/50 shadow-lg",
       )}
     >
-      {/* 순서 표시 아이콘 */}
-      <div className="flex shrink-0 items-center pt-0.5 text-slate-400">
-        <GripVertical className="h-4 w-4" />
-      </div>
+      {/* 드래그 핸들 */}
+      {!isReadOnly && (
+        <div className="flex shrink-0 cursor-grab items-center pt-0.5 text-slate-400 active:cursor-grabbing">
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
 
       {/* 순서 번호 */}
       <span className="shrink-0 pt-0.5 text-sm font-semibold text-slate-600">
         {position}.
       </span>
-
-      {/* 이동 버튼 */}
-      {!isReadOnly && (
-        <div className="flex shrink-0 flex-col gap-0.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleMoveUp}
-            disabled={isFirst}
-            className="h-6 w-6 p-0"
-            aria-label="위로 이동"
-          >
-            <ChevronUp className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleMoveDown}
-            disabled={isLast}
-            className="h-6 w-6 p-0"
-            aria-label="아래로 이동"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* 문항 내용 */}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -291,7 +249,7 @@ const ItemRow = memo(function ItemRow({
       )}
     </div>
   );
-});
+}
 
 // ─── 메인 컴포넌트 ───
 
@@ -310,26 +268,6 @@ export function AssignmentBuilder({
 
   const totalCount = items.length;
 
-  // ── 이동 핸들러 ──
-
-  const handleMoveUp = useCallback(
-    (index: number) => {
-      if (index <= 0) return;
-      const updated = swapItems(items, index, index - 1);
-      onItemsChange(updated);
-    },
-    [items, onItemsChange],
-  );
-
-  const handleMoveDown = useCallback(
-    (index: number) => {
-      if (index >= items.length - 1) return;
-      const updated = swapItems(items, index, index + 1);
-      onItemsChange(updated);
-    },
-    [items, onItemsChange],
-  );
-
   // ── 배점 변경 핸들러 ──
 
   const handlePointsChange = useCallback(
@@ -338,6 +276,28 @@ export function AssignmentBuilder({
         i === index ? { ...entry, points } : entry,
       );
       onItemsChange(updated);
+    },
+    [items, onItemsChange],
+  );
+
+  // ── DnD 핸들러 ──
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEventArg) => {
+      if (event.canceled) return;
+
+      const { source } = event.operation;
+      if (!source || !isSortable(source)) return;
+      if (!("initialIndex" in source)) return;
+
+      const fromIndex = source.initialIndex as number;
+      const toIndex = source.index;
+      if (fromIndex === toIndex) return;
+
+      const reordered = [...items];
+      const [removed] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, removed);
+      onItemsChange(recalculatePositions(reordered));
     },
     [items, onItemsChange],
   );
@@ -362,21 +322,20 @@ export function AssignmentBuilder({
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {items.map((entry, index) => (
-            <ItemRow
-              key={entry.item.id}
-              entry={entry}
-              index={index}
-              totalCount={totalCount}
-              isReadOnly={isReadOnly}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-              onPointsChange={handlePointsChange}
-              onRemove={onRemoveItem}
-            />
-          ))}
-        </div>
+        <DragDropProvider onDragEnd={handleDragEnd}>
+          <div className="space-y-2">
+            {items.map((entry, index) => (
+              <SortableItemRow
+                key={entry.item.id}
+                entry={entry}
+                index={index}
+                isReadOnly={isReadOnly}
+                onPointsChange={handlePointsChange}
+                onRemove={onRemoveItem}
+              />
+            ))}
+          </div>
+        </DragDropProvider>
       )}
 
       {/* 요약 푸터 */}

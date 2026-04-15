@@ -9,7 +9,7 @@ const pathLabels: Record<string, string> = {
   new: "새 문항",
   upload: "대량 업로드",
   search: "검색",
-  skills: "스킬 관리",
+  skills: "성취기준 관리",
   graph: "그래프",
   misconceptions: "오개념",
   admin: "관리",

@@ -59,10 +59,10 @@ function EmptySelection() {
           </svg>
         </div>
         <p className="text-sm text-slate-500">
-          탐색할 스킬을 선택해주세요
+          탐색할 성취기준을 선택해주세요
         </p>
         <p className="text-xs text-slate-400">
-          상단 드롭다운에서 루트 스킬을 선택하면 선수/후속 관계 그래프가 표시됩니다.
+          상단 드롭다운에서 루트 성취기준을 선택하면 선수/후속 관계 그래프가 표시됩니다.
         </p>
       </div>
     </div>
@@ -151,14 +151,14 @@ export default function SkillGraphPage() {
           {/* 스킬 셀렉터 */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-              루트 스킬
+              루트 성취기준
             </span>
             <Combobox
               options={skillOptions}
               value={selectedSkillId ?? ""}
               onChange={handleSkillSelect}
-              placeholder="스킬 선택..."
-              searchPlaceholder="스킬 검색..."
+              placeholder="성취기준 선택..."
+              searchPlaceholder="성취기준 검색..."
               emptyText="검색 결과가 없습니다."
               className="min-w-[200px]"
             />

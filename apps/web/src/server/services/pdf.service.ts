@@ -2,6 +2,7 @@
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@math-item-os/db";
 import type { Prisma } from "@math-item-os/db";
+import { renderLatex } from "@math-item-os/math-parser";
 
 // -------------------------------------------------
 // 입력/출력 타입 정의
@@ -200,6 +201,8 @@ ${itemsHtml}
   <footer class="assignment-footer">
     <span class="page-info"></span>
   </footer>
+
+  <script>window.addEventListener("load",function(){window.print()});</script>
 </body>
 </html>`;
 }
@@ -215,10 +218,10 @@ function buildItemHtml(
 ): string {
   const { item, points } = assignmentItem;
 
-  // bodyHtml 우선 사용, 없으면 LaTeX를 KaTeX 클래스로 감싸서 렌더링 위임
+  // bodyHtml 우선 사용, 없으면 $...$ 구간만 서버사이드 KaTeX 렌더링
   const content = item.bodyHtml
     ? item.bodyHtml
-    : `<span class="katex-display">${escapeHtml(item.bodyLatex)}</span>`;
+    : renderMixedLatex(item.bodyLatex);
 
   const pointsBadge =
     points != null
@@ -338,6 +341,36 @@ function buildPrintStyles(): string {
       .item { page-break-inside: avoid; }
     }
   </style>`;
+}
+
+/**
+ * 한국어+LaTeX 혼합 텍스트에서 $...$ 구간만 KaTeX로 렌더링한다.
+ * 예: "$(-5) \\times (-4)$의 값을 구하시오." → <렌더링된 수식>의 값을 구하시오.
+ */
+function renderMixedLatex(text: string): string {
+  const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g;
+  const parts: string[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = MATH_REGEX.exec(text)) !== null) {
+    // $..$ 앞의 일반 텍스트는 이스케이프
+    if (match.index > lastIndex) {
+      parts.push(escapeHtml(text.slice(lastIndex, match.index)));
+    }
+    const latex = match[1] ?? match[2] ?? "";
+    const isDisplay = match[1] != null;
+    const { html } = renderLatex(latex, { displayMode: isDisplay });
+    parts.push(html);
+    lastIndex = match.index + match[0].length;
+  }
+
+  // 남은 텍스트
+  if (lastIndex < text.length) {
+    parts.push(escapeHtml(text.slice(lastIndex)));
+  }
+
+  return parts.join("");
 }
 
 /** HTML 특수 문자를 이스케이프한다. */

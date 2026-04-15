@@ -275,8 +275,8 @@ function SkillItemsPanel({ skillId, onClose, onItemClick }: SkillItemsPanelProps
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="flex w-[480px] max-w-full flex-col sm:max-w-[480px]">
         <SheetHeader>
-          <SheetTitle>스킬 연결 문항</SheetTitle>
-          <SheetDescription>선택한 스킬에 연결된 문항 목록입니다.</SheetDescription>
+          <SheetTitle>성취기준 연결 문항</SheetTitle>
+          <SheetDescription>선택한 성취기준에 연결된 문항 목록입니다.</SheetDescription>
         </SheetHeader>
         {skillId && (
           <div className="flex flex-1 flex-col gap-4 overflow-hidden pt-2">

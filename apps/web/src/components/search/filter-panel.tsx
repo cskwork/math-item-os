@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo } from "react";
 import {
+  SUBJECT_OPTIONS,
+  CODE_LANGUAGE_OPTIONS,
   SCHOOL_LEVEL_OPTIONS,
   ITEM_TYPE_OPTIONS,
   DIFFICULTY_LEVEL_OPTIONS,
@@ -13,9 +15,11 @@ import type { SearchFacets } from "@math-item-os/shared/types/index";
 
 // --- 필터 값 타입 ---
 export interface SearchFilters {
+  readonly subject: string;
   readonly schoolLevel: string;
   readonly grade: string;
   readonly itemType: string;
+  readonly codeLanguage: string;
   readonly difficultyMin: string;
   readonly difficultyMax: string;
   readonly usagePurpose: string;
@@ -23,9 +27,11 @@ export interface SearchFilters {
 }
 
 export const INITIAL_SEARCH_FILTERS: SearchFilters = {
+  subject: "",
   schoolLevel: "",
   grade: "",
   itemType: "",
+  codeLanguage: "",
   difficultyMin: "",
   difficultyMax: "",
   usagePurpose: "",
@@ -107,7 +113,16 @@ export function FilterPanel({ filters, onFilterChange, onReset, facets }: Filter
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9">
+        <FilterSelect
+          label="과목"
+          value={filters.subject}
+          onChange={(v) => {
+            onFilterChange("subject", v);
+            if (v !== "IT_CERT") onFilterChange("codeLanguage", "");
+          }}
+          options={withFacetCount(SUBJECT_OPTIONS, facets?.subject)}
+        />
         <FilterSelect
           label="학교급"
           value={filters.schoolLevel}
@@ -146,6 +161,14 @@ export function FilterPanel({ filters, onFilterChange, onReset, facets }: Filter
           onChange={(v) => onFilterChange("usagePurpose", v)}
           options={USAGE_PURPOSE_OPTIONS}
         />
+        {filters.subject === "IT_CERT" && (
+          <FilterSelect
+            label="코드 언어"
+            value={filters.codeLanguage}
+            onChange={(v) => onFilterChange("codeLanguage", v)}
+            options={withFacetCount(CODE_LANGUAGE_OPTIONS, facets?.codeLanguage)}
+          />
+        )}
         <FilterSelect
           label="문제 유형"
           value={filters.typeLevel}

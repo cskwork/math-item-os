@@ -12,16 +12,20 @@ const INDEX_NAME = "items";
 const SEARCHABLE_ATTRIBUTES = [
   "bodyLatex",
   "bodyHtml",
+  "bodyCode",
+  "bodyText",
   "skillTitles",
   "standardTitles",
   "misconceptionTitles",
 ] as const;
 
 const FILTERABLE_ATTRIBUTES = [
+  "subject",
   "schoolLevel",
   "grade",
   "semester",
   "itemType",
+  "codeLanguage",
   "difficultyAuthor",
   "status",
   "usagePurposes",
@@ -37,9 +41,11 @@ const SORTABLE_ATTRIBUTES = [
 ] as const;
 
 const FACET_ATTRIBUTES = [
+  "subject",
   "schoolLevel",
   "grade",
   "itemType",
+  "codeLanguage",
   "difficultyAuthor",
 ] as const;
 
@@ -72,8 +78,12 @@ function getClient(): Meilisearch {
 /** Meilisearch 인덱스에 저장될 문서 형태 */
 export interface MeilisearchItemDocument {
   readonly id: string;
+  readonly subject: string;
   readonly bodyLatex: string;
   readonly bodyHtml: string | null;
+  readonly bodyCode: string | null;
+  readonly bodyText: string | null;
+  readonly codeLanguage: string | null;
   readonly schoolLevel: string;
   readonly grade: number;
   readonly semester: string | null;
@@ -93,8 +103,12 @@ export interface MeilisearchItemDocument {
 /** Prisma Item + relations 타입 (서비스에서 사용하는 최소 필드) */
 export interface ItemWithRelations {
   readonly id: string;
+  readonly subject?: string;
   readonly bodyLatex: string;
   readonly bodyHtml: string | null;
+  readonly bodyCode?: string | null;
+  readonly bodyText?: string | null;
+  readonly codeLanguage?: string | null;
   readonly schoolLevel: string;
   readonly grade: number;
   readonly semester: string | null;
@@ -117,9 +131,11 @@ export interface ItemWithRelations {
 export interface SearchParams {
   readonly query?: string;
   readonly filters?: {
+    readonly subject?: string;
     readonly schoolLevel?: string;
     readonly grade?: number;
     readonly semester?: string;
+    readonly codeLanguage?: string;
     readonly skillIds?: string[];
     readonly standardIds?: string[];
     readonly itemType?: string;
@@ -139,9 +155,11 @@ export interface SearchResult {
   readonly hitIds: string[];
   readonly total: number;
   readonly facets: {
+    readonly subject: Record<string, number>;
     readonly schoolLevel: Record<string, number>;
     readonly grade: Record<number, number>;
     readonly itemType: Record<string, number>;
+    readonly codeLanguage: Record<string, number>;
     readonly difficulty: Record<number, number>;
   };
   readonly queryTimeMs: number;
@@ -200,8 +218,12 @@ export function toMeilisearchDocument(
 ): MeilisearchItemDocument {
   return {
     id: item.id,
+    subject: item.subject ?? "MATH",
     bodyLatex: item.bodyLatex,
     bodyHtml: item.bodyHtml,
+    bodyCode: item.bodyCode ?? null,
+    bodyText: item.bodyText ?? null,
+    codeLanguage: item.codeLanguage ?? null,
     schoolLevel: item.schoolLevel,
     grade: item.grade,
     semester: item.semester,
@@ -311,9 +333,11 @@ export async function searchItems(params: SearchParams): Promise<SearchResult> {
       hitIds,
       total: response.totalHits ?? 0,
       facets: {
+        subject: facetDistribution["subject"] ?? {},
         schoolLevel: facetDistribution["schoolLevel"] ?? {},
         grade: toNumericKeyRecord(facetDistribution["grade"] ?? {}),
         itemType: facetDistribution["itemType"] ?? {},
+        codeLanguage: facetDistribution["codeLanguage"] ?? {},
         difficulty: toNumericKeyRecord(
           facetDistribution["difficultyAuthor"] ?? {},
         ),
@@ -341,6 +365,14 @@ function buildFilterString(
   }
 
   const clauses: string[] = [];
+
+  if (filters.subject != null) {
+    clauses.push(`subject = "${escapeFilterValue(filters.subject)}"`);
+  }
+
+  if (filters.codeLanguage != null) {
+    clauses.push(`codeLanguage = "${escapeFilterValue(filters.codeLanguage)}"`);
+  }
 
   if (filters.schoolLevel != null) {
     clauses.push(`schoolLevel = "${escapeFilterValue(filters.schoolLevel)}"`);

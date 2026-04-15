@@ -8,7 +8,10 @@
 from __future__ import annotations
 
 import concurrent.futures
+import re
 from dataclasses import dataclass
+
+from app.services.latex_utils import parse_cases_body, strip_render_braces
 
 _SOLVE_TIMEOUT_SECONDS = 10
 
@@ -113,6 +116,51 @@ def _worker_check_equals(latex_a: str, latex_b: str) -> bool:
     return simplify(expr_a - expr_b) == 0
 
 
+_TUPLE_ANSWER_PATTERN = re.compile(r"[a-zA-Z_]\w*\s*=")
+
+
+def _parse_tuple_answer(ans_clean: str, free_vars: list) -> dict:
+    """제출 정답을 `{Symbol: expr}` 딕셔너리로 파싱한다.
+
+    지원 입력 형태:
+      - `"x=42, y=-34"` 튜플 스타일 (권장)
+      - `"2"` 단일값 (단일 변수 방정식에만 허용 — **다변수 시스템에 단일값
+        제출은 의도 불명확하므로 빈 딕셔너리 반환해서 거부**)
+    """
+    from sympy import Symbol
+    from sympy.parsing.latex import parse_latex
+
+    cleaned = ans_clean.strip()
+    result: dict = {}
+
+    if not cleaned:
+        return result
+
+    if "=" in cleaned and _TUPLE_ANSWER_PATTERN.search(cleaned):
+        for pair in cleaned.split(","):
+            if "=" not in pair:
+                continue
+            var_name, val_str = pair.split("=", 1)
+            val_str = val_str.strip()
+            if not val_str:
+                return {}
+            sym = Symbol(var_name.strip())
+            try:
+                result[sym] = parse_latex(val_str)
+            except Exception:  # noqa: BLE001
+                return {}
+        return result
+
+    # 단일값 폴백: 변수가 정확히 하나일 때만 허용.
+    # 다변수 시스템에 단일값 제출은 교육적으로 부분 답이므로 거부한다.
+    if len(free_vars) == 1:
+        try:
+            result[free_vars[0]] = parse_latex(cleaned)
+        except Exception:  # noqa: BLE001
+            return {}
+    return result
+
+
 def _worker_verify_answer(
     equation_latex: str,
     answer_latex: str,
@@ -122,11 +170,41 @@ def _worker_verify_answer(
     Returns:
         (정답 여부, 설명 문자열)
     """
-    from sympy import simplify
+    from sympy import simplify, solve
     from sympy.parsing.latex import parse_latex
 
-    eq_expr = parse_latex(equation_latex)
-    ans_expr = parse_latex(answer_latex)
+    eq_clean = strip_render_braces(equation_latex)
+    ans_clean = strip_render_braces(answer_latex)
+
+    # ── 연립방정식 (\begin{cases}) 분기 ──
+    parsed_cases = parse_cases_body(eq_clean)
+    if parsed_cases is not None:
+        eqs, free_vars = parsed_cases
+        sols = solve(eqs, free_vars, dict=True)
+        if not sols:
+            return False, "연립방정식의 해가 없습니다."
+
+        submitted = _parse_tuple_answer(ans_clean, free_vars)
+        if not submitted:
+            if len(free_vars) > 1:
+                return False, (
+                    "다변수 연립방정식은 'x=값, y=값' 형태로 제출해야 합니다."
+                )
+            return False, "제출된 정답을 파싱할 수 없습니다."
+
+        all_correct = all(
+            simplify(sols[0][var] - val) == 0
+            for var, val in submitted.items()
+            if var in sols[0]
+        )
+        pairs = ", ".join(f"{v}={sols[0][v]}" for v in free_vars)
+        return all_correct, (
+            f"연립방정식 해 ({pairs}), "
+            f"제출: {'만족' if all_correct else '불만족'}"
+        )
+
+    eq_expr = parse_latex(eq_clean)
+    ans_expr = parse_latex(ans_clean)
 
     # 방정식에서 자유 변수 추출
     free_vars = eq_expr.free_symbols
@@ -146,6 +224,33 @@ def _worker_verify_answer(
         var = free_vars.pop()
 
         if eq_expr.is_Relational:
+            # 답도 관계식(부등식/등식)이면 해집합(Interval/FiniteSet) 비교로
+            # 전환. 두 부등식을 var로 푼 뒤 `.as_set()`으로 정규화하여
+            # 구조 비교가 아닌 **set 동치** 로 판정한다. 이렇게 하면
+            # `2x - 4 > 0` vs `x > 2` 같은 재배열 동치도 같다고 인식한다.
+            if ans_expr.is_Relational:
+                try:
+                    eq_solved = solve(eq_expr, var)
+                    ans_solved = solve(ans_expr, var)
+                    eq_set = (
+                        eq_solved.as_set()
+                        if hasattr(eq_solved, "as_set")
+                        else eq_solved
+                    )
+                    ans_set = (
+                        ans_solved.as_set()
+                        if hasattr(ans_solved, "as_set")
+                        else ans_solved
+                    )
+                    is_correct = eq_set == ans_set
+                    explanation = (
+                        f"부등식 해집합 {eq_set}, 제출 {ans_set}: "
+                        f"{'동치' if is_correct else '불일치'}"
+                    )
+                    return is_correct, explanation
+                except Exception as exc:  # noqa: BLE001
+                    return False, f"부등식 동치 검증 실패: {exc}"
+
             # Eq(lhs, rhs) 형태인 경우
             substituted = eq_expr.subs(var, ans_expr)
             # 대입 결과가 True/False(BooleanAtom)이면 직접 판정

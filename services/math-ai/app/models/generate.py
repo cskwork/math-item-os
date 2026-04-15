@@ -32,6 +32,14 @@ class VariantModel(BaseModel):
     params: dict = Field(..., description="사용된 매개변수 {이름: 값}")
     answer_value: str = Field(..., description="계산된 정답 값 (문자열)")
     answer_latex: str = Field(..., description="정답의 LaTeX 표현")
+    answer_values: dict[str, str] | None = Field(
+        None,
+        description="연립방정식 해 {변수명: 값}. 단일변수면 null.",
+    )
+    answer_values_latex: dict[str, str] | None = Field(
+        None,
+        description="연립방정식 해 LaTeX {변수명: latex(값)}. 단일변수면 null.",
+    )
     seed: int = Field(..., description="재현용 시드 값")
 
 

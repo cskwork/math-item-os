@@ -123,7 +123,7 @@ export function AutoTagSuggestions({
 
           {/* 스킬 제안 */}
           {data.skills.length > 0 && (
-            <SuggestionSection title="스킬 제안">
+            <SuggestionSection title="성취기준 제안">
               {data.skills.map((skill) => (
                 <Chip
                   key={skill.id}

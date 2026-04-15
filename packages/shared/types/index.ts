@@ -18,10 +18,15 @@ export interface Answer {
 export interface Item {
   id: string;
   orgId: string;
+  subject: string;
   bodyLatex: string;
   bodyMathml: string | null;
   bodySympy: string | null;
   bodyHtml: string | null;
+  bodyCode: string | null;
+  codeLanguage: string | null;
+  expectedOutput: string | null;
+  bodyText: string | null;
   choices: Choice[] | null;
   answer: Answer;
   schoolLevel: string;
@@ -59,6 +64,7 @@ export interface ItemVersion {
 export interface Skill {
   id: string;
   orgId: string;
+  subject: string;
   code: string;
   title: string;
   description: string | null;
@@ -244,9 +250,11 @@ export interface PaginatedResult<T> {
 
 // 검색 패싯 결과
 export interface SearchFacets {
+  subject: Record<string, number>;
   schoolLevel: Record<string, number>;
   grade: Record<number, number>;
   itemType: Record<string, number>;
+  codeLanguage: Record<string, number>;
   difficulty: Record<number, number>;
 }
 

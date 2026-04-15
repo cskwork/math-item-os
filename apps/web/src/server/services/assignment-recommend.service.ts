@@ -73,10 +73,10 @@ interface ScoredCandidate {
 // -------------------------------------------------
 
 const PURPOSE_STRATEGY: Record<UsagePurpose, string> = {
-  diagnosis: "다양한 난이도(1-5)를 고르게 분포하여 여러 스킬을 진단합니다",
-  remediation: "낮은 난이도(1-3)의 선수 스킬 중심 연습 문항을 우선 추천합니다",
-  pre_exam: "목표 난이도 근처에서 스킬 균형을 맞춘 시험 대비 문항을 추천합니다",
-  advanced: "높은 난이도(4-5)의 심화 스킬 문항을 추천합니다",
+  diagnosis: "다양한 난이도(1-5)를 고르게 분포하여 여러 성취기준을 진단합니다",
+  remediation: "낮은 난이도(1-3)의 선수 성취기준 중심 연습 문항을 우선 추천합니다",
+  pre_exam: "목표 난이도 근처에서 성취기준 균형을 맞춘 시험 대비 문항을 추천합니다",
+  advanced: "높은 난이도(4-5)의 심화 성취기준 문항을 추천합니다",
   practice: "목표 난이도 근처의 일반 연습 문항을 추천합니다",
   review: "복습용으로 다양한 난이도의 문항을 추천합니다",
 };
@@ -411,9 +411,9 @@ function buildItemReason(
   const parts: string[] = [];
 
   if (skillRelevance >= 0.7) {
-    parts.push("요청 스킬과 높은 관련도");
+    parts.push("요청 성취기준과 높은 관련도");
   } else if (skillRelevance >= 0.3) {
-    parts.push("요청 스킬과 부분 일치");
+    parts.push("요청 성취기준과 부분 일치");
   }
 
   if (difficultyFit >= 0.75) {
@@ -427,7 +427,7 @@ function buildItemReason(
   }
 
   if (diversity >= 0.8) {
-    parts.push("스킬 다양성 확보");
+    parts.push("성취기준 다양성 확보");
   }
 
   return parts.length > 0

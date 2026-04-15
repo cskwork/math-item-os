@@ -553,7 +553,7 @@ export default function ItemDetailPage({
           {/* 스킬 */}
           <div className="mb-4">
             <h3 className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              스킬 ({skills.length})
+              성취기준 ({skills.length})
             </h3>
             {skills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
@@ -564,7 +564,7 @@ export default function ItemDetailPage({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400">연결된 스킬이 없습니다.</p>
+              <p className="text-xs text-slate-400">연결된 성취기준이 없습니다.</p>
             )}
           </div>
 

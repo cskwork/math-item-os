@@ -234,8 +234,12 @@ describe("buildAssignmentHtml", () => {
     const assignment = makeAssignment({ title: '<script>alert("xss")</script>' });
     const html = buildAssignmentHtml(assignment as never);
 
-    expect(html).not.toContain("<script>");
+    // 제목과 헤더에서는 이스케이프되어야 함
     expect(html).toContain("&lt;script&gt;");
+    // <title> 태그에서도 이스케이프
+    expect(html).toContain("<title>&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;</title>");
+    // 인쇄 스크립트는 항상 존재하므로 h1 헤더에서 script가 이스케이프되었는지 확인
+    expect(html).not.toMatch(/<h1>.*<script>.*<\/script>.*<\/h1>/);
   });
 
   it("인쇄용 CSS를 포함한다", () => {

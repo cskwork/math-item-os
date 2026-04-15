@@ -272,6 +272,10 @@ async function buildPrismaFacets(
   orgId: string,
   statusFilter?: string[],
 ): Promise<SearchFacets> {
+  // Redis 캐싱: 동일 조건의 패싯 집계는 2분간 재사용
+  const filterKey = statusFilter?.join(",") ?? "all";
+  const cacheKey = `${CACHE_PREFIX.FACETS}${orgId}:${filterKey}`;
+  return cacheGetOrSet(cacheKey, CACHE_TTL.FACETS, async () => {
   const baseWhere: Prisma.ItemWhereInput = {
     orgId,
     ...(statusFilter != null &&
@@ -349,6 +353,7 @@ async function buildPrismaFacets(
   }
 
   return { subject, schoolLevel, grade, itemType, codeLanguage, difficulty };
+  }); // end cacheGetOrSet
 }
 
 // -------------------------------------------------

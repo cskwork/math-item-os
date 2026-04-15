@@ -226,8 +226,40 @@ describe("updateItem", () => {
   });
 });
 
-describe("getItemById & listItems", () => {
-  it("listItems: 같은 조직의 문항만 페이지네이션하여 반환한다", async () => {
+describe("getItemById", () => {
+  it("happy path: 자기 조직 문항을 조회한다", async () => {
+    const created = await createItem(baseInput, USER_ID, ORG_ID);
+    const itemId = created.item!.id;
+    createdItemIds.add(itemId);
+
+    const item = await getItemById(itemId, ORG_ID);
+    expect(item).toBeDefined();
+    expect(item.id).toBe(itemId);
+    expect(item.orgId).toBe(ORG_ID);
+    expect(item.bodyLatex).toBe(baseInput.bodyLatex);
+  });
+
+  it("다른 조직의 문항을 조회하면 NOT_FOUND", async () => {
+    const created = await createItem(baseInput, USER_ID, ORG_ID);
+    const itemId = created.item!.id;
+    createdItemIds.add(itemId);
+
+    // 다른 조직 ID로 조회 → findFirst where {id, orgId} 매칭 안 됨
+    await expect(getItemById(itemId, OTHER_ORG_ID)).rejects.toThrow(TRPCError);
+    await expect(getItemById(itemId, OTHER_ORG_ID)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+
+  it("존재하지 않는 ID로 조회하면 NOT_FOUND", async () => {
+    await expect(
+      getItemById(`${PREFIX}-nonexistent`, ORG_ID),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("listItems", () => {
+  it("같은 조직의 문항만 페이지네이션하여 반환한다", async () => {
     // 동일 조직 2개, 다른 조직 1개 생성
     const a = await createItem(baseInput, USER_ID, ORG_ID);
     const b = await createItem({ ...baseInput, bodyLatex: "y = 0" }, USER_ID, ORG_ID);
@@ -242,5 +274,45 @@ describe("getItemById & listItems", () => {
     expect(ids).toContain(b.item!.id);
     expect(ids).not.toContain(c.item!.id);
     expect(list.total).toBeGreaterThanOrEqual(2);
+  });
+
+  it("over-fetching 방지: skills에 description, bloomLevel 등 불필요 필드가 포함되지 않는다", async () => {
+    const result = await createItem(
+      { ...baseInput, skillIds: [SKILL_ID] },
+      USER_ID,
+      ORG_ID,
+    );
+    createdItemIds.add(result.item!.id);
+
+    const list = await listItems({ page: 1, limit: 10 }, ORG_ID);
+    const found = list.items.find((i) => i.id === result.item!.id);
+    expect(found).toBeDefined();
+
+    // skills 관계가 존재해야 함
+    expect(found!.skills).toBeDefined();
+    expect(found!.skills.length).toBeGreaterThan(0);
+
+    // select 최적화 확인: skill에 id, title, typeLevel만 있어야 함
+    const firstSkill = found!.skills[0]!;
+    expect(firstSkill.skill).toHaveProperty("id");
+    expect(firstSkill.skill).toHaveProperty("title");
+    // description, bloomLevel, topicPath 등은 select에 없으므로 undefined
+    expect(firstSkill.skill).not.toHaveProperty("description");
+    expect(firstSkill.skill).not.toHaveProperty("bloomLevel");
+    expect(firstSkill.skill).not.toHaveProperty("topicPath");
+  });
+
+  it("over-fetching 방지: difficultyProfile에 authorDifficulty만 포함된다", async () => {
+    const result = await createItem(baseInput, USER_ID, ORG_ID);
+    createdItemIds.add(result.item!.id);
+
+    const list = await listItems({ page: 1, limit: 10 }, ORG_ID);
+    const found = list.items.find((i) => i.id === result.item!.id);
+    expect(found).toBeDefined();
+    expect(found!.difficultyProfile).toBeDefined();
+    expect(found!.difficultyProfile).toHaveProperty("authorDifficulty");
+    // behavioralDifficulty, irtDifficulty 등은 select에 없음
+    expect(found!.difficultyProfile).not.toHaveProperty("behavioralDifficulty");
+    expect(found!.difficultyProfile).not.toHaveProperty("irtDifficulty");
   });
 });

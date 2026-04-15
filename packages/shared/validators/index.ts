@@ -392,6 +392,34 @@ export const listUsersSchema = paginationSchema.extend({
 /** 템플릿 목록 조회 */
 export const listTemplatesSchema = paginationSchema;
 
+/** QTI 내보내기 */
+export const exportQtiSchema = z.object({
+  itemIds: z.array(z.string()).min(1),
+});
+
+/** 검수 제안 조회 */
+export const getReviewSuggestionsSchema = z.object({
+  itemId: z.string(),
+});
+
+/** 학습지 QTI 패키지 내보내기 */
+export const exportAssignmentQtiSchema = z.object({
+  assignmentId: z.string(),
+});
+
+/** LTI 플랫폼 등록 */
+export const registerLtiPlatformSchema = z.object({
+  issuer: z.string().url(),
+  clientId: z.string(),
+  deploymentId: z.string().optional(),
+  jwksUri: z.string().url().optional(),
+});
+
+/** LTI 플랫폼 ID 조회 */
+export const ltiPlatformIdSchema = z.object({
+  platformId: z.string(),
+});
+
 // ---------------------------------------------------------------------------
 // 7. 풀이(Solve) 라우터 스키마
 // ---------------------------------------------------------------------------

@@ -345,15 +345,18 @@ function buildPrintStyles(): string {
 
 /**
  * 한국어+LaTeX 혼합 텍스트에서 $...$ 구간만 KaTeX로 렌더링한다.
+ * $ 구분자가 없으면 전체를 display 모드 KaTeX로 렌더링한다.
  * 예: "$(-5) \\times (-4)$의 값을 구하시오." → <렌더링된 수식>의 값을 구하시오.
  */
 function renderMixedLatex(text: string): string {
-  const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g;
+  const MATH_REGEX = /\$\$([\s\\S]+?)\$\$|\$([^$]+?)\$/g;
   const parts: string[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
+  let hasMatch = false;
 
   while ((match = MATH_REGEX.exec(text)) !== null) {
+    hasMatch = true;
     // $..$ 앞의 일반 텍스트는 이스케이프
     if (match.index > lastIndex) {
       parts.push(escapeHtml(text.slice(lastIndex, match.index)));
@@ -368,6 +371,12 @@ function renderMixedLatex(text: string): string {
   // 남은 텍스트
   if (lastIndex < text.length) {
     parts.push(escapeHtml(text.slice(lastIndex)));
+  }
+
+  // $ 구분자가 전혀 없으면 전체를 display 모드 LaTeX로 렌더링
+  if (!hasMatch) {
+    const { html } = renderLatex(text, { displayMode: true });
+    return html;
   }
 
   return parts.join("");

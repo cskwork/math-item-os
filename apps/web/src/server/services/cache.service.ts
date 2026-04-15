@@ -21,6 +21,8 @@ export const CACHE_TTL = {
   SKILL_LIST: 120,
   /** 유사문항 결과: 5분 */
   SIMILAR_ITEMS: 300,
+  /** 검색 패싯(집계): 2분 (데이터 변경 빈도 고려) */
+  FACETS: 120,
 } as const;
 
 /** 캐시 키 프리픽스 */
@@ -29,6 +31,7 @@ export const CACHE_PREFIX = {
   METRICS: "cache:metrics:",
   SKILL_GRAPH: "cache:skill-graph:",
   SIMILAR: "cache:similar:",
+  FACETS: "cache:facets:",
 } as const;
 
 // -------------------------------------------------

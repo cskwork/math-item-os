@@ -136,6 +136,20 @@ const ITEM_FULL_INCLUDE = {
   },
 } satisfies Prisma.ItemInclude;
 
+/** create/update 응답용 경량 include (versions/variants 불필요) */
+const ITEM_WRITE_RESPONSE_INCLUDE = {
+  skills: {
+    include: { skill: true },
+  },
+  standards: {
+    include: { standard: true },
+  },
+  misconceptions: {
+    include: { misconception: true },
+  },
+  difficultyProfile: true,
+} satisfies Prisma.ItemInclude;
+
 // -------------------------------------------------
 // 1. 문항 생성
 // -------------------------------------------------
@@ -266,7 +280,7 @@ export async function createItem(
     // 관계 포함하여 최종 조회
     return tx.item.findUnique({
       where: { id: created.id },
-      include: ITEM_FULL_INCLUDE,
+      include: ITEM_WRITE_RESPONSE_INCLUDE,
     });
   });
 
@@ -464,7 +478,7 @@ export async function updateItem(
     // 관계 포함하여 최종 조회
     const updatedItem = await tx.item.findUnique({
       where: { id: input.id },
-      include: ITEM_FULL_INCLUDE,
+      include: ITEM_WRITE_RESPONSE_INCLUDE,
     });
 
     return [updatedItem, newVersion] as const;
@@ -487,8 +501,8 @@ export async function updateItem(
  * 관계 데이터(스킬, 성취기준, 오개념, 풀이, 난이도, 버전)를 함께 반환한다.
  */
 export async function getItemById(id: string, orgId: string) {
-  const item = await prisma.item.findUnique({
-    where: { id },
+  const item = await prisma.item.findFirst({
+    where: { id, orgId },
     include: ITEM_FULL_INCLUDE,
   });
 
@@ -496,13 +510,6 @@ export async function getItemById(id: string, orgId: string) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: `문항을 찾을 수 없습니다: ${id}`,
-    });
-  }
-
-  if (item.orgId !== orgId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "해당 조직의 문항이 아닙니다",
     });
   }
 
@@ -565,8 +572,16 @@ export async function listItems(params: ListItemsParams, orgId: string) {
     prisma.item.findMany({
       where,
       include: {
-        skills: { include: { skill: true } },
-        difficultyProfile: true,
+        skills: {
+          select: {
+            skillId: true,
+            isPrimary: true,
+            skill: { select: { id: true, title: true, typeLevel: true } },
+          },
+        },
+        difficultyProfile: {
+          select: { authorDifficulty: true },
+        },
       },
       orderBy: { [safeSortBy]: sortOrder },
       skip: (page - 1) * limit,

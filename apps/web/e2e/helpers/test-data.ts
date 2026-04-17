@@ -7,6 +7,8 @@ import type { UserRole } from "@math-item-os/db";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+export { DEFAULT_ORG_ID } from "@/server/config/org-context";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ─────────────────────────────────────────────────
@@ -73,7 +75,6 @@ export const SESSION_EXPIRES_DAYS = 30;
 // 조직
 // ─────────────────────────────────────────────────
 
-export const DEFAULT_ORG_ID = "default-org";
 export const DEFAULT_ORG_NAME = "Default Organization";
 export const DEFAULT_ORG_SLUG = "default";
 

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CanvasBuilder } from "@/components/admin/canvas/canvas-builder";
 import { useCanvasState } from "@/components/admin/canvas/use-canvas-state";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // --- 상수 ---
 
@@ -51,6 +52,7 @@ export default function NewAssignmentPage() {
   const [targetDifficulty, setTargetDifficulty] = useState(DEFAULT_DIFFICULTY);
   const [itemCount, setItemCount] = useState(DEFAULT_ITEM_COUNT);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // 검색/추천 상태
   const [showSearch, setShowSearch] = useState(false);
@@ -67,7 +69,7 @@ export default function NewAssignmentPage() {
 
   const searchInput = useMemo(
     () => ({
-      query: searchQuery.trim() || undefined,
+      query: debouncedSearchQuery.trim() || undefined,
       filters: {
         difficultyMin: Math.max(1, targetDifficulty - 1),
         difficultyMax: Math.min(5, targetDifficulty + 1),
@@ -76,11 +78,11 @@ export default function NewAssignmentPage() {
       limit: SEARCH_PAGE_LIMIT,
       sort: "relevance" as const,
     }),
-    [searchQuery, targetDifficulty, searchPage],
+    [debouncedSearchQuery, targetDifficulty, searchPage],
   );
 
   const searchQueryResult = trpc.search.items.useQuery(searchInput, {
-    enabled: showSearch && searchQuery.trim().length > 0,
+    enabled: showSearch && debouncedSearchQuery.trim().length > 0,
   });
 
   // --- tRPC 뮤테이션 ---

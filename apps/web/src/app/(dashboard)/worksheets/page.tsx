@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 // --- 상수 ---
 
 const SESSIONS_PER_PAGE = 10;
+const ASSIGNMENTS_PER_PAGE = 20;
 
 // --- 메인 페이지 ---
 
@@ -18,11 +19,12 @@ export default function WorksheetsPage() {
     null,
   );
   const [sessionsPage, setSessionsPage] = useState(1);
+  const [assignmentsPage, setAssignmentsPage] = useState(1);
 
   // 학습지 목록 조회 (세션 필터용)
   const assignmentsQuery = trpc.admin.listAssignments.useQuery({
-    page: 1,
-    limit: 100,
+    page: assignmentsPage,
+    limit: ASSIGNMENTS_PER_PAGE,
   });
 
   // 세션 목록 조회
@@ -64,6 +66,11 @@ export default function WorksheetsPage() {
   // --- 데이터 ---
 
   const assignments = assignmentsQuery.data?.assignments ?? [];
+  const assignmentsTotal = assignmentsQuery.data?.total ?? 0;
+  const assignmentsTotalPages = Math.max(
+    1,
+    Math.ceil(assignmentsTotal / ASSIGNMENTS_PER_PAGE),
+  );
   const sessions = sessionsQuery.data?.sessions ?? [];
   const sessionsTotal = sessionsQuery.data?.total ?? 0;
   const sessionsTotalPages = Math.max(
@@ -111,7 +118,7 @@ export default function WorksheetsPage() {
       ) : (
         <div className="space-y-4">
           {/* 학습지 선택 */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <label
               htmlFor="assignment-select"
               className="text-sm font-medium text-slate-700 dark:text-slate-300"
@@ -131,6 +138,30 @@ export default function WorksheetsPage() {
                 </option>
               ))}
             </select>
+
+            {assignmentsTotalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={assignmentsPage <= 1}
+                  onClick={() => setAssignmentsPage((p) => p - 1)}
+                  className="rounded px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  이전
+                </button>
+                <span className="text-xs text-slate-500">
+                  {assignmentsPage} / {assignmentsTotalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={assignmentsPage >= assignmentsTotalPages}
+                  onClick={() => setAssignmentsPage((p) => p + 1)}
+                  className="rounded px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  다음
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 세션 목록 */}

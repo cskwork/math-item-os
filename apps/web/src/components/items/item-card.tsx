@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import {
@@ -146,8 +146,8 @@ const ItemCard = memo(function ItemCard({
         null
       : null;
 
-  // LaTeX 미리보기
-  const previewLatex = truncateLatex(item.bodyLatex);
+  // LaTeX 미리보기 (stable identity to avoid KatexRenderer re-render thrash)
+  const previewLatex = useMemo(() => truncateLatex(item.bodyLatex), [item.bodyLatex]);
 
   return (
     <div

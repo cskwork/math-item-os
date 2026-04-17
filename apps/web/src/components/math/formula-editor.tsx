@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -161,30 +160,28 @@ const SymbolToolbar = memo(function SymbolToolbar({
   onInsert,
 }: SymbolToolbarProps) {
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="flex flex-wrap gap-1">
-        {MATH_SYMBOLS.map((symbol) => (
-          <Tooltip key={symbol.latex}>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 min-w-[36px] px-2 font-mono text-xs"
-                onClick={() => onInsert(symbol)}
-              >
-                {symbol.display}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {symbol.tooltip} ({symbol.latex})
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-    </TooltipProvider>
+    <div className="flex flex-wrap gap-1">
+      {MATH_SYMBOLS.map((symbol) => (
+        <Tooltip key={symbol.latex}>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 min-w-[36px] px-2 font-mono text-xs"
+              onClick={() => onInsert(symbol)}
+            >
+              {symbol.display}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {symbol.tooltip} ({symbol.latex})
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
   );
 });
 

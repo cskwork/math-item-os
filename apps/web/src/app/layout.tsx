@@ -3,6 +3,7 @@ import { SessionProvider } from "@/lib/session-provider";
 import { TRPCProvider } from "@/lib/trpc-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,7 +27,10 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <SessionProvider>
-            <TRPCProvider>{children}</TRPCProvider>
+            <TRPCProvider>
+              {/* 단일 루트 TooltipProvider: 모든 하위 트리가 하나의 컨텍스트 공유. delayDuration=200 */}
+              <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+            </TRPCProvider>
           </SessionProvider>
           <Toaster />
         </ThemeProvider>

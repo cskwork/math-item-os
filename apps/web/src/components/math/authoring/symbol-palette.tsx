@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -192,55 +191,53 @@ const SymbolPalette = memo(function SymbolPalette({ onInsert, compact = false, r
   const category = SYMBOL_CATEGORIES[activeCategory];
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-        {/* 카테고리 탭 */}
-        <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700">
-          {SYMBOL_CATEGORIES.map((cat, i) => (
-            <Tooltip key={cat.name}>
+    <div className="rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      {/* 카테고리 탭 */}
+      <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700">
+        {SYMBOL_CATEGORIES.map((cat, i) => (
+          <Tooltip key={cat.name}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setActiveCategory(i)}
+                className={cn(
+                  "whitespace-nowrap px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  i === activeCategory
+                    ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300",
+                )}
+              >
+                <span className="mr-0.5">{cat.icon}</span>
+                {!compact && <span className="hidden sm:inline"> {cat.name}</span>}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom"><p>{cat.name}</p></TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+
+      {/* 기호 그리드 */}
+      {category && (
+        <div className="flex flex-wrap gap-1 p-2">
+          {category.symbols.map((sym, i) => (
+            <Tooltip key={`${sym.latex}-${i}`}>
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setActiveCategory(i)}
-                  className={cn(
-                    "whitespace-nowrap px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    i === activeCategory
-                      ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300",
-                  )}
+                  onClick={() => onInsert(raw ? sym.latex : toPlainLatex(sym.latex))}
+                  className="flex h-8 min-w-[36px] items-center justify-center rounded border border-slate-200 bg-slate-50 px-1.5 text-sm
+                    transition-colors hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100
+                    dark:border-slate-600 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-blue-950"
                 >
-                  <span className="mr-0.5">{cat.icon}</span>
-                  {!compact && <span className="hidden sm:inline"> {cat.name}</span>}
+                  {sym.label}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom"><p>{cat.name}</p></TooltipContent>
+              <TooltipContent><p>{sym.tooltip}</p></TooltipContent>
             </Tooltip>
           ))}
         </div>
-
-        {/* 기호 그리드 */}
-        {category && (
-          <div className="flex flex-wrap gap-1 p-2">
-            {category.symbols.map((sym, i) => (
-              <Tooltip key={`${sym.latex}-${i}`}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => onInsert(raw ? sym.latex : toPlainLatex(sym.latex))}
-                    className="flex h-8 min-w-[36px] items-center justify-center rounded border border-slate-200 bg-slate-50 px-1.5 text-sm
-                      transition-colors hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100
-                      dark:border-slate-600 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-blue-950"
-                  >
-                    {sym.label}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent><p>{sym.tooltip}</p></TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-      </div>
-    </TooltipProvider>
+      )}
+    </div>
   );
 });
 

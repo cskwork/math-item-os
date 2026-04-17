@@ -199,6 +199,34 @@ describe("buildAssignmentHtml", () => {
     expect(html).toContain("katex-display");
   });
 
+  it("혼합 본문의 $$...$$ 블록을 display 모드로 렌더링한다", () => {
+    // 회귀 방지: `[\s\S]` 대신 `[\s\\S]`로 되면 $$...$$ 매칭이 깨지고
+    // 내부가 inline으로 잘못 렌더되면서 바깥쪽 `$`가 텍스트로 유출된다.
+    const assignment = makeAssignment({
+      items: [
+        {
+          position: 1,
+          points: null,
+          item: {
+            id: "item-display",
+            bodyLatex: "다음 값을 구하시오: $$x + 1$$",
+            bodyHtml: null,
+            difficultyAuthor: 2,
+            itemType: "short_answer",
+          },
+        },
+      ],
+    });
+
+    const html = buildAssignmentHtml(assignment as never);
+    const itemSection = html.split('<li class="item"')[1] ?? "";
+
+    expect(itemSection).toContain("katex-display");
+    // 바깥 `$` 또는 이스케이프된 `$` 텍스트가 남으면 안 된다.
+    expect(itemSection).not.toMatch(/\$\$/);
+    expect(itemSection).not.toContain("&#36;");
+  });
+
   it("배점이 있으면 points-badge를 렌더한다", () => {
     const assignment = makeAssignment();
     const html = buildAssignmentHtml(assignment as never);

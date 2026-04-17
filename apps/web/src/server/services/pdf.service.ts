@@ -349,7 +349,7 @@ function buildPrintStyles(): string {
  * 예: "$(-5) \\times (-4)$의 값을 구하시오." → <렌더링된 수식>의 값을 구하시오.
  */
 function renderMixedLatex(text: string): string {
-  const MATH_REGEX = /\$\$([\s\\S]+?)\$\$|\$([^$]+?)\$/g;
+  const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g;
   const parts: string[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;

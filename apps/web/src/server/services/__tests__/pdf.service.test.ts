@@ -2,6 +2,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ─────────────────────────────────────────────
+// math-parser 모킹 (renderLatex 호출 횟수 측정)
+// ─────────────────────────────────────────────
+const { mockRenderLatex } = vi.hoisted(() => ({
+  mockRenderLatex: vi.fn(),
+}));
+
+vi.mock("@math-item-os/math-parser", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@math-item-os/math-parser")>();
+  return {
+    ...actual,
+    renderLatex: mockRenderLatex,
+  };
+});
+
+// ─────────────────────────────────────────────
 // Prisma 모킹
 // ─────────────────────────────────────────────
 
@@ -66,6 +82,12 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRenderLatex.mockImplementation(
+    (latex: string, opts?: { displayMode?: boolean }) => ({
+      html: `<span class="${opts?.displayMode ? "katex-display" : "katex"}">${latex}</span>`,
+      errors: [],
+    }),
+  );
 });
 
 // ─────────────────────────────────────────────
@@ -291,5 +313,70 @@ describe("buildAssignmentHtml", () => {
     const html = buildAssignmentHtml(assignment as never);
 
     expect(html).toContain("custom_purpose");
+  });
+});
+
+// ─────────────────────────────────────────────
+// renderLatex 메모이제이션 (성능 최적화)
+// ─────────────────────────────────────────────
+
+describe("renderMixedLatex memoization", () => {
+  function makeMemoAssignment(items: ReadonlyArray<{ bodyLatex: string }>) {
+    return makeAssignment({
+      items: items.map((it, idx) => ({
+        position: idx + 1,
+        points: null,
+        item: {
+          id: `item-${idx}`,
+          bodyLatex: it.bodyLatex,
+          bodyHtml: null,
+          difficultyAuthor: 2,
+          itemType: "short_answer",
+        },
+      })),
+    });
+  }
+
+  it("동일한 (latex, displayMode) 조합은 한 번만 renderLatex를 호출한다", () => {
+    const assignment = makeMemoAssignment([
+      { bodyLatex: "$x+1$ 또는 $x+1$의 값" },
+      { bodyLatex: "답이 $x+1$일 때 $\\frac{1}{2}$는?" },
+    ]);
+
+    buildAssignmentHtml(assignment as never);
+    buildAssignmentHtml(assignment as never);
+
+    const uniqueKeys = new Set(
+      mockRenderLatex.mock.calls.map(
+        (c) => `${(c[1] as { displayMode?: boolean } | undefined)?.displayMode ? "D" : "I"}|${c[0] as string}`,
+      ),
+    );
+
+    expect(mockRenderLatex).toHaveBeenCalledTimes(uniqueKeys.size);
+    expect(uniqueKeys.has("I|x+1")).toBe(true);
+    expect(uniqueKeys.has("I|\\frac{1}{2}")).toBe(true);
+  });
+
+  it("displayMode가 다르면 별도로 캐싱한다", () => {
+    // 각 테스트가 서로 독립적이도록 고유 latex 사용 (캐시는 모듈 수명)
+    const latex = "y-2";
+    const assignment = makeMemoAssignment([
+      { bodyLatex: `$${latex}$` },
+      { bodyLatex: `$$${latex}$$` },
+      { bodyLatex: `$${latex}$` },
+      { bodyLatex: `$$${latex}$$` },
+    ]);
+
+    buildAssignmentHtml(assignment as never);
+
+    const inline = mockRenderLatex.mock.calls.filter(
+      (c) => !(c[1] as { displayMode?: boolean } | undefined)?.displayMode && c[0] === latex,
+    );
+    const display = mockRenderLatex.mock.calls.filter(
+      (c) => (c[1] as { displayMode?: boolean } | undefined)?.displayMode && c[0] === latex,
+    );
+
+    expect(inline).toHaveLength(1);
+    expect(display).toHaveLength(1);
   });
 });

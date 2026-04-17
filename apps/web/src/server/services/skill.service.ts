@@ -363,10 +363,17 @@ export async function getSkillItems(
   const [items, total] = await Promise.all([
     prisma.item.findMany({
       where,
-      include: {
-        skills: { include: { skill: true } },
-        standards: { include: { standard: true } },
-        misconceptions: { include: { misconception: true } },
+      select: {
+        id: true,
+        bodyLatex: true,
+        schoolLevel: true,
+        grade: true,
+        status: true,
+        difficultyAuthor: true,
+        itemType: true,
+        skills: {
+          select: { skill: { select: { id: true, title: true } } },
+        },
       },
       orderBy: { [safeSortBy]: "desc" },
       skip: (page - 1) * limit,

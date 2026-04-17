@@ -411,4 +411,64 @@ describe("getSkillItems", () => {
       }),
     );
   });
+
+  // -- select discipline: 무거운 텍스트/JSON 컬럼 제외 --
+
+  it("무거운 텍스트 컬럼(bodyHtml/explanation/bodyMathml/bodySympy/bodyBlocks)을 쿼리하지 않는다", async () => {
+    vi.mocked(prisma.skill.findUnique).mockResolvedValue(mockSkill as never);
+    vi.mocked(prisma.item.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.item.count).mockResolvedValue(0);
+
+    await getSkillItems({ skillId: "sk-1", page: 1, limit: 20 }, ORG_ID);
+
+    const call = vi.mocked(prisma.item.findMany).mock.calls[0]?.[0] as
+      | { select?: Record<string, unknown>; include?: Record<string, unknown> }
+      | undefined;
+    expect(call).toBeDefined();
+    // include 트리를 쓰지 않고 select를 사용해야 한다
+    expect(call?.include).toBeUndefined();
+    expect(call?.select).toBeDefined();
+
+    const select = call!.select!;
+    // 무거운 컬럼은 select에 포함되지 않아야 함
+    expect(select).not.toHaveProperty("bodyHtml");
+    expect(select).not.toHaveProperty("bodyMathml");
+    expect(select).not.toHaveProperty("bodySympy");
+    expect(select).not.toHaveProperty("bodyBlocks");
+    expect(select).not.toHaveProperty("bodyCode");
+    expect(select).not.toHaveProperty("bodyText");
+    expect(select).not.toHaveProperty("explanation");
+    expect(select).not.toHaveProperty("answer");
+    expect(select).not.toHaveProperty("choices");
+    expect(select).not.toHaveProperty("metadata");
+    expect(select).not.toHaveProperty("standards");
+    expect(select).not.toHaveProperty("misconceptions");
+  });
+
+  it("UI 소비자가 필요로 하는 필드만 select한다 (id/title 제외, 본문은 bodyLatex)", async () => {
+    vi.mocked(prisma.skill.findUnique).mockResolvedValue(mockSkill as never);
+    vi.mocked(prisma.item.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.item.count).mockResolvedValue(0);
+
+    await getSkillItems({ skillId: "sk-1", page: 1, limit: 20 }, ORG_ID);
+
+    const call = vi.mocked(prisma.item.findMany).mock.calls[0]?.[0] as
+      | { select?: Record<string, unknown> }
+      | undefined;
+    const select = call!.select!;
+
+    // UI가 실제 읽는 필드
+    expect(select.id).toBe(true);
+    expect(select.bodyLatex).toBe(true);
+    expect(select.schoolLevel).toBe(true);
+    expect(select.grade).toBe(true);
+    expect(select.status).toBe(true);
+    expect(select.difficultyAuthor).toBe(true);
+    expect(select.itemType).toBe(true);
+
+    // skills 중첩은 junction 테이블의 skill.id/title만 가져와야 함
+    expect(select.skills).toEqual({
+      select: { skill: { select: { id: true, title: true } } },
+    });
+  });
 });

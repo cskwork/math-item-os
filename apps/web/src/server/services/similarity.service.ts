@@ -240,6 +240,9 @@ export function computeFormulaStructure(
  * 소스/후보 스킬 쌍 사이에 직접적인 선수학습 관계(1-hop)가 있는지 확인한다.
  * 직접 연결이 있으면 1.0, 없으면 0.0을 반환한다.
  * MVP: 1-hop만 확인한다.
+ *
+ * 주의: 대량 후보 랭킹 경로(`scoreAllCandidates`)는 N+1 방지를 위해
+ * `fetchPrerequisiteEdgeSet` + `computePrerequisiteDistanceFromSet`을 사용한다.
  */
 export async function computePrerequisiteDistance(
   sourceSkillIds: ReadonlyArray<string>,
@@ -269,6 +272,70 @@ export async function computePrerequisiteDistance(
   });
 
   return directEdge != null ? 1.0 : 0.0;
+}
+
+/**
+ * 대량 후보 처리를 위해 소스/전체 후보 스킬 집합의 모든 1-hop 엣지를
+ * 단일 쿼리로 조회한 뒤, "from|to" 키의 Set으로 반환한다.
+ */
+async function fetchPrerequisiteEdgeSet(
+  sourceSkillIds: ReadonlyArray<string>,
+  allCandidateSkillIds: ReadonlyArray<string>,
+  orgId: string,
+): Promise<ReadonlySet<string>> {
+  if (sourceSkillIds.length === 0 || allCandidateSkillIds.length === 0) {
+    return new Set();
+  }
+
+  const edges = await prisma.prerequisiteEdge.findMany({
+    where: {
+      orgId,
+      OR: [
+        {
+          fromSkillId: { in: [...sourceSkillIds] },
+          toSkillId: { in: [...allCandidateSkillIds] },
+        },
+        {
+          fromSkillId: { in: [...allCandidateSkillIds] },
+          toSkillId: { in: [...sourceSkillIds] },
+        },
+      ],
+    },
+    select: { fromSkillId: true, toSkillId: true },
+  });
+
+  const keys = new Set<string>();
+  for (const edge of edges) {
+    keys.add(`${edge.fromSkillId}|${edge.toSkillId}`);
+  }
+  return keys;
+}
+
+/**
+ * 미리 조회된 엣지 Set을 사용하여 소스/후보 스킬 쌍의 1-hop 존재 여부를
+ * 동기적으로 판정한다. DB 접근 없음.
+ */
+function computePrerequisiteDistanceFromSet(
+  sourceSkillIds: ReadonlyArray<string>,
+  candidateSkillIds: ReadonlyArray<string>,
+  edgeSet: ReadonlySet<string>,
+): number {
+  if (
+    sourceSkillIds.length === 0 ||
+    candidateSkillIds.length === 0 ||
+    edgeSet.size === 0
+  ) {
+    return 0;
+  }
+
+  for (const from of sourceSkillIds) {
+    for (const to of candidateSkillIds) {
+      if (edgeSet.has(`${from}|${to}`) || edgeSet.has(`${to}|${from}`)) {
+        return 1.0;
+      }
+    }
+  }
+  return 0;
 }
 
 // -------------------------------------------------
@@ -431,24 +498,17 @@ async function fetchSourceItem(
 
 /** 소스 문항의 임베딩을 확보한다. DB에 없으면 생성한다. */
 async function ensureEmbedding(sourceItem: SourceItem): Promise<number[] | null> {
-  // raw SQL로 임베딩 존재 여부 확인
-  const rows = await prisma.$queryRawUnsafe<ReadonlyArray<{ has_embedding: boolean }>>(
-    `SELECT embedding IS NOT NULL AS has_embedding FROM items WHERE id = $1`,
+  // 단일 raw 쿼리로 임베딩 벡터를 확보 (null이면 미존재로 간주)
+  const rows = await prisma.$queryRawUnsafe<
+    ReadonlyArray<{ vec: string | null }>
+  >(
+    `SELECT embedding::text AS vec FROM items WHERE id = $1`,
     sourceItem.id,
   );
 
-  if (rows.length > 0 && rows[0]?.has_embedding) {
-    // 임베딩이 이미 존재하면 벡터 값을 조회
-    const vectorRows = await prisma.$queryRawUnsafe<
-      ReadonlyArray<{ embedding: string }>
-    >(
-      `SELECT embedding::text FROM items WHERE id = $1 AND embedding IS NOT NULL`,
-      sourceItem.id,
-    );
-
-    if (vectorRows.length > 0 && vectorRows[0]?.embedding) {
-      return parseVectorString(vectorRows[0].embedding);
-    }
+  const existingVec = rows.length > 0 ? rows[0]?.vec ?? null : null;
+  if (existingVec != null && existingVec.length > 0) {
+    return parseVectorString(existingVec);
   }
 
   // 임베딩이 없으면 생성
@@ -544,7 +604,8 @@ function findCommonSkillTitles(
 
 /**
  * 모든 후보에 대해 6개 시그널을 계산하고 가중합산 스코어를 산출한다.
- * prerequisiteDistance만 비동기이므로 Promise.all로 병렬 처리한다.
+ * prerequisiteDistance는 전체 후보 스킬 합집합을 대상으로 단일 쿼리 후
+ * 메모리에서 판정하여 N+1을 방지한다.
  */
 async function scoreAllCandidates(
   candidates: ReadonlyArray<CandidateItem>,
@@ -559,47 +620,61 @@ async function scoreAllCandidates(
     readonly skill: { readonly title: string };
   }>,
 ): Promise<ReadonlyArray<SimilarItemResult>> {
-  const results = await Promise.all(
-    candidates.map(async (candidate) => {
-      const candidateSkillIds = candidate.skills.map((s) => s.skillId);
-      const candidateMcIds = candidate.misconceptions.map((m) => m.misconceptionId);
-      const vectorDistance = distanceMap.get(candidate.id) ?? 1.0;
-
-      // 6개 시그널 계산 (prerequisiteDistance만 비동기)
-      const [prerequisiteDistance] = await Promise.all([
-        computePrerequisiteDistance(sourceSkillIds, candidateSkillIds, orgId),
-      ]);
-
-      const signals: SimilaritySignals = {
-        skillMatch: computeSkillMatch(sourceSkillIds, candidateSkillIds),
-        formulaStructure: computeFormulaStructure(sourceSympy, candidate.bodySympy),
-        prerequisiteDistance,
-        textSemantic: computeTextSemantic(vectorDistance),
-        difficultyProximity: computeDifficultyProximity(
-          sourceDifficulty,
-          candidate.difficultyAuthor,
-        ),
-        misconceptionProfile: computeMisconceptionProfile(sourceMcIds, candidateMcIds),
-      };
-
-      const score = computeWeightedScore(signals);
-
-      const explanation = buildExplanation(
-        signals,
-        sourceSkills,
-        candidateSkillIds,
-      );
-
-      return {
-        itemId: candidate.id,
-        score,
-        signals,
-        explanation,
-      };
-    }),
+  // 전 후보의 스킬 ID를 유니크 집합으로 모아 단일 쿼리로 엣지 조회
+  const allCandidateSkillIds = uniqueStrings(
+    candidates.flatMap((c) => c.skills.map((s) => s.skillId)),
+  );
+  const edgeSet = await fetchPrerequisiteEdgeSet(
+    sourceSkillIds,
+    allCandidateSkillIds,
+    orgId,
   );
 
+  const results = candidates.map((candidate) => {
+    const candidateSkillIds = candidate.skills.map((s) => s.skillId);
+    const candidateMcIds = candidate.misconceptions.map((m) => m.misconceptionId);
+    const vectorDistance = distanceMap.get(candidate.id) ?? 1.0;
+
+    const prerequisiteDistance = computePrerequisiteDistanceFromSet(
+      sourceSkillIds,
+      candidateSkillIds,
+      edgeSet,
+    );
+
+    const signals: SimilaritySignals = {
+      skillMatch: computeSkillMatch(sourceSkillIds, candidateSkillIds),
+      formulaStructure: computeFormulaStructure(sourceSympy, candidate.bodySympy),
+      prerequisiteDistance,
+      textSemantic: computeTextSemantic(vectorDistance),
+      difficultyProximity: computeDifficultyProximity(
+        sourceDifficulty,
+        candidate.difficultyAuthor,
+      ),
+      misconceptionProfile: computeMisconceptionProfile(sourceMcIds, candidateMcIds),
+    };
+
+    const score = computeWeightedScore(signals);
+
+    const explanation = buildExplanation(
+      signals,
+      sourceSkills,
+      candidateSkillIds,
+    );
+
+    return {
+      itemId: candidate.id,
+      score,
+      signals,
+      explanation,
+    };
+  });
+
   return results;
+}
+
+/** 문자열 배열에서 중복을 제거해 고유 값 배열을 반환한다 */
+function uniqueStrings(values: ReadonlyArray<string>): ReadonlyArray<string> {
+  return Array.from(new Set(values));
 }
 
 /** 시그널 값에 가중치를 곱하여 합산한다 (0-1 범위) */

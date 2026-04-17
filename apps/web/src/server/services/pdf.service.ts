@@ -29,6 +29,21 @@ const PURPOSE_LABELS: Readonly<Record<string, string>> = {
   advanced: "심화학습",
 };
 
+// $$...$$ (display) 또는 $...$ (inline) 매칭
+const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g;
+
+// 동일한 (latex, displayMode) 조합은 모듈 수명 내 한 번만 렌더링
+const renderLatexCache = new Map<string, { html: string }>();
+
+function memoRenderLatex(latex: string, opts: { displayMode: boolean }): { html: string } {
+  const key = `${opts.displayMode ? "D" : "I"}|${latex}`;
+  const cached = renderLatexCache.get(key);
+  if (cached) return cached;
+  const entry = { html: renderLatex(latex, { displayMode: opts.displayMode }).html };
+  renderLatexCache.set(key, entry);
+  return entry;
+}
+
 // -------------------------------------------------
 // 관계 포함 공통 include 정의
 // -------------------------------------------------
@@ -349,7 +364,7 @@ function buildPrintStyles(): string {
  * 예: "$(-5) \\times (-4)$의 값을 구하시오." → <렌더링된 수식>의 값을 구하시오.
  */
 function renderMixedLatex(text: string): string {
-  const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g;
+  MATH_REGEX.lastIndex = 0;
   const parts: string[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -363,7 +378,7 @@ function renderMixedLatex(text: string): string {
     }
     const latex = match[1] ?? match[2] ?? "";
     const isDisplay = match[1] != null;
-    const { html } = renderLatex(latex, { displayMode: isDisplay });
+    const { html } = memoRenderLatex(latex, { displayMode: isDisplay });
     parts.push(html);
     lastIndex = match.index + match[0].length;
   }
@@ -375,7 +390,7 @@ function renderMixedLatex(text: string): string {
 
   // $ 구분자가 전혀 없으면 전체를 display 모드 LaTeX로 렌더링
   if (!hasMatch) {
-    const { html } = renderLatex(text, { displayMode: true });
+    const { html } = memoRenderLatex(text, { displayMode: true });
     return html;
   }
 

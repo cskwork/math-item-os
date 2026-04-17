@@ -235,4 +235,91 @@ describe("findSimilarItems", () => {
     const results = await findSimilarItems(sourceItemId, ORG_ID, 5);
     expect(results).toEqual([]);
   });
+
+  // ─────────────────────────────────────────────
+  // 성능 회귀 방지 테스트
+  //  - N+1 방지: prerequisiteEdge.findMany 1회, findFirst 0회
+  //  - ensureEmbedding: $queryRawUnsafe 1회 (기존 2회 → 1회)
+  // ─────────────────────────────────────────────
+  it("성능: 후보 N개여도 prerequisiteEdge 조회는 1회(findMany), findFirst 0회", async () => {
+    // 후보 5개를 각각 다른 스킬과 함께 시드
+    const candidateIds = Array.from(
+      { length: 5 },
+      (_, i) => `${PREFIX}-item-cand-${i}`,
+    );
+    const extraSkillIds: string[] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const skillId = `${PREFIX}-extra-skill-${i}`;
+      extraSkillIds.push(skillId);
+      await prisma.skill.upsert({
+        where: { id: skillId },
+        create: {
+          id: skillId,
+          orgId: ORG_ID,
+          code: `${PREFIX}-extra-${i}`,
+          title: `추가 스킬 ${i}`,
+          topicPath: `sim.extra.${i}`,
+        },
+        update: {},
+      });
+    }
+
+    await seedItem(sourceItemId, { skill: SKILL_A });
+    for (let i = 0; i < candidateIds.length; i += 1) {
+      await seedItem(candidateIds[i]!, { skill: extraSkillIds[i] });
+    }
+
+    findSimilarByVectorMock.mockResolvedValue(
+      candidateIds.map((id, i) => ({ itemId: id, distance: 0.1 + i * 0.01 })),
+    );
+
+    const findFirstSpy = vi.spyOn(prisma.prerequisiteEdge, "findFirst");
+    const findManySpy = vi.spyOn(prisma.prerequisiteEdge, "findMany");
+
+    try {
+      const results = await findSimilarItems(sourceItemId, ORG_ID, 10);
+      expect(results.length).toBe(candidateIds.length);
+
+      expect(findFirstSpy).toHaveBeenCalledTimes(0);
+      expect(findManySpy).toHaveBeenCalledTimes(1);
+    } finally {
+      findFirstSpy.mockRestore();
+      findManySpy.mockRestore();
+
+      // 정리: 추가 시드
+      await prisma.itemSkill.deleteMany({
+        where: { itemId: { in: candidateIds } },
+      });
+      await prisma.itemVersion.deleteMany({
+        where: { itemId: { in: candidateIds } },
+      });
+      await prisma.auditLog.deleteMany({
+        where: { recordId: { in: candidateIds } },
+      });
+      await prisma.item.deleteMany({ where: { id: { in: candidateIds } } });
+      await prisma.skill.deleteMany({ where: { id: { in: extraSkillIds } } });
+    }
+  });
+
+  it("성능: ensureEmbedding은 기존 임베딩 확인을 1번의 raw 쿼리로 처리한다", async () => {
+    await seedItem(sourceItemId, { skill: SKILL_A });
+
+    findSimilarByVectorMock.mockResolvedValue([]);
+
+    const rawSpy = vi.spyOn(prisma, "$queryRawUnsafe");
+
+    try {
+      await findSimilarItems(sourceItemId, ORG_ID, 5);
+
+      // ensureEmbedding 내부의 raw SELECT 호출만 카운트 (findSimilarByVector는 mock)
+      // 기존: has_embedding 체크(1) + embedding::text 조회(1) = 2회
+      // 개선: embedding::text AS vec 단일 조회(1) = 1회
+      const calls = rawSpy.mock.calls.filter(([sql]) =>
+        typeof sql === "string" && /FROM items WHERE id/i.test(sql),
+      );
+      expect(calls.length).toBe(1);
+    } finally {
+      rawSpy.mockRestore();
+    }
+  });
 });

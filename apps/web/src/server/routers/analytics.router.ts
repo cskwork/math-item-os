@@ -9,14 +9,7 @@ import {
   trendsSchema,
 } from "@math-item-os/shared/validators/index";
 import * as analyticsService from "../services/analytics.service";
-
-// MVP 단계에서 사용할 기본 조직 ID
-const DEFAULT_ORG_ID = "default-org";
-
-/** 사용자의 조직 ID를 반환한다. MVP에서는 고정값 사용. */
-function getOrgId(): string {
-  return DEFAULT_ORG_ID;
-}
+import { getOrgId } from "../config/org-context";
 
 export const analyticsRouter = createTRPCRouter({
   // 과제 전체 통계 (세션 수, 평균/중앙값/최저/최고 점수, typeLevel별 분석)

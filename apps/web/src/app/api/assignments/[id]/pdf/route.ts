@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { buildAssignmentHtmlById } from "@/server/services/pdf.service";
-
-const DEFAULT_ORG_ID = "default-org";
+import { DEFAULT_ORG_ID } from "@/server/config/org-context";
 
 export async function GET(
   _request: Request,

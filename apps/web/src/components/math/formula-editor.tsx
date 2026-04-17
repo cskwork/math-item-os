@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // --- 타입 정의 ---
 
@@ -74,23 +75,6 @@ const MATH_SYMBOLS: readonly MathSymbol[] = [
   { latex: "\\left| \\right|", display: "|x|", tooltip: "절대값", cursorOffset: 6 },
 ] as const;
 
-// --- 디바운스 훅 ---
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delayMs);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delayMs]);
-
-  return debouncedValue;
-}
 
 // --- 미리보기 컴포넌트 (memo로 불필요한 재렌더링 방지) ---
 
@@ -197,7 +181,7 @@ function FormulaEditor({
   className,
 }: FormulaEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const debouncedValue = useDebouncedValue(value, 300);
+  const debouncedValue = useDebounce(value, 300);
 
   // textarea 입력 핸들러
   const handleChange = useCallback(

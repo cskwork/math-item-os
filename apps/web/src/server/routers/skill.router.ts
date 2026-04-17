@@ -38,14 +38,7 @@ import {
   listMisconceptions,
 } from "../services/misconception.service";
 import { getRemediationPath } from "../services/remediation.service";
-
-// MVP 단계에서 사용할 기본 조직 ID
-const DEFAULT_ORG_ID = "default-org";
-
-/** 사용자의 조직 ID를 반환한다. MVP에서는 고정값 사용. */
-function getOrgId(): string {
-  return DEFAULT_ORG_ID;
-}
+import { getOrgId } from "../config/org-context";
 
 // -- 인라인 스키마 정의 (공유 validators에 없는 것들) --
 

@@ -2,9 +2,10 @@
 
 // 시맨틱 메타데이터 자동 태깅 제안 UI
 // 문항 본문 기반으로 스킬/성취기준/오개념/블룸 수준을 추천한다.
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { BLOOM_LEVEL } from "@math-item-os/shared/constants/index";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // -------------------------------------------------
 // 타입
@@ -26,21 +27,6 @@ interface AutoTagSuggestionsProps {
 }
 
 // -------------------------------------------------
-// 디바운스 훅
-// -------------------------------------------------
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
-// -------------------------------------------------
 // 컴포넌트
 // -------------------------------------------------
 
@@ -58,7 +44,7 @@ export function AutoTagSuggestions({
   onStandardSelect,
   onMisconceptionSelect,
 }: AutoTagSuggestionsProps) {
-  const debouncedBody = useDebouncedValue(bodyLatex, 500);
+  const debouncedBody = useDebounce(bodyLatex, 500);
 
   const input = useMemo(
     () => ({

@@ -7,14 +7,7 @@ import {
 } from "@math-item-os/shared/validators/index";
 import { generateErrorWorksheet } from "../services/error-worksheet.service";
 import { prisma } from "@math-item-os/db";
-
-// MVP 단계에서 사용할 기본 조직 ID
-const DEFAULT_ORG_ID = "default-org";
-
-/** 사용자의 조직 ID를 반환한다. MVP에서는 고정값 사용. */
-function getOrgId(): string {
-  return DEFAULT_ORG_ID;
-}
+import { getOrgId } from "../config/org-context";
 
 export const worksheetRouter = createTRPCRouter({
   // 오답 워크시트 생성 (교사 인증 필요)

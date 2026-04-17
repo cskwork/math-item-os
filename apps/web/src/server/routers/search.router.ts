@@ -19,14 +19,7 @@ import {
   CACHE_TTL,
   CACHE_PREFIX,
 } from "../services/cache.service";
-
-// MVP 단계에서 사용할 기본 조직 ID
-const DEFAULT_ORG_ID = "default-org";
-
-/** 사용자의 조직 ID를 반환한다. MVP에서는 고정값 사용. */
-function getOrgId(): string {
-  return DEFAULT_ORG_ID;
-}
+import { getOrgId } from "../config/org-context";
 
 // -------------------------------------------------
 // 관계 포함 공통 include 정의

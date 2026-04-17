@@ -3,15 +3,7 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { cn } from "@/lib/utils";
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return debouncedValue;
-}
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface PopupPreviewPanelProps {
   readonly latex: string;
@@ -20,7 +12,7 @@ interface PopupPreviewPanelProps {
 const PopupPreviewPanel = memo(function PopupPreviewPanel({
   latex,
 }: PopupPreviewPanelProps) {
-  const debouncedLatex = useDebouncedValue(latex, 300);
+  const debouncedLatex = useDebounce(latex, 300);
   const [parseError, setParseError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 

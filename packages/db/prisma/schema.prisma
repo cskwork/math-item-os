@@ -376,6 +376,7 @@ model PrerequisiteEdge {
   toSkill      Skill        @relation("EdgeTo", fields: [toSkillId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, fromSkillId, toSkillId])
+  @@index([orgId, toSkillId])
   @@map("prerequisite_edges")
 }
 
@@ -590,6 +591,7 @@ model ItemSkill {
   skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, skillId])
+  @@index([skillId, itemId])
   @@map("item_skills")
 }
 

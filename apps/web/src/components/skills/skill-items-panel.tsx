@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -91,9 +92,9 @@ const SkillInfoSection = memo(function SkillInfoSection({
   if (isLoading) {
     return (
       <div className="space-y-2 border-b border-slate-200 pb-4">
-        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
-        <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-2/3" />
       </div>
     );
   }
@@ -224,7 +225,7 @@ const ItemsList = memo(function ItemsList({
     return (
       <div className="flex-1 space-y-3 overflow-y-auto py-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={`skeleton-${i}`} className="h-20 animate-pulse rounded-lg bg-slate-100" />
+          <Skeleton key={`skeleton-${i}`} className="h-20 rounded-lg" />
         ))}
       </div>
     );

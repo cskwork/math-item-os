@@ -4,6 +4,8 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { KatexRenderer } from "@/components/math/katex-renderer";
 import {
   SCHOOL_LEVEL,
@@ -63,15 +65,6 @@ function formatSchoolGrade(schoolLevel: string, grade: number): string {
   return `${level.label.replace("등", "")}${grade}`;
 }
 
-// --- 메타 태그 ---
-function Tag({ children }: { readonly children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-      {children}
-    </span>
-  );
-}
-
 // --- 검색 결과 카드 ---
 function SearchResultCard({
   item,
@@ -126,9 +119,9 @@ function SearchResultCard({
       </div>
       {/* 메타 태그 */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <Tag>{typeLabel}</Tag>
-        {diffLabel != null && <Tag>{diffLabel}</Tag>}
-        {item.skills?.map((s) => <Tag key={s.skill.id}>{s.skill.title}</Tag>)}
+        <Badge variant="secondary">{typeLabel}</Badge>
+        {diffLabel != null && <Badge variant="secondary">{diffLabel}</Badge>}
+        {item.skills?.map((s) => <Badge key={s.skill.id} variant="secondary">{s.skill.title}</Badge>)}
       </div>
     </div>
   );
@@ -141,18 +134,18 @@ function ResultsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-        <div key={i} className="flex animate-pulse flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4">
+        <div key={i} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-12 rounded-full bg-slate-200" />
-            <div className="h-4 w-8 rounded bg-slate-200" />
+            <Skeleton className="h-5 w-12 rounded-full" />
+            <Skeleton className="h-4 w-8" />
           </div>
           <div className="space-y-2">
-            <div className="h-4 w-full rounded bg-slate-200" />
-            <div className="h-4 w-2/3 rounded bg-slate-200" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
           </div>
           <div className="flex gap-1.5">
-            <div className="h-5 w-14 rounded-full bg-slate-200" />
-            <div className="h-5 w-16 rounded-full bg-slate-200" />
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
           </div>
         </div>
       ))}

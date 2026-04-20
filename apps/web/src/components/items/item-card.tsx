@@ -3,6 +3,8 @@
 import { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { KatexRenderer } from "@/components/math/katex-renderer";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   QUALITY_STATUS,
   ITEM_TYPE,
@@ -35,13 +37,17 @@ export interface ItemCardProps {
   readonly className?: string;
 }
 
-// ─── 상태 배지 색상 매핑 ───
+// ─── 상태 배지 Variant 매핑 ───
+// Badge variants: default | secondary | destructive | outline
+// draft → secondary, reviewed → outline, approved → default, retired → destructive
 
-const STATUS_COLOR_MAP: Record<QualityStatusKey, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  reviewed: "bg-blue-100 text-blue-700",
-  approved: "bg-green-100 text-green-700",
-  retired: "bg-red-100 text-red-700",
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+const STATUS_VARIANT_MAP: Record<QualityStatusKey, BadgeVariant> = {
+  draft: "secondary",
+  reviewed: "outline",
+  approved: "default",
+  retired: "destructive",
 } as const;
 
 // ─── 날짜 포맷 (상대 시간) ───
@@ -86,28 +92,6 @@ function formatSchoolGrade(schoolLevel: string, grade: number): string {
   return `${shortLabel}${grade}`;
 }
 
-// ─── 메타 배지 컴포넌트 ───
-
-function MetaBadge({
-  children,
-  className,
-}: {
-  readonly children: React.ReactNode;
-  readonly className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium",
-        "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
 // ─── ItemCard 컴포넌트 ───
 
 const ItemCard = memo(function ItemCard({
@@ -129,11 +113,11 @@ const ItemCard = memo(function ItemCard({
     [onClick, item.id],
   );
 
-  // 상태 라벨 및 색상
+  // 상태 라벨 및 Variant
   const statusKey = item.status as QualityStatusKey;
   const statusInfo = QUALITY_STATUS[statusKey];
   const statusLabel = statusInfo?.label ?? item.status;
-  const statusColor = STATUS_COLOR_MAP[statusKey] ?? STATUS_COLOR_MAP.draft;
+  const statusVariant = STATUS_VARIANT_MAP[statusKey] ?? STATUS_VARIANT_MAP.draft;
 
   // 문항 유형 라벨
   const itemTypeKey = item.itemType as ItemTypeKey;
@@ -150,14 +134,13 @@ const ItemCard = memo(function ItemCard({
   const previewLatex = useMemo(() => truncateLatex(item.bodyLatex), [item.bodyLatex]);
 
   return (
-    <div
+    <Card
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick ? handleClick : undefined}
       onKeyDown={onClick ? handleKeyDown : undefined}
       className={cn(
-        "flex flex-col gap-3 rounded-xl border bg-card text-card-foreground p-4",
-        "transition-shadow duration-150",
+        "flex flex-col gap-3 p-4 transition-shadow duration-150",
         onClick && "cursor-pointer hover:shadow-md hover:border-accent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
@@ -165,14 +148,7 @@ const ItemCard = memo(function ItemCard({
     >
       {/* 헤더: 상태 배지 + 버전 + AI 생성 배지 */}
       <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-            statusColor,
-          )}
-        >
-          {statusLabel}
-        </span>
+        <Badge variant={statusVariant}>{statusLabel}</Badge>
         <span className="text-xs text-slate-400">v{item.currentVersion}</span>
         {item.isGenerated && (
           <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">
@@ -192,12 +168,12 @@ const ItemCard = memo(function ItemCard({
 
       {/* 푸터: 메타 태그 배지 */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <MetaBadge>{formatSchoolGrade(item.schoolLevel, item.grade)}</MetaBadge>
-        <MetaBadge>{itemTypeLabel}</MetaBadge>
-        {difficultyLabel != null && <MetaBadge>{difficultyLabel}</MetaBadge>}
-        <MetaBadge>{formatRelativeDate(item.createdAt)}</MetaBadge>
+        <Badge variant="secondary">{formatSchoolGrade(item.schoolLevel, item.grade)}</Badge>
+        <Badge variant="secondary">{itemTypeLabel}</Badge>
+        {difficultyLabel != null && <Badge variant="secondary">{difficultyLabel}</Badge>}
+        <Badge variant="secondary">{formatRelativeDate(item.createdAt)}</Badge>
       </div>
-    </div>
+    </Card>
   );
 });
 

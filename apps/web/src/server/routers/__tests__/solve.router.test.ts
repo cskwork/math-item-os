@@ -171,7 +171,7 @@ describe("solve.router", () => {
       caller.submitResponse({
         sessionToken: session.session.token,
         assignmentItemId: "nonexistent-assignment-item",
-        answer: { value: "42", format: "exact_value" },
+        studentAnswer: { value: "42", format: "exact_value" },
       }),
     ).rejects.toBeDefined();
   });

@@ -157,7 +157,7 @@ export async function executeCode(
     compileOutput: data.compile_output,
     status: {
       id: data.status?.id ?? 0,
-      description: translateStatus(data.status?.id),
+      description: translateStatus(data.status?.id ?? 0),
     },
     time: data.time,
     memory: data.memory,

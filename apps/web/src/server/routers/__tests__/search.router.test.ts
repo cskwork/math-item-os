@@ -349,7 +349,14 @@ describe("search.router", () => {
       {
         itemId: createdItemIds[0]!,
         score: 0.95,
-        signals: { skillOverlap: 0.8, difficultyDelta: 0.1, sameType: 1, bloomGap: 0, gradeGap: 0, standardOverlap: 0 },
+        signals: {
+          skillMatch: 0.8,
+          formulaStructure: 0.7,
+          prerequisiteDistance: 0.6,
+          textSemantic: 0.9,
+          difficultyProximity: 0.9,
+          misconceptionProfile: 0.5,
+        },
         explanation: "High similarity",
       },
     ]);
@@ -375,7 +382,14 @@ describe("search.router", () => {
       {
         itemId: "nonexistent-item-id-xyz",
         score: 0.5,
-        signals: { skillOverlap: 0, difficultyDelta: 0, sameType: 0, bloomGap: 0, gradeGap: 0, standardOverlap: 0 },
+        signals: {
+          skillMatch: 0,
+          formulaStructure: 0,
+          prerequisiteDistance: 0,
+          textSemantic: 0,
+          difficultyProximity: 0,
+          misconceptionProfile: 0,
+        },
         explanation: "Should be filtered",
       },
     ]);

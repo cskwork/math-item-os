@@ -174,7 +174,7 @@ function gradeMultipleChoice(
     return { result: "incorrect", score: 0, maxScore };
   }
 
-  const correctChoice = (choices as ChoiceData[]).find(
+  const correctChoice = (choices as unknown as ChoiceData[]).find(
     (c) => c.isCorrect === true,
   );
 

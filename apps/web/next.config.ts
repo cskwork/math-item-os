@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -6,8 +7,9 @@ const nextConfig: NextConfig = {
     "@math-item-os/shared",
     "@math-item-os/math-parser",
   ],
-  experimental: {
-    typedRoutes: true,
+  typedRoutes: true,
+  turbopack: {
+    root: path.resolve(__dirname, "../.."),
   },
 };
 

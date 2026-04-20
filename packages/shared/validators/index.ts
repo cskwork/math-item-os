@@ -394,7 +394,7 @@ export const listTemplatesSchema = paginationSchema;
 
 /** QTI 내보내기 */
 export const exportQtiSchema = z.object({
-  itemIds: z.array(z.string()).min(1),
+  itemId: z.string(),
 });
 
 /** 검수 제안 조회 */
@@ -409,10 +409,13 @@ export const exportAssignmentQtiSchema = z.object({
 
 /** LTI 플랫폼 등록 */
 export const registerLtiPlatformSchema = z.object({
+  name: z.string().min(1),
   issuer: z.string().url(),
   clientId: z.string(),
+  authEndpoint: z.string().url(),
+  tokenEndpoint: z.string().url(),
+  jwksEndpoint: z.string().url(),
   deploymentId: z.string().optional(),
-  jwksUri: z.string().url().optional(),
 });
 
 /** LTI 플랫폼 ID 조회 */

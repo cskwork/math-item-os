@@ -21,7 +21,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* 메인 콘텐츠 영역 */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main id="main-content" className="flex-1 overflow-y-auto bg-slate-50 p-6 dark:bg-slate-950">
+        <main id="main-content" className="flex-1 overflow-y-auto bg-muted/40 p-6">
           {children}
         </main>
         <HelpFab />

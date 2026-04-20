@@ -2,8 +2,81 @@
 
 @custom-variant dark (&:where(.dark *));
 
-/* Dark mode: ensure KaTeX formulas are visible */
+@theme {
+  --color-background: oklch(0.99 0.01 255);
+  --color-foreground: oklch(0.15 0.02 255);
+
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0.02 255);
+
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.15 0.02 255);
+
+  --color-primary: oklch(0.2 0.05 255);
+  --color-primary-foreground: oklch(0.98 0 0);
+
+  --color-secondary: oklch(0.96 0.01 255);
+  --color-secondary-foreground: oklch(0.2 0.05 255);
+
+  --color-muted: oklch(0.96 0.01 255);
+  --color-muted-foreground: oklch(0.55 0.02 255);
+
+  --color-accent: oklch(0.96 0.01 255);
+  --color-accent-foreground: oklch(0.2 0.05 255);
+
+  --color-destructive: oklch(0.6 0.15 20);
+  --color-destructive-foreground: oklch(0.98 0 0);
+
+  --color-border: oklch(0.92 0.01 255);
+  --color-input: oklch(0.92 0.01 255);
+  --color-ring: oklch(0.2 0.05 255);
+
+  --radius-lg: 0.5rem;
+  --radius-md: calc(var(--radius-lg) - 2px);
+  --radius-sm: calc(var(--radius-md) - 2px);
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+.dark {
+  --color-background: oklch(0.15 0.02 255);
+  --color-foreground: oklch(0.98 0.01 255);
+
+  --color-card: oklch(0.15 0.02 255);
+  --color-card-foreground: oklch(0.98 0.01 255);
+
+  --color-popover: oklch(0.15 0.02 255);
+  --color-popover-foreground: oklch(0.98 0.01 255);
+
+  --color-primary: oklch(0.98 0.01 255);
+  --color-primary-foreground: oklch(0.2 0.05 255);
+
+  --color-secondary: oklch(0.22 0.03 255);
+  --color-secondary-foreground: oklch(0.98 0.01 255);
+
+  --color-muted: oklch(0.22 0.03 255);
+  --color-muted-foreground: oklch(0.65 0.02 255);
+
+  --color-accent: oklch(0.22 0.03 255);
+  --color-accent-foreground: oklch(0.98 0.01 255);
+
+  --color-destructive: oklch(0.4 0.15 20);
+  --color-destructive-foreground: oklch(0.98 0 0);
+
+  --color-border: oklch(0.22 0.03 255);
+  --color-input: oklch(0.22 0.03 255);
+  --color-ring: oklch(0.8 0.05 255);
+}
+
 @layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Dark mode: ensure KaTeX formulas are visible */
   .dark .katex,
   .dark .katex .base,
   .dark .katex .strut,

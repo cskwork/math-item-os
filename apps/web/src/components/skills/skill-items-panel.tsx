@@ -167,8 +167,8 @@ const ItemCard = memo(function ItemCard({
       onClick={handleClick}
       disabled={!onItemClick}
       className={cn(
-        "w-full rounded-lg border border-slate-200 p-3 text-left transition-colors",
-        onItemClick ? "cursor-pointer hover:border-blue-300 hover:bg-blue-50/50" : "cursor-default",
+        "w-full rounded-lg border bg-card p-3 text-left transition-colors",
+        onItemClick ? "cursor-pointer hover:border-primary/50 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : "cursor-default",
       )}
     >
       <div className="line-clamp-2 min-h-[2.5rem] overflow-hidden">

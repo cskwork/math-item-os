@@ -163,8 +163,8 @@ function ResultsSkeleton() {
 // --- 빈 결과 ---
 function EmptyResults() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-      <svg className="mb-3 h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-muted-foreground">
+      <svg className="mb-4 h-10 w-10 text-muted-foreground/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>

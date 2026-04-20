@@ -156,10 +156,10 @@ const ItemCard = memo(function ItemCard({
       onClick={onClick ? handleClick : undefined}
       onKeyDown={onClick ? handleKeyDown : undefined}
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900",
+        "flex flex-col gap-3 rounded-xl border bg-card text-card-foreground p-4",
         "transition-shadow duration-150",
-        onClick && "cursor-pointer hover:border-slate-300 hover:shadow-md dark:hover:border-slate-600",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950",
+        onClick && "cursor-pointer hover:shadow-md hover:border-accent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}
     >

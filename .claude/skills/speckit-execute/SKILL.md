@@ -115,12 +115,6 @@ execute-phases.sh
 | `--model M` | (default) | Override model (sonnet, opus, haiku) |
 | `--feature-dir D` | auto-detect | Override feature directory |
 
-## Design Rationale
+## State and logs
 
-- **Phase isolation via `claude -p`**: Each phase starts with zero conversation history.
-  CLAUDE.md, memory, and MCP servers reload fresh. No context bleed between phases.
-- **Task isolation via Agent subagents**: Within a phase, each task runs in a subagent
-  with its own context. The phase controller only accumulates verification results.
-- **Progress via filesystem**: tasks.md `[x]` marks persist across sessions.
-  The script auto-skips completed tasks on resume.
-- **Logs**: Each phase writes to `FEATURE_DIR/.execution-logs/phase-N-TIMESTAMP.log`.
+Completed task markers in `tasks.md` persist across sessions. Reconcile them against `FEATURE_DIR/.execution-logs/phase-N-TIMESTAMP.log`; a marked task alone is not evidence that required checks passed. The runner skips completed tasks on resume.

@@ -99,6 +99,9 @@ jobs:
           pnpm --filter @math-item-os/db exec prisma migrate deploy
           pnpm --filter @math-item-os/db exec prisma db push --skip-generate --accept-data-loss
       - name: Run vitest with coverage
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_DISPOSABLE: "1"
         run: pnpm --filter @math-item-os/web test:coverage
       - name: Upload coverage artifact
         if: always()

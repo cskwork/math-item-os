@@ -34,7 +34,7 @@ brew install colima qemu lima-additional-guestagents
 Colima는 Docker Desktop과 **다른 Docker 데몬**이다. 볼륨이 공유되지 않으므로 Postgres 데이터는 반드시 pg_dump로 백업해야 한다.
 
 ```bash
-cd /Users/danny/Documents/PARA/Resource/hwp-to-html
+cd ~/Documents/PARA/Resource/hwp-to-html
 
 # 1) Postgres 백업 (Docker Desktop 데몬이 아직 살아 있을 때)
 mkdir -p /tmp/colima-migration
@@ -85,7 +85,7 @@ set -e
 echo "kernel.apparmor_restrict_unprivileged_userns=0" | sudo tee /etc/sysctl.d/99-judge0.conf
 sudo sysctl -p /etc/sysctl.d/99-judge0.conf
 EOF
-# colima가 /Users/danny를 VM에 마운트하므로 홈 디렉토리로 옮겨서 실행
+# colima가 /Users/<user>를 VM에 마운트하므로 홈 디렉토리로 옮겨서 실행
 mv /tmp/setup-judge0-sysctl.sh ~/setup-judge0-sysctl.sh
 colima ssh -- bash ~/setup-judge0-sysctl.sh
 rm ~/setup-judge0-sysctl.sh
@@ -105,7 +105,7 @@ colima ssh -- cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns
 ## 6. 인프라 컨테이너 기동 + 데이터 복원
 
 ```bash
-cd /Users/danny/Documents/PARA/Resource/hwp-to-html
+cd ~/Documents/PARA/Resource/hwp-to-html
 
 # 인프라 먼저
 docker compose up -d postgres redis meilisearch
@@ -217,7 +217,7 @@ open -a Docker
 docker context use desktop-linux
 
 # 필요하면 기존 Docker Desktop 스택 재기동
-cd /Users/danny/Documents/PARA/Resource/hwp-to-html
+cd ~/Documents/PARA/Resource/hwp-to-html
 docker compose up -d
 ```
 

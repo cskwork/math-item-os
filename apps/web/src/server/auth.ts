@@ -38,6 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (process.env.NODE_ENV !== "development") {
+          return null;
+        }
+
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
 
@@ -70,11 +74,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     // JWT에 사용자 정보 저장
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
+      if (
+        process.env.NODE_ENV !== "development" &&
+        (user?.email === DEV_EMAIL || token.email === DEV_EMAIL)
+      ) {
+        return null;
       }
-      return token;
+
+      if (user) {
+        // Auth.js passes the adapter's persisted User ID, not the provider subject.
+        token.id = user.id;
+      }
+      if (typeof token.id !== "string" || !token.id) {
+        return null;
+      }
+      try {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { role: true },
+        });
+        if (!currentUser) {
+          return null;
+        }
+        token.role = currentUser.role;
+        return token;
+      } catch {
+        // A missing database must not preserve cached privileges.
+        return null;
+      }
     },
     // 세션에 user role 포함
     session({ session, token }) {

@@ -8,8 +8,9 @@ const DEV_EMAIL = "dev@mathitem.local";
 const DEV_PASSWORD = "dev1234";
 
 export default function SignInPage() {
-  const [email, setEmail] = useState(DEV_EMAIL);
-  const [password, setPassword] = useState(DEV_PASSWORD);
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const [email, setEmail] = useState(isDevelopment ? DEV_EMAIL : "");
+  const [password, setPassword] = useState(isDevelopment ? DEV_PASSWORD : "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +44,7 @@ export default function SignInPage() {
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">로그인</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {isDevelopment ? <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label
               htmlFor="email"
@@ -85,9 +86,17 @@ export default function SignInPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "로그인 중..." : "로그인"}
           </Button>
-        </form>
+        </form> : (
+          <Button
+            type="button"
+            className="w-full"
+            onClick={() => signIn("google", { callbackUrl: "/items" })}
+          >
+            Google 로그인
+          </Button>
+        )}
 
-        <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+        {isDevelopment && <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           <p className="font-medium text-slate-600 dark:text-slate-300">개발용 계정</p>
           <p className="mt-1">
             Email: <code className="text-slate-700 dark:text-slate-300">{DEV_EMAIL}</code>
@@ -95,7 +104,7 @@ export default function SignInPage() {
           <p>
             Password: <code className="text-slate-700 dark:text-slate-300">{DEV_PASSWORD}</code>
           </p>
-        </div>
+        </div>}
       </div>
     </div>
   );
